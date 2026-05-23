@@ -20,14 +20,15 @@ class Enemy {
     this.phase = Math.random() * Math.PI * 2;
   }
 
-  update(dt, hero) {
+  update(dt, hero, movementScale) {
     if (this.dead) {
       return;
     }
 
+    const travelDt = dt * (movementScale || 1);
     const dir = normalizeVector(hero.x - this.x, hero.y - this.y);
-    this.x += dir.x * this.speed * dt;
-    this.y += dir.y * this.speed * dt;
+    this.x += dir.x * this.speed * travelDt;
+    this.y += dir.y * this.speed * travelDt;
     this.phase += dt * 4;
     this.hitFlash = Math.max(0, this.hitFlash - dt);
 

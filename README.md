@@ -12,15 +12,17 @@
 
 ## 核心操作
 
-- 点击启动页开始。
+- 每一关开始前选择 `普通难度` 或 `+1 难度`；`+1` 会让本关敌人移动、出怪与场景滚动速度提高 `50%`。
+- 右上角 `音乐 开 / 音乐 关` 可以随时切换背景音乐，首次启动默认为开启。
 - 看到 `↑ / ↓ / ← / →` 时，按箭头方向划线；看到 `V / ∧` 时，照形状画。
-- 进入第三关后新增 `○ / Z` 两种符咒，照形状绘制即可。
+- 进入第三关后新增 `○` 圆形符咒，沿着圆环绘制即可。
 - 敌人符号队列清空后消失并加分。
 - 一次施法会命中所有“队列首符号”匹配的敌人；多符号敌人需要连续画完队列才会消失。
-- 第一关消灭最终幽灵后会自动进入第二关，第二关结束后进入第三关；得分和剩余生命会延续。
+- 第一关与第二关结束后会进入下一关难度选择页；重新选择后继续闯关，得分和剩余生命会延续。
 - 第二关的海洋怪物只展示当前需要绘制的符号，圆点表示尚未揭示的后续符号数量。
 - 第三关的企鹅主题敌人沿用隐藏队列机制，长 Boss 队列会显示当前符号和剩余数量。
 - 三关 Boss 的符咒数量依次为 `6 / 8 / 10`，第三关出怪更密且移动更快。
+- 通关或失败后点击重开会回到第一关难度选择页。
 - 敌人碰到主角扣 1 点生命，生命归零失败。
 - 猫猫位置固定在屏幕下方，滚动背景会呈现持续向屏幕上方行走的效果。
 
@@ -32,6 +34,7 @@
 - 第二关怪物：`assets/images/enemy-jellyfish.png`、`assets/images/enemy-pufferfish.png`、`assets/images/enemy-shark.png` 与 `assets/images/boss-megalodon.png`。
 - 第三关背景：`assets/images/penguin-hotel-corridor-loop.jpg`，企鹅酒店主题启发的原创极地冰川长廊，以冰蓝材质和极光灯带构成滚动场景。
 - 第三关怪物：`assets/images/enemy-penguin-bellhop.png`、`assets/images/enemy-penguin-chef.png` 与 `assets/images/boss-emperor-penguin.png`。
+- 关卡音乐：`assets/audio/bgm-castle.wav`、`assets/audio/bgm-ocean.wav` 与 `assets/audio/bgm-penguin-hotel.wav`，分别对应三关主题的原创循环背景音乐。
 - 角色为使用 `imagegen` 生成并本地去背处理的原创奶油橘色小法师猫，不使用参考游戏角色素材。
 - 若贴图加载失败，游戏会自动回退到内置 Canvas 主角绘制。
 
@@ -43,4 +46,5 @@ node test/game-state.test.js
 node test/asset-manager.test.js
 node test/level-director.test.js
 node test/renderer.test.js
+node test/sound-manager.test.js
 ```

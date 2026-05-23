@@ -186,20 +186,21 @@ function recognizeCircle(points, bounds) {
   const ratio = bounds.width / bounds.height;
   const maxSide = Math.max(bounds.width, bounds.height);
   const perimeter = 2 * (bounds.width + bounds.height);
-  if (ratio < 0.55 || ratio > 1.72) {
+  if (ratio < 0.5 || ratio > 1.9) {
     return SYMBOLS.UNKNOWN;
   }
 
-  if (pointDistance(points[0], points[points.length - 1]) > maxSide * 0.58) {
+  // Let players leave a visible gap when drawing a quick ring gesture.
+  if (pointDistance(points[0], points[points.length - 1]) > maxSide * 0.84) {
     return SYMBOLS.UNKNOWN;
   }
 
-  if (pathLength(points) < perimeter * 0.58) {
+  if (pathLength(points) < perimeter * 0.48) {
     return SYMBOLS.UNKNOWN;
   }
 
   const turn = angularTravel(points, bounds);
-  if (Math.abs(turn.signed) < Math.PI * 1.42 || Math.abs(turn.signed) < turn.total * 0.72) {
+  if (Math.abs(turn.signed) < Math.PI * 1.16 || Math.abs(turn.signed) < turn.total * 0.58) {
     return SYMBOLS.UNKNOWN;
   }
 

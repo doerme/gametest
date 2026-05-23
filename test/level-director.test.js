@@ -44,13 +44,15 @@ assert.strictEqual(enemies.length, director.total);
 assert.ok(enemies.some((enemy) => enemy.species === 'penguinBellhop'));
 assert.ok(enemies.some((enemy) => enemy.species === 'penguinChef'));
 assert.ok(enemies.some((enemy) => enemy.symbols.includes(SYMBOLS.CIRCLE)));
-assert.ok(enemies.some((enemy) => enemy.symbols.includes(SYMBOLS.Z)));
+assert.ok(enemies.every((enemy) => !enemy.symbols.includes(SYMBOLS.Z)));
+assert.ok(enemies.filter((enemy) => enemy.symbols.includes(SYMBOLS.CIRCLE)).length >= 12);
 assert.ok(enemies.every((enemy) => enemy.symbolDisplay === 'current-and-dots'));
 assert.strictEqual(boss.species, 'emperorPenguin');
 assert.strictEqual(boss.kind, 'boss');
 assert.strictEqual(boss.score, 1000);
 assert.strictEqual(boss.speed, 37);
 assert.strictEqual(boss.symbols.length, 10);
+assert.strictEqual(boss.symbols.filter((symbol) => symbol === SYMBOLS.CIRCLE).length, 4);
 assert.strictEqual(LevelDirector.LEVELS[2].timeline[21].time, 51);
 
 console.log('level-director.test.js passed');

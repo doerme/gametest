@@ -105,8 +105,8 @@ function bootstrap() {
   input.onGesture = function onGesture(points) {
     state.handleGesture(points);
   };
-  input.onTap = function onTap() {
-    state.handleTap();
+  input.onTap = function onTap(point) {
+    state.handleTap(point);
   };
   input.bind();
 

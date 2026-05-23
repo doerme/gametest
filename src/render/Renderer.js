@@ -2,6 +2,8 @@
 
 const { LABELS } = require('../input/GestureRecognizer');
 const { SCREENS } = require('../core/GameState');
+const { DIFFICULTY_MODES, getDifficultyButtons } = require('../ui/DifficultySelector');
+const { getAudioToggleBounds } = require('../ui/AudioToggle');
 
 const ENEMY_ASSET_KEYS = {
   jellyfish: 'enemyJellyfish',
@@ -28,6 +30,11 @@ function getSymbolIndicators(enemy) {
   return enemy.symbols.map((symbol, index) => (
     index === 0 ? { type: 'symbol', symbol } : { type: 'dot' }
   ));
+}
+
+function getLevelLabel(state, visibleLevel) {
+  const difficultyLabel = state.screen !== SCREENS.LEVEL_TRANSITION && state.difficulty === DIFFICULTY_MODES.PLUS_ONE ? '  +1' : '';
+  return '第 ' + (visibleLevel || state.level) + '/' + state.totalLevels + ' 关' + difficultyLabel;
 }
 
 class Renderer {
@@ -57,18 +64,20 @@ class Renderer {
     this.drawHud(state, visibleLevel);
 
     if (state.screen === SCREENS.TITLE) {
-      this.drawOverlay('幽光古堡', '划箭头方向；V 和 ∧ 照形状画', '点击开始');
+      this.drawDifficultyOverlay('幽光古堡', '划箭头方向；V 和 ∧ 照形状画', '选择难度开始游戏');
     } else if (state.screen === SCREENS.LEVEL_TRANSITION) {
       if (visibleLevel === 3) {
-        this.drawOverlay('第三关', '极光企鹅酒店', '新增符咒：○ / Z');
+        this.drawDifficultyOverlay('极光企鹅酒店', '第三关 · 新增符咒：○', '选择本关难度');
       } else {
-        this.drawOverlay('第二关', '深海飞船长廊', '准备迎战海洋生物');
+        this.drawDifficultyOverlay('深海飞船长廊', '第二关 · 准备迎战海洋生物', '选择本关难度');
       }
     } else if (state.screen === SCREENS.WIN) {
       this.drawOverlay('三关通关', '得分 ' + state.score, '点击再来一局');
     } else if (state.screen === SCREENS.LOSE) {
       this.drawOverlay('魔力耗尽', '得分 ' + state.score, '点击重试');
     }
+
+    this.drawAudioToggle(state.musicEnabled);
   }
 
   drawBackground(elapsed, level) {
@@ -800,7 +809,7 @@ class Renderer {
     ctx.fillStyle = '#d8e6ff';
     ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('第 ' + (visibleLevel || state.level) + '/' + state.totalLevels + ' 关', this.width * 0.5, 31);
+    ctx.fillText(getLevelLabel(state, visibleLevel), this.width * 0.5, 31);
 
     for (let i = 0; i < 5; i += 1) {
       this.drawHeart(this.width - 28 - i * 26, 31, i < state.lives);
@@ -829,6 +838,72 @@ class Renderer {
     ctx.restore();
   }
 
+  drawDifficultyOverlay(title, subtitle, prompt) {
+    const ctx = this.ctx;
+    ctx.fillStyle = 'rgba(8, 13, 25, 0.7)';
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff2c2';
+    ctx.font = 'bold 40px sans-serif';
+    ctx.fillText(title, this.width * 0.5, this.height * 0.29);
+
+    ctx.fillStyle = '#d8e6ff';
+    ctx.font = '20px sans-serif';
+    ctx.fillText(subtitle, this.width * 0.5, this.height * 0.38);
+
+    ctx.fillStyle = '#ffdc6f';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText(prompt, this.width * 0.5, this.height * 0.46);
+
+    const buttons = getDifficultyButtons(this.width, this.height);
+    for (let i = 0; i < buttons.length; i += 1) {
+      this.drawDifficultyButton(buttons[i], buttons[i].mode === DIFFICULTY_MODES.PLUS_ONE);
+    }
+  }
+
+  drawDifficultyButton(button, emphasized) {
+    const ctx = this.ctx;
+    ctx.fillStyle = emphasized ? 'rgba(255, 220, 111, 0.19)' : 'rgba(216, 230, 255, 0.1)';
+    ctx.strokeStyle = emphasized ? '#ffdc6f' : 'rgba(216, 230, 255, 0.72)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(button.x, button.y, button.width, button.height, 12);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = emphasized ? '#ffdc6f' : '#fff2c2';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.fillText(button.label, button.x + 18, button.y + button.height * 0.5);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#d8e6ff';
+    ctx.font = '15px sans-serif';
+    ctx.fillText(button.detail, button.x + button.width - 18, button.y + button.height * 0.5);
+  }
+
+  drawAudioToggle(enabled) {
+    const ctx = this.ctx;
+    const button = getAudioToggleBounds(this.width);
+    ctx.save();
+    ctx.fillStyle = enabled ? 'rgba(255, 220, 111, 0.17)' : 'rgba(216, 230, 255, 0.1)';
+    ctx.strokeStyle = enabled ? '#ffdc6f' : 'rgba(216, 230, 255, 0.64)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(button.x, button.y, button.width, button.height, 17);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = enabled ? '#ffdc6f' : '#d8e6ff';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillText(enabled ? '音乐 开' : '音乐 关', button.x + button.width * 0.5, button.y + button.height * 0.5);
+    ctx.restore();
+  }
+
   drawOverlay(title, subtitle, action) {
     const ctx = this.ctx;
     ctx.fillStyle = 'rgba(8, 13, 25, 0.64)';
@@ -851,5 +926,6 @@ class Renderer {
 }
 
 Renderer.getSymbolIndicators = getSymbolIndicators;
+Renderer.getLevelLabel = getLevelLabel;
 
 module.exports = Renderer;

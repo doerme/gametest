@@ -2,6 +2,8 @@
 
 const LevelDirector = require('../levels/LevelDirector');
 const { recognize, SYMBOLS } = require('../input/GestureRecognizer');
+const { DIFFICULTY_MODES, getDifficulty, findDifficultyAtPoint } = require('../ui/DifficultySelector');
+const { isAudioToggleHit } = require('../ui/AudioToggle');
 
 const SCREENS = {
   TITLE: 'title',
@@ -10,8 +12,6 @@ const SCREENS = {
   WIN: 'win',
   LOSE: 'lose'
 };
-
-const LEVEL_TRANSITION_DURATION = 2;
 
 const ANIMATION_DURATIONS = {
   cast: 0.38,
@@ -26,6 +26,12 @@ class GameState {
     this.sound = sound;
     this.hero = this.createHero(width, height);
     this.director = new LevelDirector(width, height);
+    this.difficulty = null;
+    this.timeScale = 1;
+    this.musicEnabled = true;
+    if (this.sound && this.sound.setMusicEnabled) {
+      this.sound.setMusicEnabled(true);
+    }
     this.screen = SCREENS.TITLE;
     this.resetRun();
   }
@@ -64,11 +70,15 @@ class GameState {
     this.director.reset(this.width, this.height, this.level);
   }
 
-  start() {
+  start(difficultyMode) {
+    this.selectDifficulty(difficultyMode);
     this.resetRun();
     this.screen = SCREENS.PLAYING;
     if (this.sound) {
       this.sound.play('start');
+      if (this.sound.playMusic) {
+        this.sound.playMusic(this.level);
+      }
     }
   }
 
@@ -76,10 +86,6 @@ class GameState {
     this.updateAnimations(dt);
 
     if (this.screen === SCREENS.LEVEL_TRANSITION) {
-      this.transitionRemaining = Math.max(0, this.transitionRemaining - dt);
-      if (this.transitionRemaining === 0) {
-        this.startNextLevel();
-      }
       return;
     }
 
@@ -87,12 +93,13 @@ class GameState {
       return;
     }
 
-    this.elapsed += dt;
+    const playDt = dt * this.timeScale;
+    this.elapsed += playDt;
     this.director.update(this.elapsed, this.enemies);
 
     for (let i = 0; i < this.enemies.length; i += 1) {
       const enemy = this.enemies[i];
-      enemy.update(dt, this.hero);
+      enemy.update(dt, this.hero, this.timeScale);
       if (enemy.reachedHero) {
         this.lives -= 1;
         this.combo = 0;
@@ -109,6 +116,9 @@ class GameState {
     if (this.lives <= 0) {
       this.screen = SCREENS.LOSE;
       if (this.sound) {
+        if (this.sound.stopMusic) {
+          this.sound.stopMusic();
+        }
         this.sound.play('lose');
       }
       return;
@@ -120,6 +130,9 @@ class GameState {
       } else {
         this.screen = SCREENS.WIN;
         if (this.sound) {
+          if (this.sound.stopMusic) {
+            this.sound.stopMusic();
+          }
           this.sound.play('win');
         }
       }
@@ -128,13 +141,23 @@ class GameState {
 
   beginLevelTransition() {
     this.screen = SCREENS.LEVEL_TRANSITION;
-    this.transitionRemaining = LEVEL_TRANSITION_DURATION;
+    this.transitionRemaining = 0;
     this.combo = 0;
     this.feedback = null;
     this.enemies = [];
+    if (this.sound && this.sound.playMusic) {
+      this.sound.playMusic(this.level + 1);
+    }
   }
 
-  startNextLevel() {
+  selectDifficulty(difficultyMode) {
+    const difficulty = getDifficulty(difficultyMode || DIFFICULTY_MODES.NORMAL);
+    this.difficulty = difficulty.id;
+    this.timeScale = difficulty.timeScale;
+  }
+
+  startNextLevel(difficultyMode) {
+    this.selectDifficulty(difficultyMode);
     this.level += 1;
     this.elapsed = 0;
     this.combo = 0;
@@ -200,15 +223,45 @@ class GameState {
     });
   }
 
-  handleTap() {
-    if (this.screen === SCREENS.TITLE || this.screen === SCREENS.WIN || this.screen === SCREENS.LOSE) {
-      this.start();
+  toggleMusic() {
+    this.musicEnabled = !this.musicEnabled;
+    if (this.sound && this.sound.setMusicEnabled) {
+      this.sound.setMusicEnabled(this.musicEnabled);
+    }
+  }
+
+  handleTap(point) {
+    if (isAudioToggleHit(this.width, point)) {
+      this.toggleMusic();
+      return;
+    }
+
+    if (this.screen === SCREENS.TITLE) {
+      const selectedDifficulty = findDifficultyAtPoint(this.width, this.height, point);
+      if (selectedDifficulty) {
+        this.start(selectedDifficulty);
+      }
+      return;
+    }
+
+    if (this.screen === SCREENS.LEVEL_TRANSITION) {
+      const selectedDifficulty = findDifficultyAtPoint(this.width, this.height, point);
+      if (selectedDifficulty) {
+        this.startNextLevel(selectedDifficulty);
+      }
+      return;
+    }
+
+    if (this.screen === SCREENS.WIN || this.screen === SCREENS.LOSE) {
+      this.difficulty = null;
+      this.timeScale = 1;
+      this.resetRun();
+      this.screen = SCREENS.TITLE;
     }
   }
 
   handleGesture(points) {
     if (this.screen !== SCREENS.PLAYING) {
-      this.handleTap();
       return SYMBOLS.UNKNOWN;
     }
 

@@ -1,0 +1,40 @@
+{
+    "description": "Original gesture spell mini game MVP",
+    "appid": "wxb8fc97b860b32dd8",
+    "projectname": "gesture-spell-mvp",
+    "compileType": "game",
+    "libVersion": "3.7.12",
+    "setting": {
+        "urlCheck": false,
+        "es6": true,
+        "enhance": true,
+        "postcss": false,
+        "minified": false,
+        "uglifyFileName": false,
+        "compileWorklet": false,
+        "uploadWithSourceMap": true,
+        "packNpmManually": false,
+        "packNpmRelationList": [],
+        "minifyWXSS": true,
+        "minifyWXML": true,
+        "localPlugins": false,
+        "disableUseStrict": false,
+        "useCompilerPlugins": false,
+        "condition": false,
+        "swc": false,
+        "disableSWC": true,
+        "babelSetting": {
+            "ignore": [],
+            "disablePlugins": [],
+            "outputPath": ""
+        }
+    },
+    "condition": {},
+    "simulatorPluginLibVersion": {},
+    "packOptions": {
+        "ignore": [],
+        "include": []
+    },
+    "isGameTourist": false,
+    "editorSetting": {}
+}

@@ -1,0 +1,10 @@
+# Local developer tool settings
+project.private.config.json
+
+# Downloaded installers
+*.dmg
+
+# Generated and system files
+node_modules/
+coverage/
+.DS_Store

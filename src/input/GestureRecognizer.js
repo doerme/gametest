@@ -7,6 +7,8 @@ const SYMBOLS = {
   RIGHT: 'right',
   V: 'v',
   CARET: 'caret',
+  CIRCLE: 'circle',
+  Z: 'z',
   UNKNOWN: 'unknown'
 };
 
@@ -17,6 +19,8 @@ const LABELS = {
   [SYMBOLS.RIGHT]: '→',
   [SYMBOLS.V]: 'V',
   [SYMBOLS.CARET]: '∧',
+  [SYMBOLS.CIRCLE]: '○',
+  [SYMBOLS.Z]: 'Z',
   [SYMBOLS.UNKNOWN]: '?'
 };
 
@@ -148,6 +152,112 @@ function recognizeVShape(points, bounds) {
   return SYMBOLS.UNKNOWN;
 }
 
+function pointDistance(a, b) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function angularTravel(points, bounds) {
+  const center = {
+    x: bounds.minX + bounds.width / 2,
+    y: bounds.minY + bounds.height / 2
+  };
+  let previous = Math.atan2(points[0].y - center.y, points[0].x - center.x);
+  let signed = 0;
+  let total = 0;
+
+  for (let i = 1; i < points.length; i += 1) {
+    const next = Math.atan2(points[i].y - center.y, points[i].x - center.x);
+    const delta = Math.atan2(Math.sin(next - previous), Math.cos(next - previous));
+    signed += delta;
+    total += Math.abs(delta);
+    previous = next;
+  }
+
+  return { signed, total };
+}
+
+function recognizeCircle(points, bounds) {
+  if (points.length < 5 || bounds.width < 28 || bounds.height < 28) {
+    return SYMBOLS.UNKNOWN;
+  }
+
+  const ratio = bounds.width / bounds.height;
+  const maxSide = Math.max(bounds.width, bounds.height);
+  const perimeter = 2 * (bounds.width + bounds.height);
+  if (ratio < 0.55 || ratio > 1.72) {
+    return SYMBOLS.UNKNOWN;
+  }
+
+  if (pointDistance(points[0], points[points.length - 1]) > maxSide * 0.58) {
+    return SYMBOLS.UNKNOWN;
+  }
+
+  if (pathLength(points) < perimeter * 0.58) {
+    return SYMBOLS.UNKNOWN;
+  }
+
+  const turn = angularTravel(points, bounds);
+  if (Math.abs(turn.signed) < Math.PI * 1.42 || Math.abs(turn.signed) < turn.total * 0.72) {
+    return SYMBOLS.UNKNOWN;
+  }
+
+  return SYMBOLS.CIRCLE;
+}
+
+function followsZDirection(points, bounds) {
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (
+    first.x > bounds.minX + bounds.width * 0.45 ||
+    first.y > bounds.minY + bounds.height * 0.45 ||
+    last.x < bounds.maxX - bounds.width * 0.45 ||
+    last.y < bounds.maxY - bounds.height * 0.45
+  ) {
+    return false;
+  }
+
+  for (let topIndex = 1; topIndex < points.length - 2; topIndex += 1) {
+    const topRight = points[topIndex];
+    if (
+      topRight.x - first.x < bounds.width * 0.4 ||
+      Math.abs(topRight.y - first.y) > bounds.height * 0.4 ||
+      topRight.y > bounds.minY + bounds.height * 0.43
+    ) {
+      continue;
+    }
+
+    for (let bottomIndex = topIndex + 1; bottomIndex < points.length - 1; bottomIndex += 1) {
+      const bottomLeft = points[bottomIndex];
+      if (
+        topRight.x - bottomLeft.x >= bounds.width * 0.32 &&
+        bottomLeft.y - topRight.y >= bounds.height * 0.36 &&
+        bottomLeft.x <= bounds.minX + bounds.width * 0.43 &&
+        bottomLeft.y >= bounds.maxY - bounds.height * 0.43 &&
+        last.x - bottomLeft.x >= bounds.width * 0.4 &&
+        Math.abs(last.y - bottomLeft.y) <= bounds.height * 0.4
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function recognizeZShape(points, bounds) {
+  if (points.length < 4 || bounds.width < 28 || bounds.height < 28) {
+    return SYMBOLS.UNKNOWN;
+  }
+
+  if (followsZDirection(points, bounds) || followsZDirection(points.slice().reverse(), bounds)) {
+    return SYMBOLS.Z;
+  }
+
+  return SYMBOLS.UNKNOWN;
+}
+
 function recognize(points) {
   const simplified = simplify(points);
   if (simplified.length < 2) {
@@ -157,6 +267,16 @@ function recognize(points) {
   const bounds = getBounds(simplified);
   if (pathLength(simplified) < 24) {
     return SYMBOLS.UNKNOWN;
+  }
+
+  const circle = recognizeCircle(simplified, bounds);
+  if (circle !== SYMBOLS.UNKNOWN) {
+    return circle;
+  }
+
+  const zShape = recognizeZShape(simplified, bounds);
+  if (zShape !== SYMBOLS.UNKNOWN) {
+    return zShape;
   }
 
   const vShape = recognizeVShape(simplified, bounds);

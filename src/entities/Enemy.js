@@ -11,6 +11,8 @@ class Enemy {
     this.symbols = config.symbols.slice();
     this.score = config.score || 100;
     this.kind = config.kind || 'normal';
+    this.species = config.species || 'ghost';
+    this.symbolDisplay = config.symbolDisplay || 'queue';
     this.maxSymbols = this.symbols.length;
     this.hitFlash = 0;
     this.dead = false;

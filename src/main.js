@@ -87,6 +87,15 @@ function bootstrap() {
   const assets = new AssetManager(wxApi);
   assets.loadImage('catWalk', 'assets/images/cat-walk-sheet.png');
   assets.loadImage('castleCorridorLoop', 'assets/images/castle-corridor-loop.jpg');
+  assets.loadImage('oceanSpaceshipCorridorLoop', 'assets/images/ocean-spaceship-corridor-loop.jpg');
+  assets.loadImage('enemyJellyfish', 'assets/images/enemy-jellyfish.png');
+  assets.loadImage('enemyPufferfish', 'assets/images/enemy-pufferfish.png');
+  assets.loadImage('enemyShark', 'assets/images/enemy-shark.png');
+  assets.loadImage('bossMegalodon', 'assets/images/boss-megalodon.png');
+  assets.loadImage('penguinHotelCorridorLoop', 'assets/images/penguin-hotel-corridor-loop.jpg');
+  assets.loadImage('enemyPenguinBellhop', 'assets/images/enemy-penguin-bellhop.png');
+  assets.loadImage('enemyPenguinChef', 'assets/images/enemy-penguin-chef.png');
+  assets.loadImage('bossEmperorPenguin', 'assets/images/boss-emperor-penguin.png');
 
   const sound = new SoundManager(wxApi);
   const state = new GameState(width, height, sound);

@@ -20,9 +20,27 @@ function makeWxImageApi() {
 const manager = new AssetManager(makeWxImageApi());
 manager.loadImage('catWalk', 'assets/images/cat-walk-sheet.png');
 manager.loadImage('castleCorridorLoop', 'assets/images/castle-corridor-loop.jpg');
+manager.loadImage('oceanSpaceshipCorridorLoop', 'assets/images/ocean-spaceship-corridor-loop.jpg');
+manager.loadImage('enemyJellyfish', 'assets/images/enemy-jellyfish.png');
+manager.loadImage('enemyPufferfish', 'assets/images/enemy-pufferfish.png');
+manager.loadImage('enemyShark', 'assets/images/enemy-shark.png');
+manager.loadImage('bossMegalodon', 'assets/images/boss-megalodon.png');
+manager.loadImage('penguinHotelCorridorLoop', 'assets/images/penguin-hotel-corridor-loop.jpg');
+manager.loadImage('enemyPenguinBellhop', 'assets/images/enemy-penguin-bellhop.png');
+manager.loadImage('enemyPenguinChef', 'assets/images/enemy-penguin-chef.png');
+manager.loadImage('bossEmperorPenguin', 'assets/images/boss-emperor-penguin.png');
 
 assert.ok(manager.getImage('catWalk'));
 assert.ok(manager.getImage('castleCorridorLoop'));
+assert.ok(manager.getImage('oceanSpaceshipCorridorLoop'));
+assert.ok(manager.getImage('enemyJellyfish'));
+assert.ok(manager.getImage('enemyPufferfish'));
+assert.ok(manager.getImage('enemyShark'));
+assert.ok(manager.getImage('bossMegalodon'));
+assert.ok(manager.getImage('penguinHotelCorridorLoop'));
+assert.ok(manager.getImage('enemyPenguinBellhop'));
+assert.ok(manager.getImage('enemyPenguinChef'));
+assert.ok(manager.getImage('bossEmperorPenguin'));
 assert.strictEqual(manager.getImage('missing'), null);
 
 const fallback = new AssetManager(null);

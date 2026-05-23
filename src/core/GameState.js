@@ -6,8 +6,17 @@ const { recognize, SYMBOLS } = require('../input/GestureRecognizer');
 const SCREENS = {
   TITLE: 'title',
   PLAYING: 'playing',
+  LEVEL_TRANSITION: 'level-transition',
   WIN: 'win',
   LOSE: 'lose'
+};
+
+const LEVEL_TRANSITION_DURATION = 2;
+
+const ANIMATION_DURATIONS = {
+  cast: 0.38,
+  impact: 0.52,
+  vanish: 0.62
 };
 
 class GameState {
@@ -40,11 +49,19 @@ class GameState {
   resetRun() {
     this.score = 0;
     this.lives = 5;
+    this.level = 1;
+    this.totalLevels = this.director.levelCount;
     this.elapsed = 0;
+    this.transitionRemaining = 0;
     this.combo = 0;
     this.enemies = [];
     this.feedback = null;
-    this.director.reset(this.width, this.height);
+    this.effects = [];
+    this.heroAnimation = {
+      cast: 0,
+      hurt: 0
+    };
+    this.director.reset(this.width, this.height, this.level);
   }
 
   start() {
@@ -56,6 +73,16 @@ class GameState {
   }
 
   update(dt) {
+    this.updateAnimations(dt);
+
+    if (this.screen === SCREENS.LEVEL_TRANSITION) {
+      this.transitionRemaining = Math.max(0, this.transitionRemaining - dt);
+      if (this.transitionRemaining === 0) {
+        this.startNextLevel();
+      }
+      return;
+    }
+
     if (this.screen !== SCREENS.PLAYING) {
       return;
     }
@@ -70,6 +97,7 @@ class GameState {
         this.lives -= 1;
         this.combo = 0;
         this.feedback = { text: '-1', age: 0, type: 'hurt' };
+        this.triggerHeroImpact();
         if (this.sound) {
           this.sound.play('hurt');
         }
@@ -87,11 +115,46 @@ class GameState {
     }
 
     if (this.director.isComplete(this.enemies)) {
-      this.screen = SCREENS.WIN;
-      if (this.sound) {
-        this.sound.play('win');
+      if (this.level < this.totalLevels) {
+        this.beginLevelTransition();
+      } else {
+        this.screen = SCREENS.WIN;
+        if (this.sound) {
+          this.sound.play('win');
+        }
       }
     }
+  }
+
+  beginLevelTransition() {
+    this.screen = SCREENS.LEVEL_TRANSITION;
+    this.transitionRemaining = LEVEL_TRANSITION_DURATION;
+    this.combo = 0;
+    this.feedback = null;
+    this.enemies = [];
+  }
+
+  startNextLevel() {
+    this.level += 1;
+    this.elapsed = 0;
+    this.combo = 0;
+    this.feedback = null;
+    this.enemies = [];
+    this.effects = [];
+    this.director.startLevel(this.level);
+    this.screen = SCREENS.PLAYING;
+    if (this.sound) {
+      this.sound.play('start');
+    }
+  }
+
+  updateAnimations(dt) {
+    this.heroAnimation.cast = Math.max(0, this.heroAnimation.cast - dt);
+    this.heroAnimation.hurt = Math.max(0, this.heroAnimation.hurt - dt);
+    for (let i = 0; i < this.effects.length; i += 1) {
+      this.effects[i].age += dt;
+    }
+    this.effects = this.effects.filter((effect) => effect.age < effect.duration);
 
     if (this.feedback) {
       this.feedback.age += dt;
@@ -99,6 +162,42 @@ class GameState {
         this.feedback = null;
       }
     }
+  }
+
+  addEffect(type, properties) {
+    this.effects.push(Object.assign({
+      type,
+      age: 0,
+      duration: ANIMATION_DURATIONS[type]
+    }, properties));
+  }
+
+  triggerCast(symbol) {
+    this.heroAnimation.cast = ANIMATION_DURATIONS.cast;
+    this.addEffect('cast', {
+      x: this.hero.x + this.hero.radius * 0.8,
+      y: this.hero.y - this.hero.radius * 0.85,
+      radius: this.hero.radius,
+      symbol
+    });
+  }
+
+  triggerHeroImpact() {
+    this.heroAnimation.hurt = ANIMATION_DURATIONS.impact;
+    this.addEffect('impact', {
+      x: this.hero.x,
+      y: this.hero.y - this.hero.radius * 0.2,
+      radius: this.hero.radius
+    });
+  }
+
+  triggerVanish(enemy) {
+    this.addEffect('vanish', {
+      x: enemy.x,
+      y: enemy.y,
+      radius: enemy.radius,
+      kind: enemy.kind
+    });
   }
 
   handleTap() {
@@ -114,6 +213,7 @@ class GameState {
     }
 
     const symbol = recognize(points);
+    this.triggerCast(symbol);
     const targets = this.findMatchingEnemies(symbol);
     if (targets.length === 0) {
       this.combo = 0;
@@ -133,6 +233,7 @@ class GameState {
       if (target.symbols.length === 0) {
         vanished += 1;
         earned += target.score;
+        this.triggerVanish(target);
       } else {
         partialHits += 1;
         earned += 30;

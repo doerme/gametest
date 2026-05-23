@@ -11,7 +11,7 @@ const LANES = [
   { x: 0.5, y: -0.03 }
 ];
 
-const TIMELINE = [
+const CASTLE_TIMELINE = [
   { time: 1.0, lane: 0, symbols: [SYMBOLS.RIGHT], speed: 42 },
   { time: 3.0, lane: 1, symbols: [SYMBOLS.LEFT], speed: 42 },
   { time: 5.2, lane: 2, symbols: [SYMBOLS.DOWN], speed: 46 },
@@ -33,26 +33,106 @@ const TIMELINE = [
   { time: 50.5, lane: 4, symbols: [SYMBOLS.UP, SYMBOLS.DOWN, SYMBOLS.V], speed: 28, radius: 35, score: 260 },
   { time: 56.0, lane: 0, symbols: [SYMBOLS.RIGHT], speed: 78, radius: 20, score: 140 },
   { time: 57.2, lane: 1, symbols: [SYMBOLS.LEFT], speed: 78, radius: 20, score: 140 },
-  { time: 60.0, lane: 4, symbols: [SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.CARET], speed: 26, radius: 42, score: 500, kind: 'boss' }
+  { time: 60.0, lane: 4, symbols: [SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.CARET, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.CARET], speed: 26, radius: 42, score: 500, kind: 'boss' }
+];
+
+const OCEAN_TIMELINE = [
+  { time: 1.0, lane: 0, species: 'jellyfish', symbols: [SYMBOLS.UP], speed: 48 },
+  { time: 2.8, lane: 1, species: 'jellyfish', symbols: [SYMBOLS.RIGHT], speed: 48 },
+  { time: 5.0, lane: 2, species: 'jellyfish', symbols: [SYMBOLS.V], speed: 52 },
+  { time: 7.0, lane: 3, species: 'jellyfish', symbols: [SYMBOLS.LEFT, SYMBOLS.DOWN], speed: 48, radius: 27, score: 170 },
+  { time: 10.0, lane: 0, species: 'pufferfish', symbols: [SYMBOLS.CARET, SYMBOLS.RIGHT], speed: 48, radius: 28, score: 180 },
+  { time: 12.2, lane: 1, species: 'jellyfish', symbols: [SYMBOLS.DOWN], speed: 58, radius: 22, score: 130 },
+  { time: 14.6, lane: 4, species: 'pufferfish', symbols: [SYMBOLS.RIGHT, SYMBOLS.V], speed: 45, radius: 29, score: 190 },
+  { time: 17.4, lane: 2, species: 'pufferfish', symbols: [SYMBOLS.LEFT, SYMBOLS.UP], speed: 47, radius: 29, score: 190 },
+  { time: 20.0, lane: 3, species: 'jellyfish', symbols: [SYMBOLS.UP], speed: 68, radius: 21, score: 140 },
+  { time: 22.0, lane: 0, species: 'pufferfish', symbols: [SYMBOLS.V, SYMBOLS.DOWN, SYMBOLS.RIGHT], speed: 40, radius: 32, score: 260 },
+  { time: 25.2, lane: 1, species: 'shark', symbols: [SYMBOLS.RIGHT, SYMBOLS.RIGHT], speed: 58, radius: 30, score: 210 },
+  { time: 27.5, lane: 2, species: 'shark', symbols: [SYMBOLS.LEFT, SYMBOLS.LEFT], speed: 58, radius: 30, score: 210 },
+  { time: 30.2, lane: 3, species: 'pufferfish', symbols: [SYMBOLS.CARET, SYMBOLS.V], speed: 54, radius: 29, score: 210 },
+  { time: 33.0, lane: 4, species: 'shark', symbols: [SYMBOLS.DOWN, SYMBOLS.UP, SYMBOLS.RIGHT], speed: 43, radius: 34, score: 290 },
+  { time: 37.0, lane: 0, species: 'jellyfish', symbols: [SYMBOLS.RIGHT], speed: 84, radius: 20, score: 150 },
+  { time: 38.4, lane: 1, species: 'jellyfish', symbols: [SYMBOLS.LEFT], speed: 84, radius: 20, score: 150 },
+  { time: 41.0, lane: 2, species: 'shark', symbols: [SYMBOLS.V, SYMBOLS.UP], speed: 62, radius: 30, score: 230 },
+  { time: 43.2, lane: 3, species: 'shark', symbols: [SYMBOLS.CARET, SYMBOLS.DOWN], speed: 62, radius: 30, score: 230 },
+  { time: 46.8, lane: 4, species: 'pufferfish', symbols: [SYMBOLS.UP, SYMBOLS.DOWN, SYMBOLS.V], speed: 44, radius: 34, score: 300 },
+  { time: 51.0, lane: 0, species: 'shark', symbols: [SYMBOLS.LEFT, SYMBOLS.V, SYMBOLS.RIGHT], speed: 55, radius: 33, score: 320 },
+  { time: 54.5, lane: 1, species: 'pufferfish', symbols: [SYMBOLS.RIGHT, SYMBOLS.CARET], speed: 67, radius: 28, score: 230 },
+  { time: 60.0, lane: 4, species: 'megalodon', symbols: [SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.CARET, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.CARET], speed: 32, radius: 48, score: 700, kind: 'boss' }
+];
+
+const PENGUIN_HOTEL_TIMELINE = [
+  { time: 0.9, lane: 0, species: 'penguinBellhop', symbols: [SYMBOLS.CIRCLE, SYMBOLS.RIGHT], speed: 55, score: 180 },
+  { time: 2.4, lane: 1, species: 'penguinChef', symbols: [SYMBOLS.Z, SYMBOLS.UP], speed: 55, score: 180 },
+  { time: 4.3, lane: 2, species: 'penguinBellhop', symbols: [SYMBOLS.CIRCLE, SYMBOLS.V], speed: 60, score: 190 },
+  { time: 6.0, lane: 3, species: 'penguinChef', symbols: [SYMBOLS.LEFT, SYMBOLS.Z], speed: 55, radius: 27, score: 210 },
+  { time: 8.5, lane: 0, species: 'penguinBellhop', symbols: [SYMBOLS.CARET, SYMBOLS.CIRCLE], speed: 55, radius: 28, score: 220 },
+  { time: 10.4, lane: 1, species: 'penguinChef', symbols: [SYMBOLS.DOWN, SYMBOLS.Z], speed: 67, radius: 23, score: 200 },
+  { time: 12.4, lane: 4, species: 'penguinBellhop', symbols: [SYMBOLS.RIGHT, SYMBOLS.CIRCLE, SYMBOLS.V], speed: 52, radius: 30, score: 280 },
+  { time: 14.8, lane: 2, species: 'penguinChef', symbols: [SYMBOLS.LEFT, SYMBOLS.Z, SYMBOLS.UP], speed: 54, radius: 30, score: 280 },
+  { time: 17.0, lane: 3, species: 'penguinBellhop', symbols: [SYMBOLS.UP, SYMBOLS.CIRCLE], speed: 78, radius: 22, score: 220 },
+  { time: 18.7, lane: 0, species: 'penguinChef', symbols: [SYMBOLS.V, SYMBOLS.DOWN, SYMBOLS.Z], speed: 46, radius: 33, score: 310 },
+  { time: 21.4, lane: 1, species: 'penguinBellhop', symbols: [SYMBOLS.Z, SYMBOLS.RIGHT, SYMBOLS.CIRCLE], speed: 67, radius: 31, score: 290 },
+  { time: 23.4, lane: 2, species: 'penguinChef', symbols: [SYMBOLS.CIRCLE, SYMBOLS.LEFT, SYMBOLS.Z], speed: 67, radius: 31, score: 290 },
+  { time: 25.7, lane: 3, species: 'penguinBellhop', symbols: [SYMBOLS.CARET, SYMBOLS.V, SYMBOLS.CIRCLE], speed: 62, radius: 30, score: 300 },
+  { time: 28.1, lane: 4, species: 'penguinChef', symbols: [SYMBOLS.DOWN, SYMBOLS.Z, SYMBOLS.UP, SYMBOLS.RIGHT], speed: 49, radius: 35, score: 380 },
+  { time: 31.5, lane: 0, species: 'penguinBellhop', symbols: [SYMBOLS.RIGHT, SYMBOLS.CIRCLE], speed: 97, radius: 21, score: 240 },
+  { time: 32.6, lane: 1, species: 'penguinChef', symbols: [SYMBOLS.LEFT, SYMBOLS.Z], speed: 97, radius: 21, score: 240 },
+  { time: 34.9, lane: 2, species: 'penguinBellhop', symbols: [SYMBOLS.V, SYMBOLS.CIRCLE, SYMBOLS.UP], speed: 71, radius: 31, score: 330 },
+  { time: 36.7, lane: 3, species: 'penguinChef', symbols: [SYMBOLS.Z, SYMBOLS.CARET, SYMBOLS.DOWN], speed: 71, radius: 31, score: 330 },
+  { time: 39.8, lane: 4, species: 'penguinBellhop', symbols: [SYMBOLS.UP, SYMBOLS.CIRCLE, SYMBOLS.DOWN, SYMBOLS.V], speed: 51, radius: 35, score: 400 },
+  { time: 43.4, lane: 0, species: 'penguinChef', symbols: [SYMBOLS.LEFT, SYMBOLS.Z, SYMBOLS.V, SYMBOLS.RIGHT], speed: 63, radius: 34, score: 430 },
+  { time: 46.3, lane: 1, species: 'penguinBellhop', symbols: [SYMBOLS.RIGHT, SYMBOLS.CIRCLE, SYMBOLS.CARET], speed: 77, radius: 29, score: 340 },
+  { time: 51.0, lane: 4, species: 'emperorPenguin', symbols: [SYMBOLS.CIRCLE, SYMBOLS.Z, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.CARET, SYMBOLS.CIRCLE, SYMBOLS.DOWN, SYMBOLS.Z, SYMBOLS.UP], speed: 37, radius: 50, score: 1000, kind: 'boss' }
+];
+
+const LEVELS = [
+  {
+    name: '幽光古堡',
+    defaultSpecies: 'ghost',
+    symbolDisplay: 'queue',
+    timeline: CASTLE_TIMELINE
+  },
+  {
+    name: '深海飞船长廊',
+    defaultSpecies: 'jellyfish',
+    symbolDisplay: 'current-and-dots',
+    timeline: OCEAN_TIMELINE
+  },
+  {
+    name: '极光企鹅酒店',
+    defaultSpecies: 'penguinBellhop',
+    symbolDisplay: 'current-and-dots',
+    timeline: PENGUIN_HOTEL_TIMELINE
+  }
 ];
 
 class LevelDirector {
   constructor(width, height) {
     this.width = width;
     this.height = height;
-    this.index = 0;
-    this.total = TIMELINE.length;
+    this.levelCount = LEVELS.length;
+    this.startLevel(1);
   }
 
-  reset(width, height) {
+  reset(width, height, level) {
     this.width = width || this.width;
     this.height = height || this.height;
+    this.startLevel(level || 1);
+  }
+
+  startLevel(level) {
+    const selectedLevel = Math.max(1, Math.min(this.levelCount, level || 1));
+    this.level = selectedLevel;
+    this.config = LEVELS[selectedLevel - 1];
     this.index = 0;
+    this.total = this.config.timeline.length;
   }
 
   update(elapsed, enemies) {
-    while (this.index < TIMELINE.length && elapsed >= TIMELINE[this.index].time) {
-      enemies.push(this.createEnemy(TIMELINE[this.index]));
+    const timeline = this.config.timeline;
+    while (this.index < timeline.length && elapsed >= timeline[this.index].time) {
+      enemies.push(this.createEnemy(timeline[this.index]));
       this.index += 1;
     }
   }
@@ -66,13 +146,17 @@ class LevelDirector {
       symbols: spawn.symbols,
       radius: spawn.radius,
       score: spawn.score,
-      kind: spawn.kind
+      kind: spawn.kind,
+      species: spawn.species || this.config.defaultSpecies,
+      symbolDisplay: this.config.symbolDisplay
     });
   }
 
   isComplete(enemies) {
-    return this.index >= TIMELINE.length && enemies.length === 0;
+    return this.index >= this.config.timeline.length && enemies.length === 0;
   }
 }
+
+LevelDirector.LEVELS = LEVELS;
 
 module.exports = LevelDirector;

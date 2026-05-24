@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { GameState, SCREENS, getComboMultiplier } = require('../src/core/GameState');
+const { GameState, SCREENS, getComboMultiplier, getHealthPotionSymbols } = require('../src/core/GameState');
 const Enemy = require('../src/entities/Enemy');
 const { SYMBOLS } = require('../src/input/GestureRecognizer');
 const { DIFFICULTY_MODES, getDifficultyButtons } = require('../src/ui/DifficultySelector');
@@ -151,9 +151,15 @@ assert.strictEqual(getComboMultiplier(10), 2);
 assert.strictEqual(getComboMultiplier(20), 2.5);
 assert.strictEqual(getComboMultiplier(50), 3);
 assert.strictEqual(getComboMultiplier(100), 4);
+assert.deepStrictEqual(getHealthPotionSymbols(1, DIFFICULTY_MODES.NORMAL), [SYMBOLS.UP]);
+assert.deepStrictEqual(getHealthPotionSymbols(1, DIFFICULTY_MODES.PLUS_ONE), [SYMBOLS.UP, SYMBOLS.V]);
+assert.deepStrictEqual(getHealthPotionSymbols(2, DIFFICULTY_MODES.PLUS_ONE), [SYMBOLS.V, SYMBOLS.N]);
+assert.deepStrictEqual(getHealthPotionSymbols(3, DIFFICULTY_MODES.PLUS_ONE), [SYMBOLS.CIRCLE, SYMBOLS.V]);
+assert.deepStrictEqual(getHealthPotionSymbols(4, DIFFICULTY_MODES.PLUS_ONE), [SYMBOLS.Z, SYMBOLS.CIRCLE]);
 
 const rightGesture = [{ x: 20, y: 20 }, { x: 110, y: 20 }];
 const upGesture = [{ x: 100, y: 140 }, { x: 100, y: 40 }];
+const vGesture = [{ x: 60, y: 70 }, { x: 100, y: 150 }, { x: 145, y: 70 }];
 
 function eliminationScoreAfterCombo(priorCombo) {
   const scoreRun = new GameState(375, 667, null);
@@ -177,6 +183,41 @@ assert.strictEqual(eliminationScoreAfterCombo(19), 250);
 assert.strictEqual(eliminationScoreAfterCombo(49), 300);
 assert.strictEqual(eliminationScoreAfterCombo(99), 400);
 
+const normalPotionRun = new GameState(375, 667, null);
+normalPotionRun.start(DIFFICULTY_MODES.NORMAL);
+normalPotionRun.lives = 3;
+normalPotionRun.combo = 9;
+normalPotionRun.enemies = [new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 })];
+normalPotionRun.handleGesture(rightGesture);
+let potion = normalPotionRun.enemies.find((enemy) => enemy.kind === 'potion');
+assert.ok(potion);
+assert.deepStrictEqual(potion.symbols, [SYMBOLS.UP]);
+assert.strictEqual(normalPotionRun.feedback.text, '消除 +200  血瓶出现');
+normalPotionRun.handleGesture(upGesture);
+assert.strictEqual(normalPotionRun.lives, 4);
+assert.strictEqual(normalPotionRun.enemies.some((enemy) => enemy.kind === 'potion'), false);
+assert.strictEqual(normalPotionRun.feedback.text, '爱心 +1');
+
+const plusPotionRun = new GameState(375, 667, null);
+plusPotionRun.start(DIFFICULTY_MODES.PLUS_ONE);
+plusPotionRun.lives = 3;
+plusPotionRun.combo = 9;
+plusPotionRun.enemies = [new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 })];
+plusPotionRun.handleGesture(rightGesture);
+potion = plusPotionRun.enemies.find((enemy) => enemy.kind === 'potion');
+assert.deepStrictEqual(potion.symbols, [SYMBOLS.UP, SYMBOLS.V]);
+const potionPosition = { x: potion.x, y: potion.y };
+plusPotionRun.update(0.1);
+assert.deepStrictEqual({ x: potion.x, y: potion.y }, potionPosition);
+assert.strictEqual(potion.dead, false);
+plusPotionRun.handleGesture(upGesture);
+assert.deepStrictEqual(potion.symbols, [SYMBOLS.V]);
+assert.strictEqual(plusPotionRun.lives, 3);
+assert.strictEqual(plusPotionRun.feedback.text, '血瓶解锁中');
+plusPotionRun.handleGesture(vGesture);
+assert.strictEqual(plusPotionRun.lives, 4);
+assert.strictEqual(plusPotionRun.feedback.text, '爱心 +1');
+
 const mixedScore = new GameState(375, 667, null);
 mixedScore.start();
 mixedScore.combo = 2;
@@ -187,7 +228,7 @@ mixedScore.enemies = [
 mixedScore.handleGesture(rightGesture);
 assert.strictEqual(mixedScore.combo, 3);
 assert.strictEqual(mixedScore.score, 150);
-assert.strictEqual(mixedScore.feedback.text, '消除 +150  Combo x3  1.2x');
+assert.strictEqual(mixedScore.feedback.text, '消除 +150');
 mixedScore.handleGesture([{ x: 120, y: 30 }, { x: 30, y: 30 }]);
 assert.strictEqual(mixedScore.combo, 0);
 

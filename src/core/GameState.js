@@ -1,6 +1,7 @@
 'use strict';
 
 const LevelDirector = require('../levels/LevelDirector');
+const Enemy = require('../entities/Enemy');
 const { recognize, SYMBOLS } = require('../input/GestureRecognizer');
 const { DIFFICULTY_MODES, getDifficulty, findDifficultyAtPoint } = require('../ui/DifficultySelector');
 const { isAudioToggleHit } = require('../ui/AudioToggle');
@@ -17,6 +18,14 @@ const ANIMATION_DURATIONS = {
   cast: 0.38,
   impact: 0.52,
   vanish: 0.62
+};
+
+const MAX_LIVES = 5;
+const HEALTH_POTION_SYMBOLS = {
+  1: [SYMBOLS.UP, SYMBOLS.V],
+  2: [SYMBOLS.V, SYMBOLS.N],
+  3: [SYMBOLS.CIRCLE, SYMBOLS.V],
+  4: [SYMBOLS.Z, SYMBOLS.CIRCLE]
 };
 
 function getComboMultiplier(combo) {
@@ -41,8 +50,10 @@ function getComboMultiplier(combo) {
   return 1;
 }
 
-function formatMultiplier(multiplier) {
-  return multiplier.toFixed(1) + 'x';
+function getHealthPotionSymbols(level, difficulty) {
+  const available = HEALTH_POTION_SYMBOLS[level] || HEALTH_POTION_SYMBOLS[1];
+  const unlockCount = difficulty === DIFFICULTY_MODES.PLUS_ONE ? 2 : 1;
+  return available.slice(0, unlockCount);
 }
 
 class GameState {
@@ -80,7 +91,8 @@ class GameState {
 
   resetRun() {
     this.score = 0;
-    this.lives = 5;
+    this.maxLives = MAX_LIVES;
+    this.lives = this.maxLives;
     this.level = 1;
     this.totalLevels = this.director.levelCount;
     this.elapsed = 0;
@@ -257,6 +269,25 @@ class GameState {
     });
   }
 
+  spawnHealthPotion() {
+    if (this.enemies.some((enemy) => enemy.kind === 'potion' && !enemy.dead)) {
+      return false;
+    }
+
+    this.enemies.push(new Enemy({
+      x: this.width * 0.5,
+      y: this.height * 0.24,
+      radius: 30,
+      speed: 0,
+      score: 0,
+      kind: 'potion',
+      species: 'healthPotion',
+      symbolDisplay: 'queue',
+      symbols: getHealthPotionSymbols(this.level, this.difficulty)
+    }));
+    return true;
+  }
+
   toggleSound() {
     this.soundEnabled = !this.soundEnabled;
     if (this.sound && this.sound.setSoundEnabled) {
@@ -314,9 +345,26 @@ class GameState {
     let vanished = 0;
     let partialHits = 0;
     let vanishedScore = 0;
+    let potionProgress = false;
+    let potionUnlocked = false;
+    let recoveredHeart = false;
     for (let i = 0; i < targets.length; i += 1) {
       const target = targets[i];
       target.applySymbol(symbol);
+      if (target.kind === 'potion') {
+        if (target.symbols.length === 0) {
+          potionUnlocked = true;
+          if (this.lives < this.maxLives) {
+            this.lives += 1;
+            recoveredHeart = true;
+          }
+          this.triggerVanish(target);
+        } else {
+          potionProgress = true;
+        }
+        continue;
+      }
+
       if (target.symbols.length === 0) {
         vanished += 1;
         vanishedScore += target.score;
@@ -330,10 +378,20 @@ class GameState {
     const multiplier = getComboMultiplier(this.combo);
     const earned = Math.round(vanishedScore * multiplier) + partialHits * 30;
     this.score += earned;
+    const scoreFeedback = vanished > 0
+      ? '消除 +' + earned
+      : (partialHits > 0 ? '命中 +' + earned : '');
+    let feedbackText = potionUnlocked
+      ? (recoveredHeart ? '爱心 +1' : '爱心已满')
+      : (scoreFeedback || (potionProgress ? '血瓶解锁中' : ''));
+    if (potionUnlocked && scoreFeedback) {
+      feedbackText += '  ' + scoreFeedback;
+    }
+    if (this.combo === 10 && this.spawnHealthPotion()) {
+      feedbackText += '  血瓶出现';
+    }
     this.feedback = {
-      text: vanished > 0
-        ? '消除 +' + earned + '  Combo x' + this.combo + '  ' + formatMultiplier(multiplier)
-        : '命中 +' + earned + '  Combo x' + this.combo,
+      text: feedbackText,
       age: 0,
       type: 'hit',
       combo: this.combo,
@@ -366,5 +424,6 @@ class GameState {
 module.exports = {
   GameState,
   SCREENS,
-  getComboMultiplier
+  getComboMultiplier,
+  getHealthPotionSymbols
 };

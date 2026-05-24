@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { recognize, SYMBOLS } = require('../src/input/GestureRecognizer');
+const { recognize, SYMBOLS, LABELS } = require('../src/input/GestureRecognizer');
 
 function line(a, b) {
   return [a, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, b];
@@ -18,10 +18,12 @@ const cases = [
   [SYMBOLS.V, [{ x: 58, y: 72 }, { x: 76, y: 104 }, { x: 103, y: 153 }, { x: 126, y: 101 }, { x: 148, y: 73 }]],
   [SYMBOLS.V, [{ x: 45, y: 70 }, { x: 70, y: 116 }, { x: 94, y: 158 }, { x: 111, y: 143 }, { x: 130, y: 132 }]],
   [SYMBOLS.V, [{ x: 80, y: 78 }, { x: 88, y: 94 }, { x: 90, y: 107 }, { x: 96, y: 99 }, { x: 101, y: 78 }]],
-  [SYMBOLS.CARET, [{ x: 60, y: 150 }, { x: 100, y: 70 }, { x: 145, y: 150 }]],
-  [SYMBOLS.CARET, [{ x: 60, y: 150 }, { x: 83, y: 102 }, { x: 101, y: 68 }, { x: 124, y: 105 }, { x: 145, y: 150 }]],
-  [SYMBOLS.CARET, [{ x: 46, y: 145 }, { x: 72, y: 102 }, { x: 95, y: 66 }, { x: 113, y: 79 }, { x: 131, y: 92 }]],
-  [SYMBOLS.CARET, [{ x: 80, y: 109 }, { x: 88, y: 93 }, { x: 90, y: 80 }, { x: 96, y: 88 }, { x: 101, y: 109 }]],
+  [SYMBOLS.V, [{ x: 42, y: 65 }, { x: 65, y: 105 }, { x: 91, y: 150 }, { x: 100, y: 145 }, { x: 112, y: 141 }]],
+  [SYMBOLS.V, [{ x: 90, y: 62 }, { x: 93, y: 98 }, { x: 97, y: 142 }, { x: 101, y: 104 }, { x: 105, y: 70 }]],
+  [SYMBOLS.V, [{ x: 52, y: 72 }, { x: 75, y: 112 }, { x: 94, y: 151 }, { x: 106, y: 143 }, { x: 120, y: 136 }, { x: 126, y: 142 }]],
+  [SYMBOLS.N, [{ x: 55, y: 148 }, { x: 57, y: 66 }, { x: 104, y: 101 }, { x: 148, y: 145 }, { x: 150, y: 65 }]],
+  [SYMBOLS.N, [{ x: 49, y: 145 }, { x: 50, y: 105 }, { x: 52, y: 68 }, { x: 84, y: 92 }, { x: 116, y: 122 }, { x: 150, y: 147 }, { x: 149, y: 106 }, { x: 151, y: 67 }]],
+  [SYMBOLS.N, [{ x: 150, y: 65 }, { x: 148, y: 145 }, { x: 104, y: 101 }, { x: 57, y: 66 }, { x: 55, y: 148 }]],
   [SYMBOLS.CIRCLE, [{ x: 102, y: 58 }, { x: 132, y: 68 }, { x: 148, y: 98 }, { x: 136, y: 132 }, { x: 103, y: 146 }, { x: 70, y: 132 }, { x: 56, y: 100 }, { x: 69, y: 68 }, { x: 101, y: 60 }]],
   [SYMBOLS.CIRCLE, [{ x: 99, y: 60 }, { x: 128, y: 67 }, { x: 145, y: 93 }, { x: 141, y: 120 }, { x: 115, y: 143 }, { x: 80, y: 138 }, { x: 57, y: 110 }, { x: 61, y: 78 }, { x: 96, y: 62 }]],
   [SYMBOLS.CIRCLE, [{ x: 100, y: 60 }, { x: 145, y: 100 }, { x: 100, y: 145 }, { x: 55, y: 100 }, { x: 99, y: 61 }]],
@@ -40,5 +42,6 @@ for (const [expected, points] of cases) {
 }
 
 assert.strictEqual(recognize([{ x: 1, y: 1 }, { x: 4, y: 3 }]), SYMBOLS.UNKNOWN);
+assert.strictEqual(LABELS[SYMBOLS.N], 'N');
 
 console.log('gesture.test.js passed');

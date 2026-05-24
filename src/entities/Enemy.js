@@ -9,7 +9,7 @@ class Enemy {
     this.radius = config.radius || 24;
     this.speed = config.speed || 42;
     this.symbols = config.symbols.slice();
-    this.score = config.score || 100;
+    this.score = config.score === undefined ? 100 : config.score;
     this.kind = config.kind || 'normal';
     this.species = config.species || 'ghost';
     this.symbolDisplay = config.symbolDisplay || 'queue';
@@ -25,12 +25,16 @@ class Enemy {
       return;
     }
 
+    this.phase += dt * 4;
+    this.hitFlash = Math.max(0, this.hitFlash - dt);
+    if (this.kind === 'potion') {
+      return;
+    }
+
     const travelDt = dt * (movementScale || 1);
     const dir = normalizeVector(hero.x - this.x, hero.y - this.y);
     this.x += dir.x * this.speed * travelDt;
     this.y += dir.y * this.speed * travelDt;
-    this.phase += dt * 4;
-    this.hitFlash = Math.max(0, this.hitFlash - dt);
 
     if (distance(this, hero) < this.radius + hero.radius * 0.72) {
       this.reachedHero = true;

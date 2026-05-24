@@ -18,7 +18,7 @@ assert.deepStrictEqual(queue, [
 
 const hidden = Renderer.getSymbolIndicators({
   symbolDisplay: 'current-and-dots',
-  symbols: [SYMBOLS.LEFT, SYMBOLS.DOWN, SYMBOLS.CARET, SYMBOLS.V]
+  symbols: [SYMBOLS.LEFT, SYMBOLS.DOWN, SYMBOLS.N, SYMBOLS.V]
 });
 assert.deepStrictEqual(hidden, [
   { type: 'symbol', symbol: SYMBOLS.LEFT },
@@ -29,7 +29,7 @@ assert.deepStrictEqual(hidden, [
 
 const afterHit = Renderer.getSymbolIndicators({
   symbolDisplay: 'current-and-dots',
-  symbols: [SYMBOLS.DOWN, SYMBOLS.CARET, SYMBOLS.V]
+  symbols: [SYMBOLS.DOWN, SYMBOLS.N, SYMBOLS.V]
 });
 assert.deepStrictEqual(afterHit, [
   { type: 'symbol', symbol: SYMBOLS.DOWN },
@@ -39,7 +39,7 @@ assert.deepStrictEqual(afterHit, [
 
 const compactBoss = Renderer.getSymbolIndicators({
   symbolDisplay: 'current-and-dots',
-  symbols: [SYMBOLS.CIRCLE, SYMBOLS.CIRCLE, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.CARET, SYMBOLS.CIRCLE, SYMBOLS.DOWN, SYMBOLS.CIRCLE, SYMBOLS.UP]
+  symbols: [SYMBOLS.CIRCLE, SYMBOLS.CIRCLE, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.N, SYMBOLS.CIRCLE, SYMBOLS.DOWN, SYMBOLS.CIRCLE, SYMBOLS.UP]
 });
 assert.deepStrictEqual(compactBoss, [
   { type: 'symbol', symbol: SYMBOLS.CIRCLE },
@@ -110,6 +110,8 @@ const sequenceOnlyContext = {
   fill() {},
   stroke() {},
   fillText() {},
+  moveTo() {},
+  bezierCurveTo() {},
   translate() {},
   scale() {},
   measureText() {
@@ -128,13 +130,14 @@ sequenceOnlyRenderer.drawSymbolQueue({
   species: 'tyrannosaurus',
   radius: 30,
   symbolDisplay: 'current-and-dots',
-  symbols: [SYMBOLS.CIRCLE, SYMBOLS.CIRCLE, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.CARET]
+  symbols: [SYMBOLS.CIRCLE, SYMBOLS.CIRCLE, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.N]
 });
 sequenceOnlyRenderer.drawComboCounter({
   screen: 'playing',
   combo: 5,
   feedback: { type: 'hit', combo: 5, age: 0 }
 });
-assert.deepStrictEqual(sequenceOnlyRadii, [[12], [17], [7], [7], [13], [11], [7]]);
+sequenceOnlyRenderer.drawHealthPotion({ radius: 30, phase: 0 });
+assert.deepStrictEqual(sequenceOnlyRadii, [[12], [17], [7], [7], [13], [11], [7], [4], [10], [8]]);
 
 console.log('renderer.test.js passed');

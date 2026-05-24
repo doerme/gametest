@@ -6,7 +6,7 @@ const SYMBOLS = {
   LEFT: 'left',
   RIGHT: 'right',
   V: 'v',
-  CARET: 'caret',
+  N: 'n',
   CIRCLE: 'circle',
   Z: 'z',
   UNKNOWN: 'unknown'
@@ -18,7 +18,7 @@ const LABELS = {
   [SYMBOLS.LEFT]: '←',
   [SYMBOLS.RIGHT]: '→',
   [SYMBOLS.V]: 'V',
-  [SYMBOLS.CARET]: '∧',
+  [SYMBOLS.N]: 'N',
   [SYMBOLS.CIRCLE]: '○',
   [SYMBOLS.Z]: 'Z',
   [SYMBOLS.UNKNOWN]: '?'
@@ -119,34 +119,33 @@ function findCornerIndex(points, wantLowY) {
   return bestIndex;
 }
 
+function hasLooseCorner(firstArm, secondArm, spread, bounds) {
+  const longArm = Math.max(firstArm, secondArm);
+  const shortArm = Math.min(firstArm, secondArm);
+  return (
+    longArm > bounds.height * 0.42 &&
+    shortArm > Math.max(5, bounds.height * 0.08) &&
+    spread > Math.max(6, bounds.width * 0.18)
+  );
+}
+
 function recognizeVShape(points, bounds) {
-  if (points.length < 3 || bounds.width < 18 || bounds.height < 18) {
+  if (points.length < 3 || bounds.width < 8 || bounds.height < 14) {
     return SYMBOLS.UNKNOWN;
   }
 
   const first = points[0];
   const last = points[points.length - 1];
   const bottomIndex = findCornerIndex(points, false);
-  const topIndex = findCornerIndex(points, true);
   const bottom = points[bottomIndex];
-  const top = points[topIndex];
 
   if (bottom && bottomIndex > 0 && bottomIndex < points.length - 1) {
     const leftDrop = bottom.y - first.y;
     const rightRise = bottom.y - last.y;
     const spread = Math.abs(last.x - first.x);
-    // Young players often finish one arm early, leaving a visibly uneven V.
-    if (leftDrop > bounds.height * 0.24 && rightRise > bounds.height * 0.24 && spread > bounds.width * 0.22) {
+    // Young players often finish one arm early or draw a very narrow corner.
+    if (hasLooseCorner(leftDrop, rightRise, spread, bounds)) {
       return SYMBOLS.V;
-    }
-  }
-
-  if (top && topIndex > 0 && topIndex < points.length - 1) {
-    const leftRise = first.y - top.y;
-    const rightDrop = last.y - top.y;
-    const spread = Math.abs(last.x - first.x);
-    if (leftRise > bounds.height * 0.24 && rightDrop > bounds.height * 0.24 && spread > bounds.width * 0.22) {
-      return SYMBOLS.CARET;
     }
   }
 
@@ -260,6 +259,59 @@ function recognizeZShape(points, bounds) {
   return SYMBOLS.UNKNOWN;
 }
 
+function followsNDirection(points, bounds) {
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (
+    first.x > bounds.minX + bounds.width * 0.43 ||
+    first.y < bounds.maxY - bounds.height * 0.43 ||
+    last.x < bounds.maxX - bounds.width * 0.43 ||
+    last.y > bounds.minY + bounds.height * 0.43
+  ) {
+    return false;
+  }
+
+  for (let leftTopIndex = 1; leftTopIndex < points.length - 2; leftTopIndex += 1) {
+    const leftTop = points[leftTopIndex];
+    if (
+      first.y - leftTop.y < bounds.height * 0.4 ||
+      Math.abs(leftTop.x - first.x) > bounds.width * 0.4 ||
+      leftTop.x > bounds.minX + bounds.width * 0.43 ||
+      leftTop.y > bounds.minY + bounds.height * 0.43
+    ) {
+      continue;
+    }
+
+    for (let rightBottomIndex = leftTopIndex + 1; rightBottomIndex < points.length - 1; rightBottomIndex += 1) {
+      const rightBottom = points[rightBottomIndex];
+      if (
+        rightBottom.x - leftTop.x >= bounds.width * 0.34 &&
+        rightBottom.y - leftTop.y >= bounds.height * 0.36 &&
+        rightBottom.x >= bounds.maxX - bounds.width * 0.43 &&
+        rightBottom.y >= bounds.maxY - bounds.height * 0.43 &&
+        rightBottom.y - last.y >= bounds.height * 0.4 &&
+        Math.abs(last.x - rightBottom.x) <= bounds.width * 0.4
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function recognizeNShape(points, bounds) {
+  if (points.length < 4 || bounds.width < 24 || bounds.height < 28) {
+    return SYMBOLS.UNKNOWN;
+  }
+
+  if (followsNDirection(points, bounds) || followsNDirection(points.slice().reverse(), bounds)) {
+    return SYMBOLS.N;
+  }
+
+  return SYMBOLS.UNKNOWN;
+}
+
 function recognize(points) {
   const simplified = simplify(points);
   if (simplified.length < 2) {
@@ -279,6 +331,11 @@ function recognize(points) {
   const zShape = recognizeZShape(simplified, bounds);
   if (zShape !== SYMBOLS.UNKNOWN) {
     return zShape;
+  }
+
+  const nShape = recognizeNShape(simplified, bounds);
+  if (nShape !== SYMBOLS.UNKNOWN) {
+    return nShape;
   }
 
   const vShape = recognizeVShape(simplified, bounds);

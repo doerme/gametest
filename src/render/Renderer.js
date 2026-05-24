@@ -169,7 +169,7 @@ class Renderer {
     this.drawHud(state, visibleLevel);
 
     if (state.screen === SCREENS.TITLE) {
-      this.drawDifficultyOverlay('幽光古堡', '划箭头方向；V 和 ∧ 照形状画', '选择难度开始游戏');
+      this.drawDifficultyOverlay('幽光古堡', '划箭头方向；V 和 N 照形状画', '选择难度开始游戏');
     } else if (state.screen === SCREENS.LEVEL_TRANSITION) {
       const copy = getTransitionCopy(visibleLevel);
       this.drawDifficultyOverlay(copy.title, copy.hint, '选择本关难度');
@@ -271,9 +271,8 @@ class Renderer {
 
   drawScrollingCastleBackground(image, elapsed) {
     const ctx = this.ctx;
-    // The art includes a near-duplicate torch row at both ends; omit one end in the repeating slice.
-    const sourceTop = Math.floor(image.height * 0.11);
-    const sourceHeight = image.height - sourceTop;
+    const sourceTop = 0;
+    const sourceHeight = image.height;
     const tileHeight = Math.ceil(this.width * sourceHeight / image.width);
     const seamBlendHeight = Math.max(8, Math.min(12, Math.floor(tileHeight * 0.018)));
     const stride = tileHeight - seamBlendHeight;
@@ -346,15 +345,19 @@ class Renderer {
   drawScrollingOceanBackground(image, elapsed) {
     const ctx = this.ctx;
     const tileHeight = Math.ceil(this.width * image.height / image.width);
-    const offset = Math.floor((elapsed * 118) % tileHeight);
+    const seamBlendHeight = Math.max(8, Math.min(14, Math.floor(tileHeight * 0.018)));
+    const stride = tileHeight - seamBlendHeight;
+    const offset = Math.floor((elapsed * 118) % stride);
+    const firstTileY = offset - stride;
 
     ctx.save();
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
-    for (let y = offset - tileHeight; y < this.height; y += tileHeight) {
-      ctx.drawImage(image, 0, y, this.width, tileHeight + 1);
+    ctx.drawImage(image, 0, firstTileY, this.width, tileHeight + 1);
+    for (let y = firstTileY + stride; y < this.height; y += stride) {
+      this.drawCastleTileWithSeamBlend(image, 0, image.height, y, tileHeight, seamBlendHeight);
     }
     ctx.restore();
 
@@ -746,7 +749,7 @@ class Renderer {
     const ctx = this.ctx;
     const progress = effect.age / effect.duration;
     const alpha = Math.max(0, 1 - progress);
-    const color = effect.kind === 'boss' ? '#d6a6ff' : '#c6f6ff';
+    const color = effect.kind === 'boss' ? '#d6a6ff' : (effect.kind === 'potion' ? '#ff8fa8' : '#c6f6ff');
     const ringRadius = effect.radius * (0.74 + progress * 1.55);
 
     ctx.save();
@@ -788,7 +791,9 @@ class Renderer {
 
     const assetKey = ENEMY_ASSET_KEYS[enemy.species];
     const image = assetKey && this.assets && this.assets.getImage(assetKey);
-    if (image) {
+    if (enemy.kind === 'potion') {
+      this.drawHealthPotion(enemy);
+    } else if (image) {
       this.drawEnemyImage(enemy, image);
     } else if (enemy.species === 'ghost') {
       this.drawGhostEnemy(enemy);
@@ -801,6 +806,40 @@ class Renderer {
     }
 
     this.drawSymbolQueue(enemy);
+    ctx.restore();
+  }
+
+  drawHealthPotion(enemy) {
+    const ctx = this.ctx;
+    const r = enemy.radius;
+    const pulse = 1 + Math.sin(enemy.phase * 1.5) * 0.04;
+
+    ctx.save();
+    ctx.scale(pulse, pulse);
+    ctx.shadowColor = '#ff6f91';
+    ctx.shadowBlur = 16;
+
+    ctx.fillStyle = '#f4e8ff';
+    ctx.beginPath();
+    ctx.roundRect(-r * 0.3, -r * 0.9, r * 0.6, r * 0.27, [4]);
+    ctx.fill();
+
+    ctx.fillStyle = '#f8b4d2';
+    ctx.beginPath();
+    ctx.roundRect(-r * 0.42, -r * 0.67, r * 0.84, r * 1.2, [10]);
+    ctx.fill();
+
+    ctx.fillStyle = '#e54066';
+    ctx.beginPath();
+    ctx.roundRect(-r * 0.34, -r * 0.34, r * 0.68, r * 0.76, [8]);
+    ctx.fill();
+
+    ctx.fillStyle = '#fff2c2';
+    ctx.beginPath();
+    ctx.moveTo(0, r * 0.2);
+    ctx.bezierCurveTo(-r * 0.38, -r * 0.08, -r * 0.22, -r * 0.34, 0, -r * 0.16);
+    ctx.bezierCurveTo(r * 0.22, -r * 0.34, r * 0.38, -r * 0.08, 0, r * 0.2);
+    ctx.fill();
     ctx.restore();
   }
 

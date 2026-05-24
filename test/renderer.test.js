@@ -18,7 +18,7 @@ assert.deepStrictEqual(queue, [
 
 const hidden = Renderer.getSymbolIndicators({
   symbolDisplay: 'current-and-dots',
-  symbols: [SYMBOLS.LEFT, SYMBOLS.DOWN, SYMBOLS.N, SYMBOLS.V]
+  symbols: [SYMBOLS.LEFT, SYMBOLS.DOWN, SYMBOLS.L, SYMBOLS.V]
 });
 assert.deepStrictEqual(hidden, [
   { type: 'symbol', symbol: SYMBOLS.LEFT },
@@ -29,7 +29,7 @@ assert.deepStrictEqual(hidden, [
 
 const afterHit = Renderer.getSymbolIndicators({
   symbolDisplay: 'current-and-dots',
-  symbols: [SYMBOLS.DOWN, SYMBOLS.N, SYMBOLS.V]
+  symbols: [SYMBOLS.DOWN, SYMBOLS.L, SYMBOLS.V]
 });
 assert.deepStrictEqual(afterHit, [
   { type: 'symbol', symbol: SYMBOLS.DOWN },
@@ -39,7 +39,7 @@ assert.deepStrictEqual(afterHit, [
 
 const compactBoss = Renderer.getSymbolIndicators({
   symbolDisplay: 'current-and-dots',
-  symbols: [SYMBOLS.CIRCLE, SYMBOLS.CIRCLE, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.N, SYMBOLS.CIRCLE, SYMBOLS.DOWN, SYMBOLS.CIRCLE, SYMBOLS.UP]
+  symbols: [SYMBOLS.CIRCLE, SYMBOLS.CIRCLE, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.L, SYMBOLS.CIRCLE, SYMBOLS.DOWN, SYMBOLS.CIRCLE, SYMBOLS.UP]
 });
 assert.deepStrictEqual(compactBoss, [
   { type: 'symbol', symbol: SYMBOLS.CIRCLE },
@@ -75,7 +75,7 @@ assert.strictEqual(Renderer.getLevelLabel({
   totalLevels: 4
 }, 2), '第 2/4 关');
 assert.strictEqual(Renderer.getComboLabel(0), '');
-assert.strictEqual(Renderer.getComboLabel(5), 'COMBO x5');
+assert.strictEqual(Renderer.getComboLabel(5), '连击 x5');
 assert.strictEqual(Renderer.getComboTier(2).multiplierLabel, '');
 assert.strictEqual(Renderer.getComboTier(3).multiplierLabel, '1.2x');
 assert.strictEqual(Renderer.getComboTier(5).multiplierLabel, '1.5x');
@@ -91,6 +91,7 @@ assert.strictEqual(Renderer.getComboPulse(3, { type: 'hit', combo: 3, age: 0.5 }
 assert.strictEqual(Renderer.getComboPulse(3, { type: 'miss', combo: 3, age: 0 }).burst, 0);
 assert.strictEqual(Renderer.getSoundToggleLabel(true), '声音 开');
 assert.strictEqual(Renderer.getSoundToggleLabel(false), '声音 关');
+assert.deepStrictEqual(Renderer.getHeartSlotPosition(375, 3), { x: 269, y: 31 });
 assert.deepStrictEqual(Renderer.getTransitionCopy(4), { title: '恐龙乐园', hint: '第四关 · 新增符咒：Z' });
 assert.strictEqual(Renderer.getWinTitle(), '四关通关');
 
@@ -109,11 +110,15 @@ const sequenceOnlyContext = {
   beginPath() {},
   fill() {},
   stroke() {},
+  fillRect() {},
   fillText() {},
   moveTo() {},
+  lineTo() {},
+  arc() {},
   bezierCurveTo() {},
   translate() {},
   scale() {},
+  rotate() {},
   measureText() {
     return { width: 82 };
   },
@@ -130,7 +135,7 @@ sequenceOnlyRenderer.drawSymbolQueue({
   species: 'tyrannosaurus',
   radius: 30,
   symbolDisplay: 'current-and-dots',
-  symbols: [SYMBOLS.CIRCLE, SYMBOLS.CIRCLE, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.N]
+  symbols: [SYMBOLS.CIRCLE, SYMBOLS.CIRCLE, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.L]
 });
 sequenceOnlyRenderer.drawComboCounter({
   screen: 'playing',
@@ -138,6 +143,56 @@ sequenceOnlyRenderer.drawComboCounter({
   feedback: { type: 'hit', combo: 5, age: 0 }
 });
 sequenceOnlyRenderer.drawHealthPotion({ radius: 30, phase: 0 });
-assert.deepStrictEqual(sequenceOnlyRadii, [[12], [17], [7], [7], [13], [11], [7], [4], [10], [8]]);
+sequenceOnlyRenderer.drawEffects([
+  {
+    type: 'comboChain',
+    age: 0.12,
+    duration: 0.5,
+    originX: 180,
+    originY: 430,
+    targets: [
+      { x: 80, y: 120, radius: 24 },
+      { x: 130, y: 150, radius: 24 }
+    ]
+  },
+  {
+    type: 'comboThunder',
+    age: 0.2,
+    duration: 0.56,
+    targets: [
+      { x: 100, y: 120, radius: 24 },
+      { x: 180, y: 180, radius: 28 }
+    ]
+  },
+  {
+    type: 'lightning',
+    age: 0.08,
+    duration: 0.3,
+    fromX: 190,
+    fromY: 430,
+    toX: 80,
+    toY: 120,
+    radius: 24,
+    kind: 'normal'
+  },
+  {
+    type: 'heartLoss',
+    age: 0.12,
+    duration: 0.62,
+    heartIndex: 4,
+    burstIndex: 0,
+    burstCount: 1
+  },
+  {
+    type: 'potionToHeart',
+    age: 0.18,
+    duration: 0.5,
+    x: 188,
+    y: 160,
+    radius: 30,
+    heartIndex: 3
+  }
+]);
+assert.deepStrictEqual(sequenceOnlyRadii, [[12], [17], [7], [7], [13], [11], [7], [4], [10], [8], [4], [10], [8]]);
 
 console.log('renderer.test.js passed');

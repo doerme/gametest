@@ -75,7 +75,7 @@ assert.strictEqual(boss.speed, 41);
 assert.strictEqual(boss.radius, 54);
 assert.deepStrictEqual(boss.symbols, [
   SYMBOLS.Z, SYMBOLS.CIRCLE, SYMBOLS.RIGHT, SYMBOLS.LEFT,
-  SYMBOLS.V, SYMBOLS.N, SYMBOLS.Z, SYMBOLS.DOWN,
+  SYMBOLS.V, SYMBOLS.L, SYMBOLS.Z, SYMBOLS.DOWN,
   SYMBOLS.CIRCLE, SYMBOLS.UP, SYMBOLS.Z, SYMBOLS.CIRCLE
 ]);
 assert.deepStrictEqual(LevelDirector.LEVELS[3].timeline[0].symbols, [SYMBOLS.CIRCLE, SYMBOLS.RIGHT]);

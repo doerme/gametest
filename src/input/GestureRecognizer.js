@@ -6,7 +6,7 @@ const SYMBOLS = {
   LEFT: 'left',
   RIGHT: 'right',
   V: 'v',
-  N: 'n',
+  L: 'l',
   CIRCLE: 'circle',
   Z: 'z',
   UNKNOWN: 'unknown'
@@ -18,7 +18,7 @@ const LABELS = {
   [SYMBOLS.LEFT]: '←',
   [SYMBOLS.RIGHT]: '→',
   [SYMBOLS.V]: 'V',
-  [SYMBOLS.N]: 'N',
+  [SYMBOLS.L]: 'L',
   [SYMBOLS.CIRCLE]: '○',
   [SYMBOLS.Z]: 'Z',
   [SYMBOLS.UNKNOWN]: '?'
@@ -259,54 +259,47 @@ function recognizeZShape(points, bounds) {
   return SYMBOLS.UNKNOWN;
 }
 
-function followsNDirection(points, bounds) {
+function followsLDirection(points, bounds) {
   const first = points[0];
   const last = points[points.length - 1];
   if (
     first.x > bounds.minX + bounds.width * 0.43 ||
-    first.y < bounds.maxY - bounds.height * 0.43 ||
+    first.y > bounds.minY + bounds.height * 0.43 ||
     last.x < bounds.maxX - bounds.width * 0.43 ||
-    last.y > bounds.minY + bounds.height * 0.43
+    last.y < bounds.maxY - bounds.height * 0.43
   ) {
     return false;
   }
 
-  for (let leftTopIndex = 1; leftTopIndex < points.length - 2; leftTopIndex += 1) {
-    const leftTop = points[leftTopIndex];
+  for (let cornerIndex = 1; cornerIndex < points.length - 1; cornerIndex += 1) {
+    const corner = points[cornerIndex];
     if (
-      first.y - leftTop.y < bounds.height * 0.4 ||
-      Math.abs(leftTop.x - first.x) > bounds.width * 0.4 ||
-      leftTop.x > bounds.minX + bounds.width * 0.43 ||
-      leftTop.y > bounds.minY + bounds.height * 0.43
+      corner.y - first.y < bounds.height * 0.4 ||
+      Math.abs(corner.x - first.x) > bounds.width * 0.4 ||
+      corner.x > bounds.minX + bounds.width * 0.43 ||
+      corner.y < bounds.maxY - bounds.height * 0.43
     ) {
       continue;
     }
 
-    for (let rightBottomIndex = leftTopIndex + 1; rightBottomIndex < points.length - 1; rightBottomIndex += 1) {
-      const rightBottom = points[rightBottomIndex];
-      if (
-        rightBottom.x - leftTop.x >= bounds.width * 0.34 &&
-        rightBottom.y - leftTop.y >= bounds.height * 0.36 &&
-        rightBottom.x >= bounds.maxX - bounds.width * 0.43 &&
-        rightBottom.y >= bounds.maxY - bounds.height * 0.43 &&
-        rightBottom.y - last.y >= bounds.height * 0.4 &&
-        Math.abs(last.x - rightBottom.x) <= bounds.width * 0.4
-      ) {
-        return true;
-      }
+    if (
+      last.x - corner.x >= bounds.width * 0.34 &&
+      Math.abs(last.y - corner.y) <= bounds.height * 0.4
+    ) {
+      return true;
     }
   }
 
   return false;
 }
 
-function recognizeNShape(points, bounds) {
-  if (points.length < 4 || bounds.width < 24 || bounds.height < 28) {
+function recognizeLShape(points, bounds) {
+  if (points.length < 3 || bounds.width < 24 || bounds.height < 28) {
     return SYMBOLS.UNKNOWN;
   }
 
-  if (followsNDirection(points, bounds) || followsNDirection(points.slice().reverse(), bounds)) {
-    return SYMBOLS.N;
+  if (followsLDirection(points, bounds) || followsLDirection(points.slice().reverse(), bounds)) {
+    return SYMBOLS.L;
   }
 
   return SYMBOLS.UNKNOWN;
@@ -333,9 +326,9 @@ function recognize(points) {
     return zShape;
   }
 
-  const nShape = recognizeNShape(simplified, bounds);
-  if (nShape !== SYMBOLS.UNKNOWN) {
-    return nShape;
+  const lShape = recognizeLShape(simplified, bounds);
+  if (lShape !== SYMBOLS.UNKNOWN) {
+    return lShape;
   }
 
   const vShape = recognizeVShape(simplified, bounds);

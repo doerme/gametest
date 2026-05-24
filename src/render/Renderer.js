@@ -42,7 +42,7 @@ function getLevelLabel(state, visibleLevel) {
 }
 
 function getComboLabel(combo) {
-  return combo > 0 ? 'COMBO x' + combo : '';
+  return combo > 0 ? '连击 x' + combo : '';
 }
 
 function getComboTier(combo) {
@@ -128,6 +128,17 @@ function getSoundToggleLabel(enabled) {
   return enabled ? '声音 开' : '声音 关';
 }
 
+function getHeartSlotPosition(width, heartIndex) {
+  return {
+    x: width - 28 - heartIndex * 26,
+    y: 31
+  };
+}
+
+function getComboTargets(effect) {
+  return effect.targets || [];
+}
+
 function getTransitionCopy(visibleLevel) {
   if (visibleLevel === 4) {
     return { title: '恐龙乐园', hint: '第四关 · 新增符咒：Z' };
@@ -169,14 +180,14 @@ class Renderer {
     this.drawHud(state, visibleLevel);
 
     if (state.screen === SCREENS.TITLE) {
-      this.drawDifficultyOverlay('幽光古堡', '划箭头方向；V 和 N 照形状画', '选择难度开始游戏');
+      this.drawDifficultyOverlay('幽光古堡', '划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
     } else if (state.screen === SCREENS.LEVEL_TRANSITION) {
       const copy = getTransitionCopy(visibleLevel);
       this.drawDifficultyOverlay(copy.title, copy.hint, '选择本关难度');
     } else if (state.screen === SCREENS.WIN) {
       this.drawOverlay(getWinTitle(), '得分 ' + state.score, '点击再来一局');
     } else if (state.screen === SCREENS.LOSE) {
-      this.drawOverlay('魔力耗尽', '得分 ' + state.score, '点击重试');
+      this.drawOverlay('爱心耗尽', '得分 ' + state.score, '点击重试');
     }
 
     this.drawAudioToggle(state.soundEnabled);
@@ -685,6 +696,16 @@ class Renderer {
         this.drawImpactEffect(effect);
       } else if (effect.type === 'vanish') {
         this.drawVanishEffect(effect);
+      } else if (effect.type === 'lightning') {
+        this.drawLightningEffect(effect);
+      } else if (effect.type === 'comboChain') {
+        this.drawComboChainEffect(effect);
+      } else if (effect.type === 'comboThunder') {
+        this.drawThunderClearEffect(effect);
+      } else if (effect.type === 'heartLoss') {
+        this.drawHeartLossEffect(effect);
+      } else if (effect.type === 'potionToHeart') {
+        this.drawPotionToHeartEffect(effect);
       }
     }
   }
@@ -772,6 +793,198 @@ class Renderer {
       ctx.arc(Math.cos(angle) * distance, Math.sin(angle) * distance, dotRadius, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
+  }
+
+  drawLightningEffect(effect) {
+    const ctx = this.ctx;
+    const progress = Math.max(0, Math.min(1, effect.age / effect.duration));
+    const alpha = Math.max(0, 1 - progress);
+    const dx = effect.toX - effect.fromX;
+    const dy = effect.toY - effect.fromY;
+    const length = Math.max(1, Math.hypot(dx, dy));
+    const normalX = -dy / length;
+    const normalY = dx / length;
+    const points = [];
+
+    for (let i = 0; i <= 5; i += 1) {
+      const t = i / 5;
+      const crackle = i === 0 || i === 5 ? 0 : (i % 2 === 0 ? -1 : 1) * (8 + effect.radius * 0.16) * (1 - progress * 0.45);
+      points.push({
+        x: effect.fromX + dx * t + normalX * crackle,
+        y: effect.fromY + dy * t + normalY * crackle
+      });
+    }
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = '#8bf2ff';
+    ctx.shadowBlur = 18;
+    ctx.strokeStyle = 'rgba(139, 242, 255, 0.82)';
+    ctx.lineWidth = 9 - progress * 5;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i += 1) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
+
+    ctx.shadowBlur = 7;
+    ctx.strokeStyle = '#fff8b7';
+    ctx.lineWidth = 3.2 - progress * 1.6;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i += 1) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff8b7';
+    ctx.beginPath();
+    ctx.arc(effect.toX, effect.toY, effect.radius * (0.18 + progress * 0.28), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  drawComboChainEffect(effect) {
+    const ctx = this.ctx;
+    const progress = Math.max(0, Math.min(1, effect.age / effect.duration));
+    const alpha = Math.max(0, 1 - progress);
+    const originX = effect.originX;
+    const originY = effect.originY;
+    const targets = getComboTargets(effect);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = '#d7a2ff';
+    ctx.shadowBlur = 20;
+
+    for (let i = 0; i < targets.length; i += 1) {
+      const target = targets[i];
+      const dx = target.x - originX;
+      const dy = target.y - originY;
+      const length = Math.max(1, Math.hypot(dx, dy));
+      const normalX = -dy / length;
+      const normalY = dx / length;
+      const wobble = (i % 2 === 0 ? 1 : -1) * (10 + i * 1.5) * (1 - progress * 0.4);
+      ctx.strokeStyle = 'rgba(204, 143, 255, 0.9)';
+      ctx.lineWidth = 8 - progress * 3.5;
+      ctx.beginPath();
+      ctx.moveTo(originX, originY);
+      ctx.lineTo(originX + dx * 0.3 + normalX * wobble, originY + dy * 0.3 + normalY * wobble);
+      ctx.lineTo(originX + dx * 0.66 - normalX * wobble * 0.6, originY + dy * 0.66 - normalY * wobble * 0.6);
+      ctx.lineTo(target.x, target.y);
+      ctx.stroke();
+
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = '#f3dcff';
+      ctx.beginPath();
+      ctx.arc(target.x, target.y, Math.max(3, target.radius * 0.14), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  drawThunderClearEffect(effect) {
+    const ctx = this.ctx;
+    const progress = Math.max(0, Math.min(1, effect.age / effect.duration));
+    const alpha = Math.max(0, 1 - progress);
+    const targets = getComboTargets(effect);
+    const strikeX = this.width * 0.5 + Math.sin(progress * Math.PI * 5) * 16;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = '#fff8b7';
+    ctx.shadowBlur = 26;
+    ctx.strokeStyle = '#fff8b7';
+    ctx.lineWidth = 9 - progress * 4;
+    ctx.beginPath();
+    ctx.moveTo(strikeX, 0);
+    ctx.lineTo(strikeX - 10, this.height * 0.16);
+    ctx.lineTo(strikeX + 8, this.height * 0.34);
+    ctx.lineTo(strikeX - 14, this.height * 0.56);
+    ctx.lineTo(strikeX + 4, this.height * 0.82);
+    ctx.lineTo(strikeX, this.height);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(139, 242, 255, 0.16)';
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    for (let i = 0; i < targets.length; i += 1) {
+      const target = targets[i];
+      ctx.fillStyle = i % 2 === 0 ? '#fff8b7' : '#8bf2ff';
+      ctx.beginPath();
+      ctx.arc(target.x, target.y, Math.max(4, target.radius * 0.18), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  drawPotionToHeartEffect(effect) {
+    const ctx = this.ctx;
+    const progress = Math.max(0, Math.min(1, effect.age / effect.duration));
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const target = getHeartSlotPosition(this.width, effect.heartIndex);
+    const arcLift = Math.sin(progress * Math.PI) * Math.max(28, this.height * 0.08);
+    const x = effect.x + (target.x - effect.x) * eased;
+    const y = effect.y + (target.y - effect.y) * eased - arcLift;
+    const scale = 1 - eased * 0.58;
+    const sparkle = Math.max(0, (progress - 0.68) / 0.32);
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = Math.max(0, 1 - Math.max(0, progress - 0.82) / 0.18);
+    this.drawHealthPotion({
+      radius: effect.radius,
+      phase: progress * Math.PI * 4
+    });
+    ctx.restore();
+
+    if (sparkle > 0) {
+      ctx.save();
+      ctx.translate(target.x, target.y);
+      ctx.globalAlpha = 1 - sparkle;
+      ctx.strokeStyle = '#ffdf73';
+      ctx.lineWidth = 2.4;
+      ctx.shadowColor = '#ff6f91';
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.arc(0, 0, 13 + sparkle * 17, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  drawHeartLossEffect(effect) {
+    const ctx = this.ctx;
+    const progress = Math.max(0, Math.min(1, effect.age / effect.duration));
+    const target = getHeartSlotPosition(this.width, effect.heartIndex);
+    const direction = effect.burstCount > 1 && effect.burstIndex % 2 === 1 ? 1 : -1;
+    const driftX = direction * progress * (8 + effect.burstIndex * 2);
+    const driftY = progress * 28;
+    const rotation = direction * progress * 0.52;
+
+    ctx.save();
+    ctx.translate(target.x + driftX, target.y + driftY);
+    ctx.rotate(rotation);
+    ctx.globalAlpha = Math.max(0, 1 - progress);
+    ctx.shadowColor = '#ff704d';
+    ctx.shadowBlur = 10;
+    this.drawHeart(0, 0, true);
+
+    ctx.strokeStyle = '#fff1a8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-3, -9);
+    ctx.lineTo(2, -2);
+    ctx.lineTo(-1, 4);
+    ctx.lineTo(4, 10);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -1254,6 +1467,7 @@ Renderer.getComboLabel = getComboLabel;
 Renderer.getComboTier = getComboTier;
 Renderer.getComboPulse = getComboPulse;
 Renderer.getSoundToggleLabel = getSoundToggleLabel;
+Renderer.getHeartSlotPosition = getHeartSlotPosition;
 Renderer.getTransitionCopy = getTransitionCopy;
 Renderer.getWinTitle = getWinTitle;
 

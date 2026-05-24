@@ -58,6 +58,19 @@ class Enemy {
     }
     return true;
   }
+
+  takeComboHit() {
+    if (this.dead || this.symbols.length === 0) {
+      return false;
+    }
+
+    this.symbols.shift();
+    this.hitFlash = 0.18;
+    if (this.symbols.length === 0) {
+      this.dead = true;
+    }
+    return true;
+  }
 }
 
 module.exports = Enemy;

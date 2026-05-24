@@ -17,13 +17,18 @@ const SCREENS = {
 const ANIMATION_DURATIONS = {
   cast: 0.38,
   impact: 0.52,
-  vanish: 0.62
+  vanish: 0.62,
+  lightning: 0.3,
+  comboChain: 0.5,
+  comboThunder: 0.56,
+  heartLoss: 0.62,
+  potionToHeart: 0.5
 };
 
 const MAX_LIVES = 5;
 const HEALTH_POTION_SYMBOLS = {
   1: [SYMBOLS.UP, SYMBOLS.V],
-  2: [SYMBOLS.V, SYMBOLS.N],
+  2: [SYMBOLS.V, SYMBOLS.L],
   3: [SYMBOLS.CIRCLE, SYMBOLS.V],
   4: [SYMBOLS.Z, SYMBOLS.CIRCLE]
 };
@@ -135,6 +140,7 @@ class GameState {
     this.elapsed += playDt;
     this.director.update(this.elapsed, this.enemies);
 
+    const livesBeforeDamage = this.lives;
     let damageTaken = 0;
     for (let i = 0; i < this.enemies.length; i += 1) {
       const enemy = this.enemies[i];
@@ -149,6 +155,7 @@ class GameState {
     if (damageTaken > 0) {
       this.feedback = { text: '爱心 -' + damageTaken, age: 0, type: 'hurt' };
       this.triggerHeroImpact();
+      this.triggerHeartLoss(livesBeforeDamage, damageTaken);
       if (this.sound) {
         this.sound.play('hurt');
         if (this.sound.vibrateDamage) {
@@ -260,6 +267,26 @@ class GameState {
     });
   }
 
+  triggerHeartLoss(previousLives, damageTaken) {
+    const lostHearts = Math.min(Math.max(previousLives, 0), damageTaken);
+    for (let i = 0; i < lostHearts; i += 1) {
+      this.addEffect('heartLoss', {
+        heartIndex: previousLives - 1 - i,
+        burstIndex: i,
+        burstCount: lostHearts
+      });
+    }
+  }
+
+  triggerPotionToHeart(potion, heartIndex) {
+    this.addEffect('potionToHeart', {
+      x: potion.x,
+      y: potion.y,
+      radius: potion.radius,
+      heartIndex
+    });
+  }
+
   triggerVanish(enemy) {
     this.addEffect('vanish', {
       x: enemy.x,
@@ -267,6 +294,71 @@ class GameState {
       radius: enemy.radius,
       kind: enemy.kind
     });
+    if (enemy.kind !== 'potion') {
+      this.addEffect('lightning', {
+        fromX: this.hero.x + this.hero.radius * 0.72,
+        fromY: this.hero.y - this.hero.radius * 0.92,
+        toX: enemy.x,
+        toY: enemy.y,
+        radius: enemy.radius,
+        kind: enemy.kind
+      });
+    }
+  }
+
+  triggerComboChain(targets) {
+    if (!targets.length) {
+      return;
+    }
+
+    this.addEffect('comboChain', {
+      originX: this.hero.x + this.hero.radius * 0.72,
+      originY: this.hero.y - this.hero.radius * 0.9,
+      targets: targets.map((enemy) => ({
+        x: enemy.x,
+        y: enemy.y,
+        radius: enemy.radius,
+        kind: enemy.kind,
+        dead: enemy.dead
+      }))
+    });
+
+    for (let i = 0; i < targets.length; i += 1) {
+      const enemy = targets[i];
+      if (enemy.kind === 'potion') {
+        continue;
+      }
+      const hit = enemy.takeComboHit();
+      if (hit && enemy.dead) {
+        this.triggerVanish(enemy);
+      }
+    }
+    this.enemies = this.enemies.filter((enemy) => !enemy.dead);
+  }
+
+  triggerComboThunder() {
+    const targets = this.enemies.filter((enemy) => !enemy.dead && enemy.kind !== 'potion');
+    if (!targets.length) {
+      return;
+    }
+
+    this.addEffect('comboThunder', {
+      targets: targets.map((enemy) => ({
+        x: enemy.x,
+        y: enemy.y,
+        radius: enemy.radius,
+        kind: enemy.kind
+      }))
+    });
+
+    for (let i = 0; i < targets.length; i += 1) {
+      const enemy = targets[i];
+      if (!enemy.dead) {
+        enemy.dead = true;
+        this.triggerVanish(enemy);
+      }
+    }
+    this.enemies = this.enemies.filter((enemy) => !enemy.dead);
   }
 
   spawnHealthPotion() {
@@ -355,8 +447,10 @@ class GameState {
         if (target.symbols.length === 0) {
           potionUnlocked = true;
           if (this.lives < this.maxLives) {
+            const recoveredHeartIndex = this.lives;
             this.lives += 1;
             recoveredHeart = true;
+            this.triggerPotionToHeart(target, recoveredHeartIndex);
           }
           this.triggerVanish(target);
         } else {
@@ -398,6 +492,13 @@ class GameState {
       multiplier: vanished > 0 ? multiplier : null
     };
     this.enemies = this.enemies.filter((enemy) => !enemy.dead);
+    if (this.combo === 20) {
+      const comboTargets = this.enemies.filter((enemy) => !enemy.dead && enemy.kind !== 'potion');
+      this.triggerComboChain(comboTargets);
+    }
+    if (this.combo >= 50 && this.combo % 50 === 0) {
+      this.triggerComboThunder();
+    }
     if (this.sound) {
       this.sound.play(vanished > 0 ? 'vanish' : 'hit');
     }

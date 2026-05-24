@@ -153,7 +153,7 @@ assert.strictEqual(getComboMultiplier(50), 3);
 assert.strictEqual(getComboMultiplier(100), 4);
 assert.deepStrictEqual(getHealthPotionSymbols(1, DIFFICULTY_MODES.NORMAL), [SYMBOLS.UP]);
 assert.deepStrictEqual(getHealthPotionSymbols(1, DIFFICULTY_MODES.PLUS_ONE), [SYMBOLS.UP, SYMBOLS.V]);
-assert.deepStrictEqual(getHealthPotionSymbols(2, DIFFICULTY_MODES.PLUS_ONE), [SYMBOLS.V, SYMBOLS.N]);
+assert.deepStrictEqual(getHealthPotionSymbols(2, DIFFICULTY_MODES.PLUS_ONE), [SYMBOLS.V, SYMBOLS.L]);
 assert.deepStrictEqual(getHealthPotionSymbols(3, DIFFICULTY_MODES.PLUS_ONE), [SYMBOLS.CIRCLE, SYMBOLS.V]);
 assert.deepStrictEqual(getHealthPotionSymbols(4, DIFFICULTY_MODES.PLUS_ONE), [SYMBOLS.Z, SYMBOLS.CIRCLE]);
 
@@ -183,6 +183,47 @@ assert.strictEqual(eliminationScoreAfterCombo(19), 250);
 assert.strictEqual(eliminationScoreAfterCombo(49), 300);
 assert.strictEqual(eliminationScoreAfterCombo(99), 400);
 
+const combo20Run = new GameState(375, 667, null);
+combo20Run.start();
+combo20Run.combo = 19;
+combo20Run.enemies = [
+  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT, SYMBOLS.UP], speed: 0, score: 100 }),
+  new Enemy({ x: 80, y: 40, symbols: [SYMBOLS.LEFT], speed: 0, score: 120 }),
+  new Enemy({ x: 120, y: 40, kind: 'potion', species: 'healthPotion', symbols: [SYMBOLS.UP], speed: 0, score: 0 })
+];
+combo20Run.handleGesture(rightGesture);
+assert.strictEqual(combo20Run.combo, 20);
+assert.strictEqual(combo20Run.enemies.some((enemy) => enemy.kind === 'potion'), true);
+assert.strictEqual(combo20Run.enemies.length, 1);
+assert.strictEqual(combo20Run.enemies[0].kind, 'potion');
+assert.ok(combo20Run.effects.some((effect) => effect.type === 'comboChain'));
+
+const combo50Run = new GameState(375, 667, null);
+combo50Run.start();
+combo50Run.combo = 49;
+combo50Run.enemies = [
+  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 }),
+  new Enemy({ x: 80, y: 40, symbols: [SYMBOLS.LEFT, SYMBOLS.UP], speed: 0, score: 120 }),
+  new Enemy({ x: 120, y: 40, kind: 'potion', species: 'healthPotion', symbols: [SYMBOLS.UP], speed: 0, score: 0 })
+];
+combo50Run.handleGesture(rightGesture);
+assert.strictEqual(combo50Run.combo, 50);
+assert.strictEqual(combo50Run.enemies.length, 1);
+assert.strictEqual(combo50Run.enemies[0].kind, 'potion');
+assert.ok(combo50Run.effects.some((effect) => effect.type === 'comboThunder'));
+
+const combo100Run = new GameState(375, 667, null);
+combo100Run.start();
+combo100Run.combo = 99;
+combo100Run.enemies = [
+  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 }),
+  new Enemy({ x: 80, y: 40, symbols: [SYMBOLS.LEFT], speed: 0, score: 120 })
+];
+combo100Run.handleGesture(rightGesture);
+assert.strictEqual(combo100Run.combo, 100);
+assert.strictEqual(combo100Run.enemies.length, 0);
+assert.strictEqual(combo100Run.effects.filter((effect) => effect.type === 'comboThunder').length, 1);
+
 const normalPotionRun = new GameState(375, 667, null);
 normalPotionRun.start(DIFFICULTY_MODES.NORMAL);
 normalPotionRun.lives = 3;
@@ -193,10 +234,18 @@ let potion = normalPotionRun.enemies.find((enemy) => enemy.kind === 'potion');
 assert.ok(potion);
 assert.deepStrictEqual(potion.symbols, [SYMBOLS.UP]);
 assert.strictEqual(normalPotionRun.feedback.text, '消除 +200  血瓶出现');
+const lightningBeforePotion = normalPotionRun.effects.filter((effect) => effect.type === 'lightning').length;
 normalPotionRun.handleGesture(upGesture);
 assert.strictEqual(normalPotionRun.lives, 4);
 assert.strictEqual(normalPotionRun.enemies.some((enemy) => enemy.kind === 'potion'), false);
 assert.strictEqual(normalPotionRun.feedback.text, '爱心 +1');
+assert.ok(normalPotionRun.effects.some((effect) => (
+  effect.type === 'potionToHeart'
+  && effect.x === potion.x
+  && effect.y === potion.y
+  && effect.heartIndex === 3
+)));
+assert.strictEqual(normalPotionRun.effects.filter((effect) => effect.type === 'lightning').length, lightningBeforePotion);
 
 const plusPotionRun = new GameState(375, 667, null);
 plusPotionRun.start(DIFFICULTY_MODES.PLUS_ONE);
@@ -217,6 +266,28 @@ assert.strictEqual(plusPotionRun.feedback.text, '血瓶解锁中');
 plusPotionRun.handleGesture(vGesture);
 assert.strictEqual(plusPotionRun.lives, 4);
 assert.strictEqual(plusPotionRun.feedback.text, '爱心 +1');
+assert.ok(plusPotionRun.effects.some((effect) => (
+  effect.type === 'potionToHeart'
+  && effect.heartIndex === 3
+)));
+
+const fullPotionRun = new GameState(375, 667, null);
+fullPotionRun.start(DIFFICULTY_MODES.NORMAL);
+fullPotionRun.enemies = [new Enemy({
+  x: 180,
+  y: 130,
+  radius: 30,
+  speed: 0,
+  score: 0,
+  kind: 'potion',
+  species: 'healthPotion',
+  symbols: [SYMBOLS.UP]
+})];
+fullPotionRun.handleGesture(upGesture);
+assert.strictEqual(fullPotionRun.lives, fullPotionRun.maxLives);
+assert.strictEqual(fullPotionRun.feedback.text, '爱心已满');
+assert.strictEqual(fullPotionRun.effects.some((effect) => effect.type === 'potionToHeart'), false);
+assert.strictEqual(fullPotionRun.effects.some((effect) => effect.type === 'lightning'), false);
 
 const mixedScore = new GameState(375, 667, null);
 mixedScore.start();
@@ -283,6 +354,12 @@ assert.strictEqual(state.score, 110);
 assert.ok(state.heroAnimation.cast > 0);
 assert.ok(state.effects.some((effect) => effect.type === 'cast'));
 assert.ok(state.effects.some((effect) => effect.type === 'vanish'));
+assert.ok(state.effects.some((effect) => (
+  effect.type === 'lightning'
+  && effect.fromX === state.hero.x + state.hero.radius * 0.72
+  && effect.toX === 210
+  && effect.toY === 130
+)));
 
 recognized = state.handleGesture(upGesture);
 assert.strictEqual(recognized, SYMBOLS.UP);
@@ -290,6 +367,7 @@ assert.strictEqual(state.enemies.length, 0);
 assert.strictEqual(state.combo, 2);
 assert.strictEqual(state.score, 210);
 assert.strictEqual(state.effects.filter((effect) => effect.type === 'vanish').length, 2);
+assert.strictEqual(state.effects.filter((effect) => effect.type === 'lightning').length, 2);
 
 const danger = new Enemy({
   x: state.hero.x,
@@ -303,6 +381,11 @@ assert.strictEqual(state.lives, 4);
 assert.strictEqual(state.feedback.text, '爱心 -1');
 assert.ok(state.heroAnimation.hurt > 0);
 assert.ok(state.effects.some((effect) => effect.type === 'impact'));
+assert.ok(state.effects.some((effect) => (
+  effect.type === 'heartLoss'
+  && effect.heartIndex === 4
+  && effect.burstCount === 1
+)));
 
 const damageRun = new GameState(375, 667, eventSound);
 damageRun.start();
@@ -317,6 +400,12 @@ damageRun.update(0.016);
 assert.strictEqual(damageRun.lives, 3);
 assert.strictEqual(damageRun.combo, 0);
 assert.strictEqual(damageRun.feedback.text, '爱心 -2');
+assert.deepStrictEqual(
+  damageRun.effects
+    .filter((effect) => effect.type === 'heartLoss')
+    .map((effect) => effect.heartIndex),
+  [4, 3]
+);
 assert.strictEqual(eventSound.vibrated, 1);
 assert.deepStrictEqual(eventSound.played, ['hurt']);
 

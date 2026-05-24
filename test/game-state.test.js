@@ -352,6 +352,8 @@ assert.strictEqual(state.enemies.length, 1);
 assert.strictEqual(state.combo, 1);
 assert.strictEqual(state.score, 110);
 assert.ok(state.heroAnimation.cast > 0);
+assert.strictEqual(state.heroAnimation.castAge, 0);
+assert.ok(state.heroAnimation.cast > 0.7);
 assert.ok(state.effects.some((effect) => effect.type === 'cast'));
 assert.ok(state.effects.some((effect) => effect.type === 'vanish'));
 assert.ok(state.effects.some((effect) => (
@@ -380,6 +382,8 @@ state.update(0.016);
 assert.strictEqual(state.lives, 4);
 assert.strictEqual(state.feedback.text, '爱心 -1');
 assert.ok(state.heroAnimation.hurt > 0);
+assert.strictEqual(state.heroAnimation.hurtAge, 0);
+assert.ok(state.heroAnimation.hurt > 0.8);
 assert.ok(state.effects.some((effect) => effect.type === 'impact'));
 assert.ok(state.effects.some((effect) => (
   effect.type === 'heartLoss'
@@ -412,6 +416,8 @@ assert.deepStrictEqual(eventSound.played, ['hurt']);
 state.update(1);
 assert.strictEqual(state.heroAnimation.cast, 0);
 assert.strictEqual(state.heroAnimation.hurt, 0);
+assert.ok(state.heroAnimation.castAge > 0);
+assert.ok(state.heroAnimation.hurtAge > 0);
 assert.strictEqual(state.effects.length, 0);
 
 const run = new GameState(375, 667, null);

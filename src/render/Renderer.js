@@ -19,6 +19,64 @@ const ENEMY_ASSET_KEYS = {
   tyrannosaurus: 'bossTyrannosaurus'
 };
 
+const ENEMY_SPRITE = {
+  frames: 3,
+  fps: 6,
+  phaseSpeed: 4
+};
+
+function getEnemySpriteFrame(phase) {
+  const animationTime = (phase || 0) / ENEMY_SPRITE.phaseSpeed;
+  return Math.floor(animationTime * ENEMY_SPRITE.fps) % ENEMY_SPRITE.frames;
+}
+
+const HERO_SPRITE = {
+  frameWidth: 128,
+  frameHeight: 128,
+  animations: {
+    walk: {
+      assetKey: 'catWalk',
+      frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      fps: 12
+    },
+    cast: {
+      assetKey: 'catCast',
+      frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      fps: 16
+    },
+    hurt: {
+      assetKey: 'catHurt',
+      frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      fps: 14
+    }
+  }
+};
+
+function getHeroSpriteAnimation(animation, isDrawing) {
+  if (animation && animation.hurt > 0) {
+    return 'hurt';
+  }
+  if (isDrawing || (animation && animation.cast > 0)) {
+    return 'cast';
+  }
+  return 'walk';
+}
+
+function getHeroSpriteFrame(elapsed, animation, isDrawing) {
+  const animationName = getHeroSpriteAnimation(animation, isDrawing);
+  const track = HERO_SPRITE.animations[animationName];
+  let animationTime = elapsed || 0;
+
+  if (animationName === 'hurt') {
+    animationTime = animation.hurtAge || 0;
+  } else if (animationName === 'cast' && animation && animation.cast > 0) {
+    animationTime = animation.castAge || 0;
+  }
+
+  const frameIndex = Math.floor(animationTime * track.fps) % track.frames.length;
+  return track.frames[frameIndex];
+}
+
 function getSymbolIndicators(enemy) {
   if (enemy.symbolDisplay !== 'current-and-dots') {
     return enemy.symbols.map((symbol) => ({ type: 'symbol', symbol }));
@@ -565,9 +623,12 @@ class Renderer {
   drawHero(hero, elapsed, animation, isDrawing) {
     const motion = this.getHeroMotion(hero, elapsed, animation, isDrawing);
     this.drawCastingAura(hero, elapsed, animation, isDrawing);
-    const image = this.assets && this.assets.getImage('catWalk');
+    const spriteAnimation = HERO_SPRITE.animations[getHeroSpriteAnimation(animation, isDrawing)];
+    const image = this.assets && (
+      this.assets.getImage(spriteAnimation.assetKey) || this.assets.getImage('catWalk')
+    );
     if (image) {
-      this.drawCatHero(hero, elapsed, image, motion);
+      this.drawCatHero(hero, elapsed, image, motion, animation, isDrawing);
       return;
     }
 
@@ -622,9 +683,9 @@ class Renderer {
     ctx.restore();
   }
 
-  drawCatHero(hero, elapsed, image, motion) {
+  drawCatHero(hero, elapsed, image, motion, animation, isDrawing) {
     const ctx = this.ctx;
-    const frame = Math.floor(elapsed * 8) % 4;
+    const frame = getHeroSpriteFrame(elapsed, animation, isDrawing);
     const drawSize = hero.radius * 3.5;
 
     ctx.save();
@@ -634,10 +695,10 @@ class Renderer {
     ctx.globalAlpha = motion.flash ? 0.55 : 1;
     ctx.drawImage(
       image,
-      frame * 128,
+      frame * HERO_SPRITE.frameWidth,
       0,
-      128,
-      128,
+      HERO_SPRITE.frameWidth,
+      HERO_SPRITE.frameHeight,
       -drawSize / 2,
       -drawSize / 2,
       drawSize,
@@ -997,6 +1058,7 @@ class Renderer {
   drawEnemy(enemy) {
     const ctx = this.ctx;
     const wobble = Math.sin(enemy.phase) * 3;
+    const frame = getEnemySpriteFrame(enemy.phase);
 
     ctx.save();
     ctx.translate(enemy.x, enemy.y + wobble);
@@ -1007,9 +1069,9 @@ class Renderer {
     if (enemy.kind === 'potion') {
       this.drawHealthPotion(enemy);
     } else if (image) {
-      this.drawEnemyImage(enemy, image);
+      this.drawEnemyImage(enemy, image, frame);
     } else if (enemy.species === 'ghost') {
-      this.drawGhostEnemy(enemy);
+      this.drawGhostEnemy(enemy, frame);
     } else if (enemy.species.indexOf('penguin') !== -1 || enemy.species === 'emperorPenguin') {
       this.drawPenguinEnemyFallback(enemy);
     } else if (enemy.species === 'pterosaur' || enemy.species === 'triceratops' || enemy.species === 'brachiosaurus' || enemy.species === 'tyrannosaurus') {
@@ -1056,15 +1118,31 @@ class Renderer {
     ctx.restore();
   }
 
-  drawEnemyImage(enemy, image) {
+  drawEnemyImage(enemy, image, frame) {
     const sizeMultiplier = enemy.kind === 'boss' ? 3.15 : 2.7;
     const size = enemy.radius * sizeMultiplier;
-    this.ctx.drawImage(image, -size / 2, -size / 2, size, size);
+    const frameSize = image.height;
+    this.ctx.drawImage(
+      image,
+      (frame || 0) * frameSize,
+      0,
+      frameSize,
+      frameSize,
+      -size / 2,
+      -size / 2,
+      size,
+      size
+    );
   }
 
-  drawGhostEnemy(enemy) {
+  drawGhostEnemy(enemy, frame) {
     const ctx = this.ctx;
     const r = enemy.radius;
+    const stretch = [1, 0.92, 1.06][frame || 0];
+    const lean = [-0.045, 0, 0.045][frame || 0];
+    ctx.save();
+    ctx.rotate(lean);
+    ctx.scale(1 / stretch, stretch);
     ctx.fillStyle = enemy.kind === 'boss' ? '#b889ff' : '#dbe7ff';
     ctx.beginPath();
     ctx.arc(0, -r * 0.15, r, Math.PI, 0);
@@ -1078,6 +1156,7 @@ class Renderer {
     ctx.arc(-r * 0.28, -r * 0.22, Math.max(3, r * 0.1), 0, Math.PI * 2);
     ctx.arc(r * 0.28, -r * 0.22, Math.max(3, r * 0.1), 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 
   drawMarineEnemyFallback(enemy) {
@@ -1470,5 +1549,10 @@ Renderer.getSoundToggleLabel = getSoundToggleLabel;
 Renderer.getHeartSlotPosition = getHeartSlotPosition;
 Renderer.getTransitionCopy = getTransitionCopy;
 Renderer.getWinTitle = getWinTitle;
+Renderer.getEnemySpriteFrame = getEnemySpriteFrame;
+Renderer.ENEMY_SPRITE = ENEMY_SPRITE;
+Renderer.getHeroSpriteAnimation = getHeroSpriteAnimation;
+Renderer.getHeroSpriteFrame = getHeroSpriteFrame;
+Renderer.HERO_SPRITE = HERO_SPRITE;
 
 module.exports = Renderer;

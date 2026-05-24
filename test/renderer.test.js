@@ -95,6 +95,34 @@ assert.deepStrictEqual(Renderer.getHeartSlotPosition(375, 3), { x: 269, y: 31 })
 assert.deepStrictEqual(Renderer.getTransitionCopy(4), { title: '恐龙乐园', hint: '第四关 · 新增符咒：Z' });
 assert.strictEqual(Renderer.getWinTitle(), '四关通关');
 
+assert.strictEqual(Renderer.ENEMY_SPRITE.frames, 3);
+assert.strictEqual(Renderer.ENEMY_SPRITE.fps, 6);
+assert.strictEqual(Renderer.getEnemySpriteFrame(0), 0);
+assert.strictEqual(Renderer.getEnemySpriteFrame(0.8), 1);
+assert.strictEqual(Renderer.getEnemySpriteFrame(1.4), 2);
+let enemyImageArgs = null;
+const enemyImageRenderer = new Renderer({
+  drawImage() {
+    enemyImageArgs = Array.prototype.slice.call(arguments);
+  }
+}, { width: 375, height: 667 }, null);
+enemyImageRenderer.drawEnemyImage({ kind: 'normal', radius: 24 }, { height: 384 }, 2);
+assert.deepStrictEqual(enemyImageArgs.slice(1, 5), [768, 0, 384, 384]);
+
+assert.strictEqual(Renderer.HERO_SPRITE.animations.walk.frames.length, 12);
+assert.strictEqual(Renderer.HERO_SPRITE.animations.cast.frames.length, 12);
+assert.strictEqual(Renderer.HERO_SPRITE.animations.hurt.frames.length, 12);
+assert.strictEqual(Renderer.HERO_SPRITE.animations.walk.fps, 12);
+assert.strictEqual(Renderer.HERO_SPRITE.animations.cast.fps, 16);
+assert.strictEqual(Renderer.HERO_SPRITE.animations.hurt.fps, 14);
+assert.strictEqual(Renderer.HERO_SPRITE.animations.cast.assetKey, 'catCast');
+assert.strictEqual(Renderer.getHeroSpriteAnimation({ cast: 0.38, hurt: 0 }, false), 'cast');
+assert.strictEqual(Renderer.getHeroSpriteAnimation({ cast: 0.38, hurt: 0.52 }, true), 'hurt');
+assert.strictEqual(Renderer.getHeroSpriteFrame(0.13, null, false), 1);
+assert.strictEqual(Renderer.getHeroSpriteFrame(99, { cast: 0.38, castAge: 0 }, false), 0);
+assert.strictEqual(Renderer.getHeroSpriteFrame(99, { cast: 0.2, castAge: 0.18 }, false), 2);
+assert.strictEqual(Renderer.getHeroSpriteFrame(99, { cast: 0.2, castAge: 0.18, hurt: 0.52, hurtAge: 0 }, true), 0);
+
 const audioToggle = getAudioToggleBounds(375);
 assert.strictEqual(audioToggle.y, 128);
 assert.strictEqual(isAudioToggleHit(375, {

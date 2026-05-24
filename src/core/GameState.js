@@ -25,6 +25,11 @@ const ANIMATION_DURATIONS = {
   potionToHeart: 0.5
 };
 
+const HERO_ANIMATION_DURATIONS = {
+  cast: 0.8,
+  hurt: 0.9
+};
+
 const MAX_LIVES = 5;
 const HEALTH_POTION_SYMBOLS = {
   1: [SYMBOLS.UP, SYMBOLS.V],
@@ -108,7 +113,9 @@ class GameState {
     this.effects = [];
     this.heroAnimation = {
       cast: 0,
-      hurt: 0
+      castAge: 0,
+      hurt: 0,
+      hurtAge: 0
     };
     this.director.reset(this.width, this.height, this.level);
   }
@@ -225,6 +232,12 @@ class GameState {
   }
 
   updateAnimations(dt) {
+    if (this.heroAnimation.cast > 0) {
+      this.heroAnimation.castAge += dt;
+    }
+    if (this.heroAnimation.hurt > 0) {
+      this.heroAnimation.hurtAge += dt;
+    }
     this.heroAnimation.cast = Math.max(0, this.heroAnimation.cast - dt);
     this.heroAnimation.hurt = Math.max(0, this.heroAnimation.hurt - dt);
     for (let i = 0; i < this.effects.length; i += 1) {
@@ -249,7 +262,8 @@ class GameState {
   }
 
   triggerCast(symbol) {
-    this.heroAnimation.cast = ANIMATION_DURATIONS.cast;
+    this.heroAnimation.cast = HERO_ANIMATION_DURATIONS.cast;
+    this.heroAnimation.castAge = 0;
     this.addEffect('cast', {
       x: this.hero.x + this.hero.radius * 0.8,
       y: this.hero.y - this.hero.radius * 0.85,
@@ -259,7 +273,8 @@ class GameState {
   }
 
   triggerHeroImpact() {
-    this.heroAnimation.hurt = ANIMATION_DURATIONS.impact;
+    this.heroAnimation.hurt = HERO_ANIMATION_DURATIONS.hurt;
+    this.heroAnimation.hurtAge = 0;
     this.addEffect('impact', {
       x: this.hero.x,
       y: this.hero.y - this.hero.radius * 0.2,

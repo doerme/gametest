@@ -85,22 +85,24 @@ function bootstrap() {
   ensureRoundRect(ctx);
 
   const assets = new AssetManager(wxApi);
-  assets.loadImage('catWalk', 'assets/images/cat-walk-sheet.png');
+  assets.loadImage('catWalk', 'assets/images/cat-walk-v2-sheet.png');
+  assets.loadImage('catCast', 'assets/images/cat-cast-v2-sheet.png');
+  assets.loadImage('catHurt', 'assets/images/cat-hurt-v2-sheet.png');
   assets.loadImage('castleCorridorLoop', 'assets/images/castle-corridor-loop.jpg');
   assets.loadImage('oceanSpaceshipCorridorLoop', 'assets/images/ocean-spaceship-corridor-loop.jpg');
-  assets.loadImage('enemyJellyfish', 'assets/images/enemy-jellyfish.png');
-  assets.loadImage('enemyPufferfish', 'assets/images/enemy-pufferfish.png');
-  assets.loadImage('enemyShark', 'assets/images/enemy-shark.png');
-  assets.loadImage('bossMegalodon', 'assets/images/boss-megalodon.png');
+  assets.loadImage('enemyJellyfish', 'assets/images/enemy-jellyfish-sheet.png');
+  assets.loadImage('enemyPufferfish', 'assets/images/enemy-pufferfish-sheet.png');
+  assets.loadImage('enemyShark', 'assets/images/enemy-shark-sheet.png');
+  assets.loadImage('bossMegalodon', 'assets/images/boss-megalodon-sheet.png');
   assets.loadImage('penguinHotelCorridorLoop', 'assets/images/penguin-hotel-corridor-loop.jpg');
-  assets.loadImage('enemyPenguinBellhop', 'assets/images/enemy-penguin-bellhop.png');
-  assets.loadImage('enemyPenguinChef', 'assets/images/enemy-penguin-chef.png');
-  assets.loadImage('bossEmperorPenguin', 'assets/images/boss-emperor-penguin.png');
+  assets.loadImage('enemyPenguinBellhop', 'assets/images/enemy-penguin-bellhop-sheet.png');
+  assets.loadImage('enemyPenguinChef', 'assets/images/enemy-penguin-chef-sheet.png');
+  assets.loadImage('bossEmperorPenguin', 'assets/images/boss-emperor-penguin-sheet.png');
   assets.loadImage('dinosaurParkCorridorLoop', 'assets/images/dinosaur-park-corridor-loop.jpg');
-  assets.loadImage('enemyPterosaur', 'assets/images/enemy-pterosaur.png');
-  assets.loadImage('enemyTriceratops', 'assets/images/enemy-triceratops.png');
-  assets.loadImage('enemyBrachiosaurus', 'assets/images/enemy-brachiosaurus.png');
-  assets.loadImage('bossTyrannosaurus', 'assets/images/boss-tyrannosaurus.png');
+  assets.loadImage('enemyPterosaur', 'assets/images/enemy-pterosaur-sheet.png');
+  assets.loadImage('enemyTriceratops', 'assets/images/enemy-triceratops-sheet.png');
+  assets.loadImage('enemyBrachiosaurus', 'assets/images/enemy-brachiosaurus-sheet.png');
+  assets.loadImage('bossTyrannosaurus', 'assets/images/boss-tyrannosaurus-sheet.png');
 
   const sound = new SoundManager(wxApi);
   const state = new GameState(width, height, sound);

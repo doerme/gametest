@@ -12,7 +12,11 @@ const ENEMY_ASSET_KEYS = {
   megalodon: 'bossMegalodon',
   penguinBellhop: 'enemyPenguinBellhop',
   penguinChef: 'enemyPenguinChef',
-  emperorPenguin: 'bossEmperorPenguin'
+  emperorPenguin: 'bossEmperorPenguin',
+  pterosaur: 'enemyPterosaur',
+  triceratops: 'enemyTriceratops',
+  brachiosaurus: 'enemyBrachiosaurus',
+  tyrannosaurus: 'bossTyrannosaurus'
 };
 
 function getSymbolIndicators(enemy) {
@@ -35,6 +39,107 @@ function getSymbolIndicators(enemy) {
 function getLevelLabel(state, visibleLevel) {
   const difficultyLabel = state.screen !== SCREENS.LEVEL_TRANSITION && state.difficulty === DIFFICULTY_MODES.PLUS_ONE ? '  +1' : '';
   return '第 ' + (visibleLevel || state.level) + '/' + state.totalLevels + ' 关' + difficultyLabel;
+}
+
+function getComboLabel(combo) {
+  return combo > 0 ? 'COMBO x' + combo : '';
+}
+
+function getComboTier(combo) {
+  if (combo >= 100) {
+    return {
+      color: '#ffc2ff',
+      glow: 'rgba(255, 105, 255, 0.92)',
+      background: 'rgba(86, 15, 94, 0.78)',
+      multiplierLabel: '4.0x',
+      scale: 1.44
+    };
+  }
+  if (combo >= 50) {
+    return {
+      color: '#92edff',
+      glow: 'rgba(71, 218, 255, 0.9)',
+      background: 'rgba(13, 65, 92, 0.76)',
+      multiplierLabel: '3.0x',
+      scale: 1.32
+    };
+  }
+  if (combo >= 20) {
+    return {
+      color: '#ff83bc',
+      glow: 'rgba(255, 81, 154, 0.9)',
+      background: 'rgba(101, 20, 61, 0.72)',
+      multiplierLabel: '2.5x',
+      scale: 1.22
+    };
+  }
+  if (combo >= 10) {
+    return {
+      color: '#ff8f70',
+      glow: 'rgba(255, 108, 89, 0.85)',
+      background: 'rgba(105, 28, 28, 0.66)',
+      multiplierLabel: '2.0x',
+      scale: 1.14
+    };
+  }
+  if (combo >= 5) {
+    return {
+      color: '#ffb451',
+      glow: 'rgba(255, 164, 55, 0.82)',
+      background: 'rgba(92, 53, 19, 0.62)',
+      multiplierLabel: '1.5x',
+      scale: 1.08
+    };
+  }
+  if (combo >= 3) {
+    return {
+      color: '#ffe06e',
+      glow: 'rgba(255, 220, 111, 0.78)',
+      background: 'rgba(75, 57, 17, 0.58)',
+      multiplierLabel: '1.2x',
+      scale: 1.04
+    };
+  }
+  return {
+    color: '#ffdc6f',
+    glow: 'rgba(255, 220, 111, 0.62)',
+    background: 'rgba(8, 13, 25, 0.5)',
+    multiplierLabel: '',
+    scale: 1
+  };
+}
+
+function getComboPulse(combo, feedback) {
+  const duration = 0.48;
+  if (!feedback || feedback.type !== 'hit' || feedback.combo !== combo || feedback.age >= duration) {
+    return { burst: 0, scale: 1, lift: 0 };
+  }
+
+  const progress = Math.max(0, feedback.age) / duration;
+  const burst = 1 - progress;
+  return {
+    burst,
+    scale: 1 + burst * 0.2 + Math.sin(progress * Math.PI) * burst * 0.08,
+    lift: burst * 3
+  };
+}
+
+function getSoundToggleLabel(enabled) {
+  return enabled ? '声音 开' : '声音 关';
+}
+
+function getTransitionCopy(visibleLevel) {
+  if (visibleLevel === 4) {
+    return { title: '恐龙乐园', hint: '第四关 · 新增符咒：Z' };
+  }
+  if (visibleLevel === 3) {
+    return { title: '极光企鹅酒店', hint: '第三关 · 新增符咒：○' };
+  }
+  return { title: '深海飞船长廊', hint: '第二关 · 准备迎战海洋生物' };
+}
+
+function getWinTitle() {
+  return '四关通关';
 }
 
 class Renderer {
@@ -66,23 +171,30 @@ class Renderer {
     if (state.screen === SCREENS.TITLE) {
       this.drawDifficultyOverlay('幽光古堡', '划箭头方向；V 和 ∧ 照形状画', '选择难度开始游戏');
     } else if (state.screen === SCREENS.LEVEL_TRANSITION) {
-      if (visibleLevel === 3) {
-        this.drawDifficultyOverlay('极光企鹅酒店', '第三关 · 新增符咒：○', '选择本关难度');
-      } else {
-        this.drawDifficultyOverlay('深海飞船长廊', '第二关 · 准备迎战海洋生物', '选择本关难度');
-      }
+      const copy = getTransitionCopy(visibleLevel);
+      this.drawDifficultyOverlay(copy.title, copy.hint, '选择本关难度');
     } else if (state.screen === SCREENS.WIN) {
-      this.drawOverlay('三关通关', '得分 ' + state.score, '点击再来一局');
+      this.drawOverlay(getWinTitle(), '得分 ' + state.score, '点击再来一局');
     } else if (state.screen === SCREENS.LOSE) {
       this.drawOverlay('魔力耗尽', '得分 ' + state.score, '点击重试');
     }
 
-    this.drawAudioToggle(state.musicEnabled);
+    this.drawAudioToggle(state.soundEnabled);
   }
 
   drawBackground(elapsed, level) {
     const ctx = this.ctx;
     const scroll = (elapsed || 0) * 68;
+    if (level === 4) {
+      const dinosaurCorridor = this.assets && this.assets.getImage('dinosaurParkCorridorLoop');
+      if (dinosaurCorridor) {
+        this.drawScrollingDinosaurBackground(dinosaurCorridor, elapsed || 0);
+      } else {
+        this.drawFallbackDinosaurBackground(scroll);
+      }
+      return;
+    }
+
     if (level === 3) {
       const penguinCorridor = this.assets && this.assets.getImage('penguinHotelCorridorLoop');
       if (penguinCorridor) {
@@ -345,6 +457,64 @@ class Renderer {
     }
   }
 
+  drawScrollingDinosaurBackground(image, elapsed) {
+    const ctx = this.ctx;
+    const tileHeight = Math.ceil(this.width * image.height / image.width);
+    const seamBlendHeight = Math.max(8, Math.min(14, Math.floor(tileHeight * 0.018)));
+    const stride = tileHeight - seamBlendHeight;
+    const offset = Math.floor((elapsed * 128) % stride);
+    const firstTileY = offset - stride;
+
+    ctx.save();
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.drawImage(image, 0, firstTileY, this.width, tileHeight + 1);
+    for (let y = firstTileY + stride; y < this.height; y += stride) {
+      this.drawCastleTileWithSeamBlend(image, 0, image.height, y, tileHeight, seamBlendHeight);
+    }
+    ctx.restore();
+
+    const jungleLight = ctx.createLinearGradient(0, 0, this.width, this.height);
+    jungleLight.addColorStop(0, 'rgba(87, 185, 76, 0.14)');
+    jungleLight.addColorStop(0.45, 'rgba(245, 196, 71, 0.03)');
+    jungleLight.addColorStop(1, 'rgba(37, 87, 51, 0.16)');
+    ctx.fillStyle = jungleLight;
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    for (let i = 0; i < 4; i += 1) {
+      const y = ((i * 196 + elapsed * 44) % (this.height + 120)) - 60;
+      ctx.strokeStyle = 'rgba(245, 203, 86, ' + (0.06 + i * 0.012) + ')';
+      ctx.lineWidth = 8 + i * 2;
+      ctx.beginPath();
+      ctx.moveTo(this.width * 0.08, y);
+      ctx.bezierCurveTo(this.width * 0.28, y + 22, this.width * 0.7, y - 25, this.width * 0.92, y + 8);
+      ctx.stroke();
+    }
+  }
+
+  drawFallbackDinosaurBackground(scroll) {
+    const ctx = this.ctx;
+    const gradient = ctx.createLinearGradient(0, 0, 0, this.height);
+    gradient.addColorStop(0, '#173f32');
+    gradient.addColorStop(0.46, '#46743c');
+    gradient.addColorStop(1, '#172f27');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    ctx.fillStyle = 'rgba(26, 75, 43, 0.52)';
+    ctx.fillRect(0, 0, this.width * 0.18, this.height);
+    ctx.fillRect(this.width * 0.82, 0, this.width * 0.18, this.height);
+    ctx.strokeStyle = 'rgba(232, 181, 73, 0.22)';
+    ctx.lineWidth = 3;
+    for (let i = -1; i < 12; i += 1) {
+      const y = (i * 76 + scroll * 1.26) % (this.height + 80);
+      ctx.beginPath();
+      ctx.moveTo(this.width * 0.19, y);
+      ctx.lineTo(this.width * 0.81, y);
+      ctx.stroke();
+    }
+  }
+
   drawTorchGlow(x, y, elapsed, phase) {
     const ctx = this.ctx;
     const flicker = 0.88 + Math.sin(elapsed * 9 + phase) * 0.08;
@@ -364,9 +534,11 @@ class Renderer {
     const drift = ((elapsed || 0) * 42) % 34;
     ctx.save();
     ctx.translate(this.width * 0.5, this.height * 0.74 + Math.sin((elapsed || 0) * 2) * 1.5);
-    ctx.strokeStyle = level === 3
-      ? 'rgba(172, 249, 255, 0.28)'
-      : (level === 2 ? 'rgba(115, 244, 255, 0.22)' : 'rgba(255, 235, 171, 0.18)');
+    ctx.strokeStyle = level === 4
+      ? 'rgba(228, 190, 72, 0.31)'
+      : (level === 3
+        ? 'rgba(172, 249, 255, 0.28)'
+        : (level === 2 ? 'rgba(115, 244, 255, 0.22)' : 'rgba(255, 235, 171, 0.18)'));
     ctx.lineWidth = 2;
     for (let i = 1; i <= 3; i += 1) {
       ctx.beginPath();
@@ -622,6 +794,8 @@ class Renderer {
       this.drawGhostEnemy(enemy);
     } else if (enemy.species.indexOf('penguin') !== -1 || enemy.species === 'emperorPenguin') {
       this.drawPenguinEnemyFallback(enemy);
+    } else if (enemy.species === 'pterosaur' || enemy.species === 'triceratops' || enemy.species === 'brachiosaurus' || enemy.species === 'tyrannosaurus') {
+      this.drawDinosaurEnemyFallback(enemy);
     } else {
       this.drawMarineEnemyFallback(enemy);
     }
@@ -728,6 +902,49 @@ class Renderer {
     ctx.restore();
   }
 
+  drawDinosaurEnemyFallback(enemy) {
+    const ctx = this.ctx;
+    const r = enemy.radius;
+    const isBoss = enemy.species === 'tyrannosaurus';
+    ctx.fillStyle = isBoss ? '#9e4f29' : (enemy.species === 'triceratops' ? '#d69d43' : '#59955a');
+    ctx.beginPath();
+    if (enemy.species === 'pterosaur') {
+      ctx.moveTo(-r * 1.45, r * 0.12);
+      ctx.lineTo(-r * 0.32, -r * 0.46);
+      ctx.lineTo(0, -r * 0.12);
+      ctx.lineTo(r * 0.34, -r * 0.46);
+      ctx.lineTo(r * 1.45, r * 0.12);
+      ctx.lineTo(r * 0.18, r * 0.34);
+      ctx.lineTo(-r * 0.18, r * 0.34);
+    } else {
+      ctx.ellipse(-r * 0.12, 0, r * (isBoss ? 1.18 : 1.04), r * 0.68, 0, 0, Math.PI * 2);
+    }
+    ctx.fill();
+
+    if (enemy.species === 'triceratops') {
+      ctx.fillStyle = '#f3d794';
+      ctx.beginPath();
+      ctx.moveTo(r * 0.2, -r * 0.42);
+      ctx.lineTo(r * 1.3, -r * 0.82);
+      ctx.lineTo(r * 0.7, -r * 0.05);
+      ctx.lineTo(r * 1.32, r * 0.1);
+      ctx.lineTo(r * 0.26, r * 0.36);
+      ctx.closePath();
+      ctx.fill();
+    } else if (enemy.species === 'brachiosaurus') {
+      ctx.fillRect(r * 0.35, -r * 1.02, r * 0.3, r * 1.05);
+      ctx.beginPath();
+      ctx.arc(r * 0.58, -r * 1.02, r * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (isBoss) {
+      ctx.beginPath();
+      ctx.arc(r * 0.85, -r * 0.28, r * 0.48, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff1c8';
+      ctx.fillRect(r * 0.95, -r * 0.12, r * 0.3, r * 0.08);
+    }
+  }
+
   drawSymbolQueue(enemy) {
     const ctx = this.ctx;
     const indicators = getSymbolIndicators(enemy);
@@ -756,7 +973,7 @@ class Renderer {
       if (indicator.type === 'count') {
         ctx.fillStyle = 'rgba(217, 246, 255, 0.88)';
         ctx.beginPath();
-        ctx.roundRect(x - size / 2, y - size / 2, size, size, 7);
+        ctx.roundRect(x - size / 2, y - size / 2, size, size, [7]);
         ctx.fill();
         ctx.fillStyle = '#1d2740';
         ctx.font = 'bold ' + Math.floor(size * 0.58) + 'px sans-serif';
@@ -766,7 +983,7 @@ class Renderer {
       }
       ctx.fillStyle = i === 0 ? '#ffdc6f' : 'rgba(255,255,255,0.68)';
       ctx.beginPath();
-      ctx.roundRect(x - size / 2, y - size / 2, size, size, 7);
+      ctx.roundRect(x - size / 2, y - size / 2, size, size, [7]);
       ctx.fill();
       ctx.fillStyle = '#1d2740';
       ctx.fillText(LABELS[indicator.symbol], x, y + 1);
@@ -815,14 +1032,81 @@ class Renderer {
       this.drawHeart(this.width - 28 - i * 26, 31, i < state.lives);
     }
 
+    this.drawComboCounter(state);
+
     if (state.feedback) {
       ctx.globalAlpha = Math.max(0, 1 - state.feedback.age / 0.7);
-      ctx.fillStyle = state.feedback.type === 'miss' ? '#ff9a87' : '#a4ffbf';
+      ctx.fillStyle = state.feedback.type === 'hit' ? '#a4ffbf' : '#ff9a87';
       ctx.font = 'bold 24px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(state.feedback.text, this.width * 0.5, 104 - state.feedback.age * 24);
       ctx.globalAlpha = 1;
     }
+  }
+
+  drawComboCounter(state) {
+    if (state.screen !== SCREENS.PLAYING || state.combo <= 0) {
+      return;
+    }
+
+    const ctx = this.ctx;
+    const tier = getComboTier(state.combo);
+    const pulse = getComboPulse(state.combo, state.feedback);
+    const label = getComboLabel(state.combo);
+    const x = 16;
+    const y = 85 - pulse.lift;
+
+    ctx.save();
+    ctx.font = 'bold 17px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const labelWidth = ctx.measureText(label).width;
+    const multiplierWidth = tier.multiplierLabel ? 45 : 0;
+    const width = labelWidth + multiplierWidth + 18;
+
+    ctx.translate(x, y);
+    ctx.scale(tier.scale * pulse.scale, tier.scale * pulse.scale);
+
+    if (pulse.burst > 0) {
+      const spread = (1 - pulse.burst) * 13;
+      ctx.globalAlpha = pulse.burst * 0.72;
+      ctx.strokeStyle = tier.glow;
+      ctx.lineWidth = 1.5 + pulse.burst * 2.5;
+      ctx.beginPath();
+      ctx.roundRect(-spread, -16 - spread * 0.38, width + spread * 2, 32 + spread * 0.76, [13]);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.fillStyle = tier.background;
+    ctx.beginPath();
+    ctx.roundRect(0, -14, width, 28, [11]);
+    ctx.fill();
+
+    ctx.strokeStyle = tier.glow;
+    ctx.globalAlpha = 0.48 + pulse.burst * 0.45;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    ctx.shadowColor = tier.glow;
+    ctx.shadowBlur = 5 + pulse.burst * 11;
+    ctx.fillStyle = tier.color;
+    ctx.fillText(label, 9, 0);
+
+    if (tier.multiplierLabel) {
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.17)';
+      ctx.beginPath();
+      ctx.roundRect(width - 42, -10, 36, 20, [7]);
+      ctx.fill();
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = tier.color;
+      ctx.fillText(tier.multiplierLabel, width - 24, 0);
+    }
+
+    ctx.restore();
   }
 
   drawHeart(x, y, filled) {
@@ -869,7 +1153,7 @@ class Renderer {
     ctx.strokeStyle = emphasized ? '#ffdc6f' : 'rgba(216, 230, 255, 0.72)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.roundRect(button.x, button.y, button.width, button.height, 12);
+    ctx.roundRect(button.x, button.y, button.width, button.height, [12]);
     ctx.fill();
     ctx.stroke();
 
@@ -893,14 +1177,14 @@ class Renderer {
     ctx.strokeStyle = enabled ? '#ffdc6f' : 'rgba(216, 230, 255, 0.64)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(button.x, button.y, button.width, button.height, 17);
+    ctx.roundRect(button.x, button.y, button.width, button.height, [17]);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = enabled ? '#ffdc6f' : '#d8e6ff';
     ctx.font = 'bold 14px sans-serif';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
-    ctx.fillText(enabled ? '音乐 开' : '音乐 关', button.x + button.width * 0.5, button.y + button.height * 0.5);
+    ctx.fillText(getSoundToggleLabel(enabled), button.x + button.width * 0.5, button.y + button.height * 0.5);
     ctx.restore();
   }
 
@@ -927,5 +1211,11 @@ class Renderer {
 
 Renderer.getSymbolIndicators = getSymbolIndicators;
 Renderer.getLevelLabel = getLevelLabel;
+Renderer.getComboLabel = getComboLabel;
+Renderer.getComboTier = getComboTier;
+Renderer.getComboPulse = getComboPulse;
+Renderer.getSoundToggleLabel = getSoundToggleLabel;
+Renderer.getTransitionCopy = getTransitionCopy;
+Renderer.getWinTitle = getWinTitle;
 
 module.exports = Renderer;

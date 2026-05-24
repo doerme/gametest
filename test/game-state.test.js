@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { GameState, SCREENS } = require('../src/core/GameState');
+const { GameState, SCREENS, getComboMultiplier } = require('../src/core/GameState');
 const Enemy = require('../src/entities/Enemy');
 const { SYMBOLS } = require('../src/input/GestureRecognizer');
 const { DIFFICULTY_MODES, getDifficultyButtons } = require('../src/ui/DifficultySelector');
@@ -24,8 +24,12 @@ const soundCalls = {
   enabled: [],
   tracks: [],
   stopped: 0,
-  play() {},
-  setMusicEnabled(enabled) {
+  played: [],
+  vibrated: 0,
+  play(eventName) {
+    this.played.push(eventName);
+  },
+  setSoundEnabled(enabled) {
     this.enabled.push(enabled);
   },
   playMusic(level) {
@@ -33,15 +37,18 @@ const soundCalls = {
   },
   stopMusic() {
     this.stopped += 1;
+  },
+  vibrateDamage() {
+    this.vibrated += 1;
   }
 };
 const audioControls = new GameState(375, 667, soundCalls);
-assert.strictEqual(audioControls.musicEnabled, true);
+assert.strictEqual(audioControls.soundEnabled, true);
 assert.deepStrictEqual(soundCalls.enabled, [true]);
 audioControls.handleTap(centerOf(audioButton));
-assert.strictEqual(audioControls.musicEnabled, false);
+assert.strictEqual(audioControls.soundEnabled, false);
 audioControls.handleTap(centerOf(audioButton));
-assert.strictEqual(audioControls.musicEnabled, true);
+assert.strictEqual(audioControls.soundEnabled, true);
 assert.deepStrictEqual(soundCalls.enabled, [true, false, true]);
 audioControls.handleTap(centerOf(buttons[0]));
 assert.deepStrictEqual(soundCalls.tracks, [1]);
@@ -137,6 +144,75 @@ assert.strictEqual(fastTransition.level, 2);
 assert.strictEqual(fastTransition.difficulty, DIFFICULTY_MODES.NORMAL);
 assert.strictEqual(fastTransition.timeScale, 1);
 
+assert.strictEqual(getComboMultiplier(2), 1);
+assert.strictEqual(getComboMultiplier(3), 1.2);
+assert.strictEqual(getComboMultiplier(5), 1.5);
+assert.strictEqual(getComboMultiplier(10), 2);
+assert.strictEqual(getComboMultiplier(20), 2.5);
+assert.strictEqual(getComboMultiplier(50), 3);
+assert.strictEqual(getComboMultiplier(100), 4);
+
+const rightGesture = [{ x: 20, y: 20 }, { x: 110, y: 20 }];
+const upGesture = [{ x: 100, y: 140 }, { x: 100, y: 40 }];
+
+function eliminationScoreAfterCombo(priorCombo) {
+  const scoreRun = new GameState(375, 667, null);
+  scoreRun.start();
+  scoreRun.combo = priorCombo;
+  scoreRun.enemies = [new Enemy({
+    x: 40,
+    y: 40,
+    symbols: [SYMBOLS.RIGHT],
+    speed: 0,
+    score: 100
+  })];
+  scoreRun.handleGesture(rightGesture);
+  return scoreRun.score;
+}
+
+assert.strictEqual(eliminationScoreAfterCombo(2), 120);
+assert.strictEqual(eliminationScoreAfterCombo(4), 150);
+assert.strictEqual(eliminationScoreAfterCombo(9), 200);
+assert.strictEqual(eliminationScoreAfterCombo(19), 250);
+assert.strictEqual(eliminationScoreAfterCombo(49), 300);
+assert.strictEqual(eliminationScoreAfterCombo(99), 400);
+
+const mixedScore = new GameState(375, 667, null);
+mixedScore.start();
+mixedScore.combo = 2;
+mixedScore.enemies = [
+  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 }),
+  new Enemy({ x: 60, y: 40, symbols: [SYMBOLS.RIGHT, SYMBOLS.UP], speed: 0, score: 200 })
+];
+mixedScore.handleGesture(rightGesture);
+assert.strictEqual(mixedScore.combo, 3);
+assert.strictEqual(mixedScore.score, 150);
+assert.strictEqual(mixedScore.feedback.text, '消除 +150  Combo x3  1.2x');
+mixedScore.handleGesture([{ x: 120, y: 30 }, { x: 30, y: 30 }]);
+assert.strictEqual(mixedScore.combo, 0);
+
+const eventSound = {
+  played: [],
+  vibrated: 0,
+  setSoundEnabled() {},
+  playMusic() {},
+  play(eventName) {
+    this.played.push(eventName);
+  },
+  vibrateDamage() {
+    this.vibrated += 1;
+  }
+};
+const eventRun = new GameState(375, 667, eventSound);
+eventRun.start();
+eventSound.played = [];
+eventRun.enemies = [
+  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 }),
+  new Enemy({ x: 60, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 })
+];
+eventRun.handleGesture(rightGesture);
+assert.deepStrictEqual(eventSound.played, ['vanish']);
+
 const state = new GameState(375, 667, null);
 state.start();
 assert.strictEqual(state.screen, SCREENS.PLAYING);
@@ -157,19 +233,21 @@ state.enemies.push(new Enemy({
   score: 80
 }));
 
-let recognized = state.handleGesture([{ x: 20, y: 20 }, { x: 110, y: 20 }]);
+let recognized = state.handleGesture(rightGesture);
 assert.strictEqual(recognized, SYMBOLS.RIGHT);
 assert.strictEqual(state.enemies[0].symbols.length, 1);
 assert.strictEqual(state.enemies.length, 1);
-assert.ok(state.score >= 120);
+assert.strictEqual(state.combo, 1);
+assert.strictEqual(state.score, 110);
 assert.ok(state.heroAnimation.cast > 0);
 assert.ok(state.effects.some((effect) => effect.type === 'cast'));
 assert.ok(state.effects.some((effect) => effect.type === 'vanish'));
 
-recognized = state.handleGesture([{ x: 100, y: 140 }, { x: 100, y: 40 }]);
+recognized = state.handleGesture(upGesture);
 assert.strictEqual(recognized, SYMBOLS.UP);
 assert.strictEqual(state.enemies.length, 0);
-assert.ok(state.score > 100);
+assert.strictEqual(state.combo, 2);
+assert.strictEqual(state.score, 210);
 assert.strictEqual(state.effects.filter((effect) => effect.type === 'vanish').length, 2);
 
 const danger = new Enemy({
@@ -181,8 +259,25 @@ const danger = new Enemy({
 state.enemies = [danger];
 state.update(0.016);
 assert.strictEqual(state.lives, 4);
+assert.strictEqual(state.feedback.text, '爱心 -1');
 assert.ok(state.heroAnimation.hurt > 0);
 assert.ok(state.effects.some((effect) => effect.type === 'impact'));
+
+const damageRun = new GameState(375, 667, eventSound);
+damageRun.start();
+eventSound.played = [];
+eventSound.vibrated = 0;
+damageRun.combo = 4;
+damageRun.enemies = [
+  new Enemy({ x: damageRun.hero.x, y: damageRun.hero.y, symbols: [SYMBOLS.LEFT], speed: 0 }),
+  new Enemy({ x: damageRun.hero.x, y: damageRun.hero.y, symbols: [SYMBOLS.RIGHT], speed: 0 })
+];
+damageRun.update(0.016);
+assert.strictEqual(damageRun.lives, 3);
+assert.strictEqual(damageRun.combo, 0);
+assert.strictEqual(damageRun.feedback.text, '爱心 -2');
+assert.strictEqual(eventSound.vibrated, 1);
+assert.deepStrictEqual(eventSound.played, ['hurt']);
 
 state.update(1);
 assert.strictEqual(state.heroAnimation.cast, 0);
@@ -219,6 +314,18 @@ assert.strictEqual(run.director.level, 3);
 assert.strictEqual(run.score, 900);
 assert.strictEqual(run.lives, 3);
 assert.strictEqual(run.difficulty, DIFFICULTY_MODES.NORMAL);
+
+run.director.index = run.director.total;
+run.update(0);
+assert.strictEqual(run.screen, SCREENS.LEVEL_TRANSITION);
+
+run.handleTap(centerOf(buttons[1]));
+assert.strictEqual(run.screen, SCREENS.PLAYING);
+assert.strictEqual(run.level, 4);
+assert.strictEqual(run.director.level, 4);
+assert.strictEqual(run.score, 900);
+assert.strictEqual(run.lives, 3);
+assert.strictEqual(run.difficulty, DIFFICULTY_MODES.PLUS_ONE);
 
 run.director.index = run.director.total;
 run.update(0);

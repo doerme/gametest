@@ -96,6 +96,11 @@ function bootstrap() {
   assets.loadImage('enemyPenguinBellhop', 'assets/images/enemy-penguin-bellhop.png');
   assets.loadImage('enemyPenguinChef', 'assets/images/enemy-penguin-chef.png');
   assets.loadImage('bossEmperorPenguin', 'assets/images/boss-emperor-penguin.png');
+  assets.loadImage('dinosaurParkCorridorLoop', 'assets/images/dinosaur-park-corridor-loop.jpg');
+  assets.loadImage('enemyPterosaur', 'assets/images/enemy-pterosaur.png');
+  assets.loadImage('enemyTriceratops', 'assets/images/enemy-triceratops.png');
+  assets.loadImage('enemyBrachiosaurus', 'assets/images/enemy-brachiosaurus.png');
+  assets.loadImage('bossTyrannosaurus', 'assets/images/boss-tyrannosaurus.png');
 
   const sound = new SoundManager(wxApi);
   const state = new GameState(width, height, sound);

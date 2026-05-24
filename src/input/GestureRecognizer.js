@@ -120,7 +120,7 @@ function findCornerIndex(points, wantLowY) {
 }
 
 function recognizeVShape(points, bounds) {
-  if (points.length < 3 || bounds.width < 24 || bounds.height < 24) {
+  if (points.length < 3 || bounds.width < 18 || bounds.height < 18) {
     return SYMBOLS.UNKNOWN;
   }
 
@@ -135,7 +135,8 @@ function recognizeVShape(points, bounds) {
     const leftDrop = bottom.y - first.y;
     const rightRise = bottom.y - last.y;
     const spread = Math.abs(last.x - first.x);
-    if (leftDrop > bounds.height * 0.38 && rightRise > bounds.height * 0.38 && spread > bounds.width * 0.36) {
+    // Young players often finish one arm early, leaving a visibly uneven V.
+    if (leftDrop > bounds.height * 0.24 && rightRise > bounds.height * 0.24 && spread > bounds.width * 0.22) {
       return SYMBOLS.V;
     }
   }
@@ -144,7 +145,7 @@ function recognizeVShape(points, bounds) {
     const leftRise = first.y - top.y;
     const rightDrop = last.y - top.y;
     const spread = Math.abs(last.x - first.x);
-    if (leftRise > bounds.height * 0.38 && rightDrop > bounds.height * 0.38 && spread > bounds.width * 0.36) {
+    if (leftRise > bounds.height * 0.24 && rightDrop > bounds.height * 0.24 && spread > bounds.width * 0.22) {
       return SYMBOLS.CARET;
     }
   }

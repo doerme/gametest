@@ -86,6 +86,31 @@ const PENGUIN_HOTEL_TIMELINE = [
   { time: 51.0, lane: 4, species: 'emperorPenguin', symbols: [SYMBOLS.CIRCLE, SYMBOLS.CIRCLE, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.CARET, SYMBOLS.CIRCLE, SYMBOLS.DOWN, SYMBOLS.CIRCLE, SYMBOLS.UP], speed: 37, radius: 50, score: 1000, kind: 'boss' }
 ];
 
+const DINOSAUR_PARK_TIMELINE = [
+  { time: 0.9, lane: 0, species: 'pterosaur', symbols: [SYMBOLS.CIRCLE, SYMBOLS.RIGHT], speed: 59, score: 220 },
+  { time: 2.4, lane: 1, species: 'triceratops', symbols: [SYMBOLS.CIRCLE, SYMBOLS.UP], speed: 59, score: 220 },
+  { time: 4.3, lane: 2, species: 'brachiosaurus', symbols: [SYMBOLS.CIRCLE, SYMBOLS.V], speed: 64, score: 230 },
+  { time: 6.0, lane: 3, species: 'pterosaur', symbols: [SYMBOLS.LEFT, SYMBOLS.Z], speed: 59, radius: 27, score: 250 },
+  { time: 8.5, lane: 0, species: 'triceratops', symbols: [SYMBOLS.CARET, SYMBOLS.CIRCLE], speed: 59, radius: 28, score: 260 },
+  { time: 10.4, lane: 1, species: 'brachiosaurus', symbols: [SYMBOLS.DOWN, SYMBOLS.Z], speed: 71, radius: 23, score: 240 },
+  { time: 12.4, lane: 4, species: 'pterosaur', symbols: [SYMBOLS.RIGHT, SYMBOLS.CIRCLE, SYMBOLS.V], speed: 56, radius: 30, score: 320 },
+  { time: 14.8, lane: 2, species: 'triceratops', symbols: [SYMBOLS.LEFT, SYMBOLS.Z, SYMBOLS.UP], speed: 58, radius: 30, score: 320 },
+  { time: 17.0, lane: 3, species: 'brachiosaurus', symbols: [SYMBOLS.UP, SYMBOLS.CIRCLE], speed: 82, radius: 22, score: 260 },
+  { time: 18.7, lane: 0, species: 'pterosaur', symbols: [SYMBOLS.V, SYMBOLS.DOWN, SYMBOLS.Z], speed: 50, radius: 33, score: 350 },
+  { time: 21.4, lane: 1, species: 'triceratops', symbols: [SYMBOLS.CIRCLE, SYMBOLS.RIGHT, SYMBOLS.CIRCLE], speed: 71, radius: 31, score: 330 },
+  { time: 23.4, lane: 2, species: 'brachiosaurus', symbols: [SYMBOLS.Z, SYMBOLS.LEFT, SYMBOLS.CIRCLE], speed: 71, radius: 31, score: 330 },
+  { time: 25.7, lane: 3, species: 'pterosaur', symbols: [SYMBOLS.CARET, SYMBOLS.V, SYMBOLS.CIRCLE], speed: 66, radius: 30, score: 340 },
+  { time: 28.1, lane: 4, species: 'triceratops', symbols: [SYMBOLS.DOWN, SYMBOLS.Z, SYMBOLS.UP, SYMBOLS.RIGHT], speed: 53, radius: 35, score: 420 },
+  { time: 31.5, lane: 0, species: 'brachiosaurus', symbols: [SYMBOLS.RIGHT, SYMBOLS.CIRCLE], speed: 101, radius: 21, score: 280 },
+  { time: 32.6, lane: 1, species: 'pterosaur', symbols: [SYMBOLS.LEFT, SYMBOLS.Z], speed: 101, radius: 21, score: 280 },
+  { time: 34.9, lane: 2, species: 'triceratops', symbols: [SYMBOLS.V, SYMBOLS.CIRCLE, SYMBOLS.UP], speed: 75, radius: 31, score: 370 },
+  { time: 36.7, lane: 3, species: 'brachiosaurus', symbols: [SYMBOLS.Z, SYMBOLS.CARET, SYMBOLS.DOWN], speed: 75, radius: 31, score: 370 },
+  { time: 39.8, lane: 4, species: 'pterosaur', symbols: [SYMBOLS.UP, SYMBOLS.CIRCLE, SYMBOLS.DOWN, SYMBOLS.V], speed: 55, radius: 35, score: 440 },
+  { time: 43.4, lane: 0, species: 'triceratops', symbols: [SYMBOLS.LEFT, SYMBOLS.Z, SYMBOLS.V, SYMBOLS.RIGHT], speed: 67, radius: 34, score: 470 },
+  { time: 46.3, lane: 1, species: 'brachiosaurus', symbols: [SYMBOLS.RIGHT, SYMBOLS.CIRCLE, SYMBOLS.CARET], speed: 81, radius: 29, score: 380 },
+  { time: 51.0, lane: 4, species: 'tyrannosaurus', symbols: [SYMBOLS.Z, SYMBOLS.CIRCLE, SYMBOLS.RIGHT, SYMBOLS.LEFT, SYMBOLS.V, SYMBOLS.CARET, SYMBOLS.Z, SYMBOLS.DOWN, SYMBOLS.CIRCLE, SYMBOLS.UP, SYMBOLS.Z, SYMBOLS.CIRCLE], speed: 41, radius: 54, score: 1300, kind: 'boss' }
+];
+
 const LEVELS = [
   {
     name: '幽光古堡',
@@ -104,6 +129,12 @@ const LEVELS = [
     defaultSpecies: 'penguinBellhop',
     symbolDisplay: 'current-and-dots',
     timeline: PENGUIN_HOTEL_TIMELINE
+  },
+  {
+    name: '恐龙乐园',
+    defaultSpecies: 'pterosaur',
+    symbolDisplay: 'current-and-dots',
+    timeline: DINOSAUR_PARK_TIMELINE
   }
 ];
 

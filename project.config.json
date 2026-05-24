@@ -32,7 +32,24 @@
     "condition": {},
     "simulatorPluginLibVersion": {},
     "packOptions": {
-        "ignore": [],
+        "ignore": [
+            {
+                "type": "folder",
+                "value": "scripts"
+            },
+            {
+                "type": "folder",
+                "value": "test"
+            },
+            {
+                "type": "file",
+                "value": "README.md"
+            },
+            {
+                "type": "file",
+                "value": "assets/images/castle-hall-bg.jpg"
+            }
+        ],
         "include": []
     },
     "isGameTourist": false,

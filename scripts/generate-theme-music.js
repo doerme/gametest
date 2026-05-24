@@ -103,6 +103,31 @@ function createPenguinTheme() {
   return samples;
 }
 
+function createDinosaurParkTheme() {
+  const samples = new Float32Array(SAMPLE_COUNT);
+  const drums = [38, 38, 41, 38, 36, 38, 43, 41];
+  const calls = [57, 60, 64, 67, 64, 62, 60, 55];
+  for (let i = 0; i < drums.length; i += 1) {
+    addNote(samples, i, 0.82, drums[i], 0.24, 'soft-square');
+    addNote(samples, i + 0.48, 0.3, drums[i] - 12, 0.17, 'triangle');
+    addNote(samples, i, 0.7, calls[i], 0.22, 'triangle');
+    addNote(samples, i + 0.1, 0.54, calls[i] + 12, 0.08, 'sine');
+  }
+  [45, 48, 43, 41].forEach((note, index) => {
+    addNote(samples, index * 2, 1.92, note, 0.12, 'sine');
+  });
+  return samples;
+}
+
+function createVanishSfx() {
+  const samples = new Float32Array(Math.round(SAMPLE_RATE * 0.46));
+  addNote(samples, 0, 0.16, 84, 0.42, 'triangle');
+  addNote(samples, 0.06, 0.18, 91, 0.36, 'sine');
+  addNote(samples, 0.15, 0.28, 96, 0.3, 'triangle');
+  addNote(samples, 0.18, 0.23, 103, 0.17, 'sine');
+  return samples;
+}
+
 function writeWav(filename, samples) {
   normalize(samples);
   const dataLength = samples.length * 2;
@@ -133,3 +158,5 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 writeWav('bgm-castle.wav', createCastleTheme());
 writeWav('bgm-ocean.wav', createOceanTheme());
 writeWav('bgm-penguin-hotel.wav', createPenguinTheme());
+writeWav('bgm-dinosaur-park.wav', createDinosaurParkTheme());
+writeWav('sfx-vanish.wav', createVanishSfx());

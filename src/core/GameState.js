@@ -19,6 +19,32 @@ const ANIMATION_DURATIONS = {
   vanish: 0.62
 };
 
+function getComboMultiplier(combo) {
+  if (combo >= 100) {
+    return 4;
+  }
+  if (combo >= 50) {
+    return 3;
+  }
+  if (combo >= 20) {
+    return 2.5;
+  }
+  if (combo >= 10) {
+    return 2;
+  }
+  if (combo >= 5) {
+    return 1.5;
+  }
+  if (combo >= 3) {
+    return 1.2;
+  }
+  return 1;
+}
+
+function formatMultiplier(multiplier) {
+  return multiplier.toFixed(1) + 'x';
+}
+
 class GameState {
   constructor(width, height, sound) {
     this.width = width;
@@ -28,9 +54,9 @@ class GameState {
     this.director = new LevelDirector(width, height);
     this.difficulty = null;
     this.timeScale = 1;
-    this.musicEnabled = true;
-    if (this.sound && this.sound.setMusicEnabled) {
-      this.sound.setMusicEnabled(true);
+    this.soundEnabled = true;
+    if (this.sound && this.sound.setSoundEnabled) {
+      this.sound.setSoundEnabled(true);
     }
     this.screen = SCREENS.TITLE;
     this.resetRun();
@@ -97,16 +123,24 @@ class GameState {
     this.elapsed += playDt;
     this.director.update(this.elapsed, this.enemies);
 
+    let damageTaken = 0;
     for (let i = 0; i < this.enemies.length; i += 1) {
       const enemy = this.enemies[i];
       enemy.update(dt, this.hero, this.timeScale);
       if (enemy.reachedHero) {
         this.lives -= 1;
         this.combo = 0;
-        this.feedback = { text: '-1', age: 0, type: 'hurt' };
-        this.triggerHeroImpact();
-        if (this.sound) {
-          this.sound.play('hurt');
+        damageTaken += 1;
+      }
+    }
+
+    if (damageTaken > 0) {
+      this.feedback = { text: '爱心 -' + damageTaken, age: 0, type: 'hurt' };
+      this.triggerHeroImpact();
+      if (this.sound) {
+        this.sound.play('hurt');
+        if (this.sound.vibrateDamage) {
+          this.sound.vibrateDamage();
         }
       }
     }
@@ -223,16 +257,16 @@ class GameState {
     });
   }
 
-  toggleMusic() {
-    this.musicEnabled = !this.musicEnabled;
-    if (this.sound && this.sound.setMusicEnabled) {
-      this.sound.setMusicEnabled(this.musicEnabled);
+  toggleSound() {
+    this.soundEnabled = !this.soundEnabled;
+    if (this.sound && this.sound.setSoundEnabled) {
+      this.sound.setSoundEnabled(this.soundEnabled);
     }
   }
 
   handleTap(point) {
     if (isAudioToggleHit(this.width, point)) {
-      this.toggleMusic();
+      this.toggleSound();
       return;
     }
 
@@ -279,31 +313,35 @@ class GameState {
 
     let vanished = 0;
     let partialHits = 0;
-    let earned = 0;
+    let vanishedScore = 0;
     for (let i = 0; i < targets.length; i += 1) {
       const target = targets[i];
       target.applySymbol(symbol);
       if (target.symbols.length === 0) {
         vanished += 1;
-        earned += target.score;
+        vanishedScore += target.score;
         this.triggerVanish(target);
       } else {
         partialHits += 1;
-        earned += 30;
       }
     }
 
     this.combo += 1;
-    earned += this.combo * 10;
+    const multiplier = getComboMultiplier(this.combo);
+    const earned = Math.round(vanishedScore * multiplier) + partialHits * 30;
     this.score += earned;
     this.feedback = {
-      text: vanished > 0 ? '消除 +' + earned : '命中 +' + earned,
+      text: vanished > 0
+        ? '消除 +' + earned + '  Combo x' + this.combo + '  ' + formatMultiplier(multiplier)
+        : '命中 +' + earned + '  Combo x' + this.combo,
       age: 0,
-      type: 'hit'
+      type: 'hit',
+      combo: this.combo,
+      multiplier: vanished > 0 ? multiplier : null
     };
     this.enemies = this.enemies.filter((enemy) => !enemy.dead);
     if (this.sound) {
-      this.sound.play(vanished > 0 && partialHits === 0 ? 'vanish' : 'hit');
+      this.sound.play(vanished > 0 ? 'vanish' : 'hit');
     }
 
     return symbol;
@@ -327,5 +365,6 @@ class GameState {
 
 module.exports = {
   GameState,
-  SCREENS
+  SCREENS,
+  getComboMultiplier
 };

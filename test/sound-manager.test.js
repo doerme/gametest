@@ -4,6 +4,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const SoundManager = require('../src/audio/SoundManager');
+const { THEME_IDS } = require('../src/levels/Themes');
 
 function makeWxAudioApi(events) {
   return {
@@ -45,11 +46,11 @@ Object.keys(SoundManager.EFFECT_TRACKS).forEach((effect) => {
   assert.strictEqual(fs.existsSync(path.join(__dirname, '..', SoundManager.EFFECT_TRACKS[effect])), true);
 });
 
-sound.playMusic(1);
-assert.strictEqual(sound.music.src, SoundManager.BGM_TRACKS[1]);
+sound.playMusic(THEME_IDS.CASTLE);
+assert.strictEqual(sound.music.src, SoundManager.BGM_TRACKS[THEME_IDS.CASTLE]);
 assert.deepStrictEqual(events.slice(), ['music:play']);
 
-sound.playMusic(1);
+sound.playMusic(THEME_IDS.CASTLE);
 assert.deepStrictEqual(events.slice(), ['music:play']);
 
 sound.play('vanish');
@@ -58,15 +59,15 @@ assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:pla
 
 sound.setSoundEnabled(false);
 assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:play', 'effect:stop', 'music:pause']);
-sound.playMusic(2);
-assert.strictEqual(sound.music.src, SoundManager.BGM_TRACKS[2]);
+sound.playMusic(THEME_IDS.OCEAN);
+assert.strictEqual(sound.music.src, SoundManager.BGM_TRACKS[THEME_IDS.OCEAN]);
 sound.play('vanish');
 assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:play', 'effect:stop', 'music:pause']);
 
 sound.setSoundEnabled(true);
 assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:play', 'effect:stop', 'music:pause', 'music:play']);
-sound.playMusic(4);
-assert.strictEqual(sound.music.src, SoundManager.BGM_TRACKS[4]);
+sound.playMusic(THEME_IDS.DINOSAUR_PARK);
+assert.strictEqual(sound.music.src, SoundManager.BGM_TRACKS[THEME_IDS.DINOSAUR_PARK]);
 assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:play', 'effect:stop', 'music:pause', 'music:play', 'music:play']);
 sound.vibrateDamage();
 assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:play', 'effect:stop', 'music:pause', 'music:play', 'music:play', 'vibrate']);
@@ -76,7 +77,7 @@ assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:pla
 
 const silent = new SoundManager(null);
 silent.setSoundEnabled(false);
-silent.playMusic(1);
+silent.playMusic(THEME_IDS.CASTLE);
 silent.play('vanish');
 silent.vibrateDamage();
 silent.stopMusic();

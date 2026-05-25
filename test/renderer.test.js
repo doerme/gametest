@@ -3,6 +3,7 @@
 const assert = require('assert');
 const Renderer = require('../src/render/Renderer');
 const { SYMBOLS } = require('../src/input/GestureRecognizer');
+const { THEME_IDS } = require('../src/levels/Themes');
 const { DIFFICULTY_MODES, getDifficultyButtons, findDifficultyAtPoint } = require('../src/ui/DifficultySelector');
 const { getAudioToggleBounds, isAudioToggleHit } = require('../src/ui/AudioToggle');
 
@@ -92,8 +93,38 @@ assert.strictEqual(Renderer.getComboPulse(3, { type: 'miss', combo: 3, age: 0 })
 assert.strictEqual(Renderer.getSoundToggleLabel(true), '声音 开');
 assert.strictEqual(Renderer.getSoundToggleLabel(false), '声音 关');
 assert.deepStrictEqual(Renderer.getHeartSlotPosition(375, 3), { x: 269, y: 31 });
-assert.deepStrictEqual(Renderer.getTransitionCopy(4), { title: '恐龙乐园', hint: '第四关 · 新增符咒：Z' });
+assert.deepStrictEqual(Renderer.getTransitionCopy(4, THEME_IDS.CASTLE), { title: '幽光古堡', hint: '第四关 · 新增符咒：Z' });
+assert.deepStrictEqual(Renderer.getTransitionCopy(2, THEME_IDS.DINOSAUR_PARK), { title: '恐龙乐园', hint: '第二关 · 符咒队列仅显示当前符号' });
 assert.strictEqual(Renderer.getWinTitle(), '四关通关');
+
+const requestedBackgrounds = [];
+const themeRenderer = new Renderer({}, { width: 375, height: 667 }, {
+  getImage(key) {
+    requestedBackgrounds.push(key);
+    return {};
+  }
+});
+themeRenderer.drawScrollingOceanBackground = function drawScrollingOceanBackground() {};
+themeRenderer.drawScrollingDinosaurBackground = function drawScrollingDinosaurBackground() {};
+themeRenderer.drawBackground(0, THEME_IDS.OCEAN);
+themeRenderer.drawBackground(0, THEME_IDS.DINOSAUR_PARK);
+assert.deepStrictEqual(requestedBackgrounds, ['oceanSpaceshipCorridorLoop', 'dinosaurParkCorridorLoop']);
+
+let selectedRuneColor = null;
+const runeRenderer = new Renderer({
+  save() {},
+  restore() {},
+  translate() {},
+  beginPath() {},
+  arc() {},
+  stroke() {},
+  set strokeStyle(color) {
+    selectedRuneColor = color;
+  },
+  set lineWidth(_lineWidth) {}
+}, { width: 375, height: 667 }, null);
+runeRenderer.drawRunes(0, THEME_IDS.DINOSAUR_PARK);
+assert.strictEqual(selectedRuneColor, 'rgba(228, 190, 72, 0.31)');
 
 assert.strictEqual(Renderer.ENEMY_SPRITE.frames, 3);
 assert.strictEqual(Renderer.ENEMY_SPRITE.fps, 6);
@@ -181,15 +212,6 @@ sequenceOnlyRenderer.drawEffects([
     targets: [
       { x: 80, y: 120, radius: 24 },
       { x: 130, y: 150, radius: 24 }
-    ]
-  },
-  {
-    type: 'comboThunder',
-    age: 0.2,
-    duration: 0.56,
-    targets: [
-      { x: 100, y: 120, radius: 24 },
-      { x: 180, y: 180, radius: 28 }
     ]
   },
   {

@@ -2,6 +2,7 @@
 
 const { LABELS } = require('../input/GestureRecognizer');
 const { SCREENS } = require('../core/GameState');
+const { THEME_IDS, getTheme } = require('../levels/Themes');
 const { DIFFICULTY_MODES, getDifficultyButtons } = require('../ui/DifficultySelector');
 const { getAudioToggleBounds } = require('../ui/AudioToggle');
 
@@ -197,14 +198,15 @@ function getComboTargets(effect) {
   return effect.targets || [];
 }
 
-function getTransitionCopy(visibleLevel) {
+function getTransitionCopy(visibleLevel, themeId) {
+  const title = getTheme(themeId).name;
   if (visibleLevel === 4) {
-    return { title: '恐龙乐园', hint: '第四关 · 新增符咒：Z' };
+    return { title, hint: '第四关 · 新增符咒：Z' };
   }
   if (visibleLevel === 3) {
-    return { title: '极光企鹅酒店', hint: '第三关 · 新增符咒：○' };
+    return { title, hint: '第三关 · 新增符咒：○' };
   }
-  return { title: '深海飞船长廊', hint: '第二关 · 准备迎战海洋生物' };
+  return { title, hint: '第二关 · 符咒队列仅显示当前符号' };
 }
 
 function getWinTitle() {
@@ -228,9 +230,10 @@ class Renderer {
   render(state, input) {
     const ctx = this.ctx;
     const visibleLevel = state.screen === SCREENS.LEVEL_TRANSITION ? Math.min(state.level + 1, state.totalLevels) : state.level;
+    const visibleThemeId = state.getThemeId ? state.getThemeId(visibleLevel) : THEME_IDS.CASTLE;
     ctx.clearRect(0, 0, this.width, this.height);
-    this.drawBackground(state.elapsed, visibleLevel);
-    this.drawRunes(state.elapsed, visibleLevel);
+    this.drawBackground(state.elapsed, visibleThemeId);
+    this.drawRunes(state.elapsed, visibleThemeId);
     this.drawEnemies(state.enemies);
     this.drawHero(state.hero, state.elapsed, state.heroAnimation, input && input.isDrawing);
     this.drawEffects(state.effects);
@@ -238,9 +241,9 @@ class Renderer {
     this.drawHud(state, visibleLevel);
 
     if (state.screen === SCREENS.TITLE) {
-      this.drawDifficultyOverlay('幽光古堡', '划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
+      this.drawDifficultyOverlay(getTheme(visibleThemeId).name, '划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
     } else if (state.screen === SCREENS.LEVEL_TRANSITION) {
-      const copy = getTransitionCopy(visibleLevel);
+      const copy = getTransitionCopy(visibleLevel, visibleThemeId);
       this.drawDifficultyOverlay(copy.title, copy.hint, '选择本关难度');
     } else if (state.screen === SCREENS.WIN) {
       this.drawOverlay(getWinTitle(), '得分 ' + state.score, '点击再来一局');
@@ -251,11 +254,12 @@ class Renderer {
     this.drawAudioToggle(state.soundEnabled);
   }
 
-  drawBackground(elapsed, level) {
+  drawBackground(elapsed, themeId) {
     const ctx = this.ctx;
     const scroll = (elapsed || 0) * 68;
-    if (level === 4) {
-      const dinosaurCorridor = this.assets && this.assets.getImage('dinosaurParkCorridorLoop');
+    const theme = getTheme(themeId);
+    if (theme.id === THEME_IDS.DINOSAUR_PARK) {
+      const dinosaurCorridor = this.assets && this.assets.getImage(theme.backgroundAsset);
       if (dinosaurCorridor) {
         this.drawScrollingDinosaurBackground(dinosaurCorridor, elapsed || 0);
       } else {
@@ -264,8 +268,8 @@ class Renderer {
       return;
     }
 
-    if (level === 3) {
-      const penguinCorridor = this.assets && this.assets.getImage('penguinHotelCorridorLoop');
+    if (theme.id === THEME_IDS.PENGUIN_HOTEL) {
+      const penguinCorridor = this.assets && this.assets.getImage(theme.backgroundAsset);
       if (penguinCorridor) {
         this.drawScrollingPenguinBackground(penguinCorridor, elapsed || 0);
       } else {
@@ -274,8 +278,8 @@ class Renderer {
       return;
     }
 
-    if (level === 2) {
-      const oceanCorridor = this.assets && this.assets.getImage('oceanSpaceshipCorridorLoop');
+    if (theme.id === THEME_IDS.OCEAN) {
+      const oceanCorridor = this.assets && this.assets.getImage(theme.backgroundAsset);
       if (oceanCorridor) {
         this.drawScrollingOceanBackground(oceanCorridor, elapsed || 0);
       } else {
@@ -284,7 +288,7 @@ class Renderer {
       return;
     }
 
-    const castleCorridor = this.assets && this.assets.getImage('castleCorridorLoop');
+    const castleCorridor = this.assets && this.assets.getImage(theme.backgroundAsset);
     if (castleCorridor) {
       this.drawScrollingCastleBackground(castleCorridor, elapsed || 0);
       return;
@@ -601,16 +605,12 @@ class Renderer {
     ctx.fill();
   }
 
-  drawRunes(elapsed, level) {
+  drawRunes(elapsed, themeId) {
     const ctx = this.ctx;
     const drift = ((elapsed || 0) * 42) % 34;
     ctx.save();
     ctx.translate(this.width * 0.5, this.height * 0.74 + Math.sin((elapsed || 0) * 2) * 1.5);
-    ctx.strokeStyle = level === 4
-      ? 'rgba(228, 190, 72, 0.31)'
-      : (level === 3
-        ? 'rgba(172, 249, 255, 0.28)'
-        : (level === 2 ? 'rgba(115, 244, 255, 0.22)' : 'rgba(255, 235, 171, 0.18)'));
+    ctx.strokeStyle = getTheme(themeId).runeColor;
     ctx.lineWidth = 2;
     for (let i = 1; i <= 3; i += 1) {
       ctx.beginPath();
@@ -761,8 +761,6 @@ class Renderer {
         this.drawLightningEffect(effect);
       } else if (effect.type === 'comboChain') {
         this.drawComboChainEffect(effect);
-      } else if (effect.type === 'comboThunder') {
-        this.drawThunderClearEffect(effect);
       } else if (effect.type === 'heartLoss') {
         this.drawHeartLossEffect(effect);
       } else if (effect.type === 'potionToHeart') {
@@ -945,41 +943,6 @@ class Renderer {
       ctx.fillStyle = '#f3dcff';
       ctx.beginPath();
       ctx.arc(target.x, target.y, Math.max(3, target.radius * 0.14), 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  drawThunderClearEffect(effect) {
-    const ctx = this.ctx;
-    const progress = Math.max(0, Math.min(1, effect.age / effect.duration));
-    const alpha = Math.max(0, 1 - progress);
-    const targets = getComboTargets(effect);
-    const strikeX = this.width * 0.5 + Math.sin(progress * Math.PI * 5) * 16;
-
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.shadowColor = '#fff8b7';
-    ctx.shadowBlur = 26;
-    ctx.strokeStyle = '#fff8b7';
-    ctx.lineWidth = 9 - progress * 4;
-    ctx.beginPath();
-    ctx.moveTo(strikeX, 0);
-    ctx.lineTo(strikeX - 10, this.height * 0.16);
-    ctx.lineTo(strikeX + 8, this.height * 0.34);
-    ctx.lineTo(strikeX - 14, this.height * 0.56);
-    ctx.lineTo(strikeX + 4, this.height * 0.82);
-    ctx.lineTo(strikeX, this.height);
-    ctx.stroke();
-
-    ctx.fillStyle = 'rgba(139, 242, 255, 0.16)';
-    ctx.fillRect(0, 0, this.width, this.height);
-
-    for (let i = 0; i < targets.length; i += 1) {
-      const target = targets[i];
-      ctx.fillStyle = i % 2 === 0 ? '#fff8b7' : '#8bf2ff';
-      ctx.beginPath();
-      ctx.arc(target.x, target.y, Math.max(4, target.radius * 0.18), 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();

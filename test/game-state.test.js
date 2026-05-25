@@ -4,6 +4,7 @@ const assert = require('assert');
 const { GameState, SCREENS, getComboMultiplier, getHealthPotionSymbols } = require('../src/core/GameState');
 const Enemy = require('../src/entities/Enemy');
 const { SYMBOLS } = require('../src/input/GestureRecognizer');
+const { THEME_IDS, THEME_ORDER, createThemeOrder } = require('../src/levels/Themes');
 const { DIFFICULTY_MODES, getDifficultyButtons } = require('../src/ui/DifficultySelector');
 const { getAudioToggleBounds } = require('../src/ui/AudioToggle');
 
@@ -17,6 +18,26 @@ function centerOf(button) {
 function assertClose(actual, expected) {
   assert.ok(Math.abs(actual - expected) < 0.000001, actual + ' should equal ' + expected);
 }
+
+function fixedRandom(value) {
+  return function random() {
+    return value;
+  };
+}
+
+function sequenceRandom(values) {
+  let index = 0;
+  return function random() {
+    const value = values[index] === undefined ? values[values.length - 1] : values[index];
+    index += 1;
+    return value;
+  };
+}
+
+assert.deepStrictEqual(createThemeOrder(fixedRandom(0.999999)), THEME_ORDER);
+const shuffledThemes = createThemeOrder(fixedRandom(0));
+assert.strictEqual(new Set(shuffledThemes).size, THEME_ORDER.length);
+assert.notDeepStrictEqual(shuffledThemes, THEME_ORDER);
 
 const buttons = getDifficultyButtons(375, 667);
 const audioButton = getAudioToggleBounds(375);
@@ -32,8 +53,8 @@ const soundCalls = {
   setSoundEnabled(enabled) {
     this.enabled.push(enabled);
   },
-  playMusic(level) {
-    this.tracks.push(level);
+  playMusic(themeId) {
+    this.tracks.push(themeId);
   },
   stopMusic() {
     this.stopped += 1;
@@ -42,7 +63,7 @@ const soundCalls = {
     this.vibrated += 1;
   }
 };
-const audioControls = new GameState(375, 667, soundCalls);
+const audioControls = new GameState(375, 667, soundCalls, fixedRandom(0.999999));
 assert.strictEqual(audioControls.soundEnabled, true);
 assert.deepStrictEqual(soundCalls.enabled, [true]);
 audioControls.handleTap(centerOf(audioButton));
@@ -51,9 +72,9 @@ audioControls.handleTap(centerOf(audioButton));
 assert.strictEqual(audioControls.soundEnabled, true);
 assert.deepStrictEqual(soundCalls.enabled, [true, false, true]);
 audioControls.handleTap(centerOf(buttons[0]));
-assert.deepStrictEqual(soundCalls.tracks, [1]);
+assert.deepStrictEqual(soundCalls.tracks, [THEME_IDS.CASTLE]);
 audioControls.beginLevelTransition();
-assert.deepStrictEqual(soundCalls.tracks, [1, 2]);
+assert.deepStrictEqual(soundCalls.tracks, [THEME_IDS.CASTLE, THEME_IDS.OCEAN]);
 audioControls.handleTap(centerOf(buttons[1]));
 assert.strictEqual(audioControls.level, 2);
 assert.strictEqual(audioControls.difficulty, DIFFICULTY_MODES.PLUS_ONE);
@@ -130,6 +151,21 @@ replay.handleTap(centerOf(buttons[1]));
 assert.strictEqual(replay.difficulty, DIFFICULTY_MODES.PLUS_ONE);
 assert.strictEqual(replay.timeScale, 1.5);
 
+const themeLifecycle = new GameState(375, 667, null, sequenceRandom([
+  0.999999, 0.999999, 0.999999,
+  0, 0, 0
+]));
+const previewOrder = themeLifecycle.themeOrder.slice();
+assert.deepStrictEqual(previewOrder, THEME_ORDER);
+themeLifecycle.start(DIFFICULTY_MODES.NORMAL);
+assert.deepStrictEqual(themeLifecycle.themeOrder, previewOrder);
+assert.strictEqual(themeLifecycle.director.themeId, previewOrder[0]);
+themeLifecycle.screen = SCREENS.WIN;
+themeLifecycle.handleTap({ x: 0, y: 0 });
+assert.notDeepStrictEqual(themeLifecycle.themeOrder, previewOrder);
+assert.strictEqual(new Set(themeLifecycle.themeOrder).size, THEME_ORDER.length);
+assert.strictEqual(themeLifecycle.director.themeId, themeLifecycle.themeOrder[0]);
+
 const fastTransition = new GameState(375, 667, null);
 fastTransition.start(DIFFICULTY_MODES.PLUS_ONE);
 fastTransition.beginLevelTransition();
@@ -183,6 +219,18 @@ assert.strictEqual(eliminationScoreAfterCombo(19), 250);
 assert.strictEqual(eliminationScoreAfterCombo(49), 300);
 assert.strictEqual(eliminationScoreAfterCombo(99), 400);
 
+const combo10Run = new GameState(375, 667, null);
+combo10Run.start();
+combo10Run.combo = 9;
+combo10Run.enemies = [
+  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT, SYMBOLS.UP], speed: 0, score: 100 })
+];
+combo10Run.handleGesture(rightGesture);
+assert.strictEqual(combo10Run.combo, 10);
+assert.strictEqual(combo10Run.enemies.some((enemy) => enemy.kind === 'potion'), false);
+assert.strictEqual(combo10Run.enemies.length, 0);
+assert.ok(combo10Run.effects.some((effect) => effect.type === 'comboChain'));
+
 const combo20Run = new GameState(375, 667, null);
 combo20Run.start();
 combo20Run.combo = 19;
@@ -198,6 +246,32 @@ assert.strictEqual(combo20Run.enemies.length, 1);
 assert.strictEqual(combo20Run.enemies[0].kind, 'potion');
 assert.ok(combo20Run.effects.some((effect) => effect.type === 'comboChain'));
 
+const combo30Run = new GameState(375, 667, null);
+combo30Run.start();
+combo30Run.combo = 29;
+combo30Run.enemies = [
+  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT, SYMBOLS.UP], speed: 0, score: 100 }),
+  new Enemy({ x: 80, y: 40, symbols: [SYMBOLS.LEFT, SYMBOLS.UP], speed: 0, score: 120 })
+];
+combo30Run.handleGesture(rightGesture);
+assert.strictEqual(combo30Run.combo, 30);
+assert.strictEqual(combo30Run.enemies.filter((enemy) => enemy.kind === 'potion').length, 1);
+assert.ok(combo30Run.effects.some((effect) => effect.type === 'comboChain'));
+assert.deepStrictEqual(
+  combo30Run.enemies.find((enemy) => enemy.kind !== 'potion').symbols,
+  [SYMBOLS.UP]
+);
+
+const existingPotionAt30 = new GameState(375, 667, null);
+existingPotionAt30.start();
+existingPotionAt30.combo = 29;
+existingPotionAt30.enemies = [
+  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 }),
+  new Enemy({ x: 120, y: 40, kind: 'potion', species: 'healthPotion', symbols: [SYMBOLS.UP], speed: 0, score: 0 })
+];
+existingPotionAt30.handleGesture(rightGesture);
+assert.strictEqual(existingPotionAt30.enemies.filter((enemy) => enemy.kind === 'potion').length, 1);
+
 const combo50Run = new GameState(375, 667, null);
 combo50Run.start();
 combo50Run.combo = 49;
@@ -208,9 +282,13 @@ combo50Run.enemies = [
 ];
 combo50Run.handleGesture(rightGesture);
 assert.strictEqual(combo50Run.combo, 50);
-assert.strictEqual(combo50Run.enemies.length, 1);
-assert.strictEqual(combo50Run.enemies[0].kind, 'potion');
-assert.ok(combo50Run.effects.some((effect) => effect.type === 'comboThunder'));
+assert.strictEqual(combo50Run.enemies.length, 2);
+assert.strictEqual(combo50Run.enemies.some((enemy) => enemy.kind === 'potion'), true);
+assert.deepStrictEqual(
+  combo50Run.enemies.find((enemy) => enemy.kind !== 'potion').symbols,
+  [SYMBOLS.UP]
+);
+assert.ok(combo50Run.effects.some((effect) => effect.type === 'comboChain'));
 
 const combo100Run = new GameState(375, 667, null);
 combo100Run.start();
@@ -221,13 +299,14 @@ combo100Run.enemies = [
 ];
 combo100Run.handleGesture(rightGesture);
 assert.strictEqual(combo100Run.combo, 100);
-assert.strictEqual(combo100Run.enemies.length, 0);
-assert.strictEqual(combo100Run.effects.filter((effect) => effect.type === 'comboThunder').length, 1);
+assert.strictEqual(combo100Run.enemies.length, 1);
+assert.deepStrictEqual(combo100Run.enemies[0].symbols, [SYMBOLS.UP]);
+assert.ok(combo100Run.effects.some((effect) => effect.type === 'comboChain'));
 
 const normalPotionRun = new GameState(375, 667, null);
 normalPotionRun.start(DIFFICULTY_MODES.NORMAL);
 normalPotionRun.lives = 3;
-normalPotionRun.combo = 9;
+normalPotionRun.combo = 14;
 normalPotionRun.enemies = [new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 })];
 normalPotionRun.handleGesture(rightGesture);
 let potion = normalPotionRun.enemies.find((enemy) => enemy.kind === 'potion');
@@ -250,7 +329,7 @@ assert.strictEqual(normalPotionRun.effects.filter((effect) => effect.type === 'l
 const plusPotionRun = new GameState(375, 667, null);
 plusPotionRun.start(DIFFICULTY_MODES.PLUS_ONE);
 plusPotionRun.lives = 3;
-plusPotionRun.combo = 9;
+plusPotionRun.combo = 14;
 plusPotionRun.enemies = [new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 })];
 plusPotionRun.handleGesture(rightGesture);
 potion = plusPotionRun.enemies.find((enemy) => enemy.kind === 'potion');

@@ -1,6 +1,7 @@
 'use strict';
 
 const LevelDirector = require('../levels/LevelDirector');
+const { THEME_IDS, createThemeOrder } = require('../levels/Themes');
 const Enemy = require('../entities/Enemy');
 const { recognize, SYMBOLS } = require('../input/GestureRecognizer');
 const { DIFFICULTY_MODES, getDifficulty, findDifficultyAtPoint } = require('../ui/DifficultySelector');
@@ -20,7 +21,6 @@ const ANIMATION_DURATIONS = {
   vanish: 0.62,
   lightning: 0.3,
   comboChain: 0.5,
-  comboThunder: 0.56,
   heartLoss: 0.62,
   potionToHeart: 0.5
 };
@@ -67,10 +67,12 @@ function getHealthPotionSymbols(level, difficulty) {
 }
 
 class GameState {
-  constructor(width, height, sound) {
+  constructor(width, height, sound, random) {
     this.width = width;
     this.height = height;
     this.sound = sound;
+    this.random = random || Math.random;
+    this.themeOrder = createThemeOrder(this.random);
     this.hero = this.createHero(width, height);
     this.director = new LevelDirector(width, height);
     this.difficulty = null;
@@ -117,7 +119,15 @@ class GameState {
       hurt: 0,
       hurtAge: 0
     };
-    this.director.reset(this.width, this.height, this.level);
+    this.director.reset(this.width, this.height, this.level, this.getThemeId(this.level));
+  }
+
+  getThemeId(level) {
+    return this.themeOrder[(level || 1) - 1] || THEME_IDS.CASTLE;
+  }
+
+  createNewThemeOrder() {
+    this.themeOrder = createThemeOrder(this.random);
   }
 
   start(difficultyMode) {
@@ -127,7 +137,7 @@ class GameState {
     if (this.sound) {
       this.sound.play('start');
       if (this.sound.playMusic) {
-        this.sound.playMusic(this.level);
+        this.sound.playMusic(this.getThemeId(this.level));
       }
     }
   }
@@ -206,7 +216,7 @@ class GameState {
     this.feedback = null;
     this.enemies = [];
     if (this.sound && this.sound.playMusic) {
-      this.sound.playMusic(this.level + 1);
+      this.sound.playMusic(this.getThemeId(this.level + 1));
     }
   }
 
@@ -224,7 +234,7 @@ class GameState {
     this.feedback = null;
     this.enemies = [];
     this.effects = [];
-    this.director.startLevel(this.level);
+    this.director.startLevel(this.level, this.getThemeId(this.level));
     this.screen = SCREENS.PLAYING;
     if (this.sound) {
       this.sound.play('start');
@@ -351,31 +361,6 @@ class GameState {
     this.enemies = this.enemies.filter((enemy) => !enemy.dead);
   }
 
-  triggerComboThunder() {
-    const targets = this.enemies.filter((enemy) => !enemy.dead && enemy.kind !== 'potion');
-    if (!targets.length) {
-      return;
-    }
-
-    this.addEffect('comboThunder', {
-      targets: targets.map((enemy) => ({
-        x: enemy.x,
-        y: enemy.y,
-        radius: enemy.radius,
-        kind: enemy.kind
-      }))
-    });
-
-    for (let i = 0; i < targets.length; i += 1) {
-      const enemy = targets[i];
-      if (!enemy.dead) {
-        enemy.dead = true;
-        this.triggerVanish(enemy);
-      }
-    }
-    this.enemies = this.enemies.filter((enemy) => !enemy.dead);
-  }
-
   spawnHealthPotion() {
     if (this.enemies.some((enemy) => enemy.kind === 'potion' && !enemy.dead)) {
       return false;
@@ -427,6 +412,7 @@ class GameState {
     if (this.screen === SCREENS.WIN || this.screen === SCREENS.LOSE) {
       this.difficulty = null;
       this.timeScale = 1;
+      this.createNewThemeOrder();
       this.resetRun();
       this.screen = SCREENS.TITLE;
     }
@@ -496,7 +482,7 @@ class GameState {
     if (potionUnlocked && scoreFeedback) {
       feedbackText += '  ' + scoreFeedback;
     }
-    if (this.combo === 10 && this.spawnHealthPotion()) {
+    if (this.combo % 15 === 0 && this.spawnHealthPotion()) {
       feedbackText += '  血瓶出现';
     }
     this.feedback = {
@@ -507,12 +493,9 @@ class GameState {
       multiplier: vanished > 0 ? multiplier : null
     };
     this.enemies = this.enemies.filter((enemy) => !enemy.dead);
-    if (this.combo === 20) {
+    if (this.combo % 10 === 0) {
       const comboTargets = this.enemies.filter((enemy) => !enemy.dead && enemy.kind !== 'potion');
       this.triggerComboChain(comboTargets);
-    }
-    if (this.combo >= 50 && this.combo % 50 === 0) {
-      this.triggerComboThunder();
     }
     if (this.sound) {
       this.sound.play(vanished > 0 ? 'vanish' : 'hit');

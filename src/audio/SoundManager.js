@@ -1,10 +1,12 @@
 'use strict';
 
+const { THEME_IDS, THEMES } = require('../levels/Themes');
+
 const BGM_TRACKS = {
-  1: 'assets/audio/bgm-castle.wav',
-  2: 'assets/audio/bgm-ocean.wav',
-  3: 'assets/audio/bgm-penguin-hotel.wav',
-  4: 'assets/audio/bgm-dinosaur-park.wav'
+  [THEME_IDS.CASTLE]: THEMES[THEME_IDS.CASTLE].music,
+  [THEME_IDS.OCEAN]: THEMES[THEME_IDS.OCEAN].music,
+  [THEME_IDS.PENGUIN_HOTEL]: THEMES[THEME_IDS.PENGUIN_HOTEL].music,
+  [THEME_IDS.DINOSAUR_PARK]: THEMES[THEME_IDS.DINOSAUR_PARK].music
 };
 
 const EFFECT_TRACKS = {
@@ -56,8 +58,8 @@ class SoundManager {
     }
   }
 
-  playMusic(level) {
-    const track = BGM_TRACKS[level];
+  playMusic(themeId) {
+    const track = BGM_TRACKS[themeId];
     if (!track || !this.music) {
       return;
     }

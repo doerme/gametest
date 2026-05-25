@@ -3,6 +3,7 @@
 const assert = require('assert');
 const LevelDirector = require('../src/levels/LevelDirector');
 const { SYMBOLS } = require('../src/input/GestureRecognizer');
+const { THEME_IDS } = require('../src/levels/Themes');
 
 const director = new LevelDirector(375, 667);
 let enemies = [];
@@ -81,5 +82,27 @@ assert.deepStrictEqual(boss.symbols, [
 assert.deepStrictEqual(LevelDirector.LEVELS[3].timeline[0].symbols, [SYMBOLS.CIRCLE, SYMBOLS.RIGHT]);
 assert.deepStrictEqual(LevelDirector.LEVELS[3].timeline[3].symbols, [SYMBOLS.LEFT, SYMBOLS.Z]);
 assert.strictEqual(LevelDirector.LEVELS[3].timeline[21].time, 51);
+
+director.startLevel(1, THEME_IDS.DINOSAUR_PARK);
+enemies = [];
+director.update(60, enemies);
+boss = enemies[enemies.length - 1];
+assert.ok(enemies.some((enemy) => enemy.species === 'pterosaur'));
+assert.strictEqual(boss.species, 'tyrannosaurus');
+assert.strictEqual(boss.speed, 26);
+assert.strictEqual(boss.symbols.length, 6);
+assert.ok(enemies.every((enemy) => enemy.symbolDisplay === 'queue'));
+assert.ok(enemies.every((enemy) => !enemy.symbols.includes(SYMBOLS.CIRCLE) && !enemy.symbols.includes(SYMBOLS.Z)));
+
+director.startLevel(4, THEME_IDS.CASTLE);
+enemies = [];
+director.update(60, enemies);
+boss = enemies[enemies.length - 1];
+assert.ok(enemies.every((enemy) => enemy.species === 'ghost'));
+assert.strictEqual(boss.speed, 41);
+assert.strictEqual(boss.score, 1300);
+assert.strictEqual(boss.symbols.length, 12);
+assert.ok(enemies.some((enemy) => enemy.symbols.includes(SYMBOLS.CIRCLE)));
+assert.ok(enemies.some((enemy) => enemy.symbols.includes(SYMBOLS.Z)));
 
 console.log('level-director.test.js passed');

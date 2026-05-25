@@ -34,7 +34,7 @@
 ## 角色资源
 
 - 主角贴图：`assets/images/cat-walk-v2-sheet.png`、`assets/images/cat-cast-v2-sheet.png`、`assets/images/cat-hurt-v2-sheet.png`，分别对应行走、施法、受击动画；每张均为 12 帧横向透明精灵图，每帧 `128 x 128`。
-- 手势提示图标：`assets/images/symbol-up.png`、`symbol-down.png`、`symbol-left.png`、`symbol-right.png`、`symbol-v.png`、`symbol-l.png`、`symbol-circle.png` 与 `symbol-z.png`，分别用于敌人与血瓶上方的八种符咒；同名 `.svg` 文件为可编辑矢量源文件。
+- 手势提示图标：`assets/images/symbol-up.png`、`symbol-down.png`、`symbol-left.png`、`symbol-right.png`、`symbol-v.png`、`symbol-l.png`、`symbol-circle.png` 与 `symbol-z.png`，分别用于敌人与血瓶上方的八种符咒；可用 `node scripts/generate-symbol-icons.js` 重新生成高清透明图标。
 - 主角动画轨道在 `src/render/Renderer.js` 的 `HERO_SPRITE.animations` 中独立配置：`walk`、`cast`、`hurt` 均可分别调整使用的帧序列和 `fps`，施法与受击会从各自首帧开始播放。
 - 十二帧动画当前节奏为：行走 `12 fps`、施法 `16 fps`、受击 `14 fps`；施法与受击的角色动作窗口独立于短促特效，保证动作能完整舒展播放。
 - 古堡主题背景：`assets/images/castle-corridor-loop.jpg`，原创斜俯视古堡长廊无缝地图；整张地图与火把光晕会持续向下循环滚动。

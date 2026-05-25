@@ -67,14 +67,14 @@ assert.ok(manager.getImage('bossTyrannosaurus'));
 assert.strictEqual(manager.getImage('missing'), null);
 
 [
-  'symbol-up.svg', 'symbol-up.png',
-  'symbol-down.svg', 'symbol-down.png',
-  'symbol-left.svg', 'symbol-left.png',
-  'symbol-right.svg', 'symbol-right.png',
-  'symbol-v.svg', 'symbol-v.png',
-  'symbol-l.svg', 'symbol-l.png',
-  'symbol-circle.svg', 'symbol-circle.png',
-  'symbol-z.svg', 'symbol-z.png',
+  'symbol-up.png',
+  'symbol-down.png',
+  'symbol-left.png',
+  'symbol-right.png',
+  'symbol-v.png',
+  'symbol-l.png',
+  'symbol-circle.png',
+  'symbol-z.png',
   'dinosaur-park-corridor-loop.jpg',
   'enemy-pterosaur.png',
   'enemy-triceratops.png',

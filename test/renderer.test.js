@@ -154,7 +154,7 @@ const symbolIconRenderer = new Renderer({
   }
 }, { width: 375, height: 667 }, {
   getImage(key) {
-    return key === 'symbolZ' ? { width: 32, height: 32 } : null;
+    return key === 'symbolZ' ? { width: 64, height: 64 } : null;
   }
 });
 symbolIconRenderer.drawSymbolQueue({
@@ -166,7 +166,8 @@ symbolIconRenderer.drawSymbolQueue({
 });
 assert.strictEqual(Renderer.SYMBOL_ICON_ASSET_KEYS[SYMBOLS.Z], 'symbolZ');
 assert.strictEqual(symbolImageArgs.length, 5);
-assert.deepStrictEqual(symbolImageArgs[0], { width: 32, height: 32 });
+assert.deepStrictEqual(symbolImageArgs[0], { width: 64, height: 64 });
+assert.ok(symbolImageArgs[3] >= 27);
 assert.strictEqual(symbolFallbackCount, 0);
 
 let fallbackSymbol = null;

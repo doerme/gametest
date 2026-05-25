@@ -1254,7 +1254,7 @@ class Renderer {
     const ctx = this.ctx;
     const indicators = getSymbolIndicators(enemy);
     const count = indicators.length;
-    const size = Math.max(22, enemy.radius * 0.72);
+    const size = Math.max(30, enemy.radius * 0.78);
     const gap = 5;
     const startX = -((count * size + (count - 1) * gap) / 2) + size / 2;
     const imageScale = enemy.kind === 'boss' ? 1.62 : 1.36;
@@ -1293,7 +1293,7 @@ class Renderer {
       const iconAssetKey = SYMBOL_ICON_ASSET_KEYS[indicator.symbol];
       const symbolIcon = iconAssetKey && this.assets && this.assets.getImage(iconAssetKey);
       if (symbolIcon) {
-        const iconSize = size * 0.86;
+        const iconSize = size * 0.9;
         ctx.drawImage(
           symbolIcon,
           x - iconSize / 2,

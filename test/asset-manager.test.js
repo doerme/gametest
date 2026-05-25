@@ -21,6 +21,14 @@ function makeWxImageApi() {
 
 const manager = new AssetManager(makeWxImageApi());
 manager.loadImage('catWalk', 'assets/images/cat-walk-sheet.png');
+manager.loadImage('symbolUp', 'assets/images/symbol-up.png');
+manager.loadImage('symbolDown', 'assets/images/symbol-down.png');
+manager.loadImage('symbolLeft', 'assets/images/symbol-left.png');
+manager.loadImage('symbolRight', 'assets/images/symbol-right.png');
+manager.loadImage('symbolV', 'assets/images/symbol-v.png');
+manager.loadImage('symbolL', 'assets/images/symbol-l.png');
+manager.loadImage('symbolCircle', 'assets/images/symbol-circle.png');
+manager.loadImage('symbolZ', 'assets/images/symbol-z.png');
 manager.loadImage('castleCorridorLoop', 'assets/images/castle-corridor-loop.jpg');
 manager.loadImage('oceanSpaceshipCorridorLoop', 'assets/images/ocean-spaceship-corridor-loop.jpg');
 manager.loadImage('enemyJellyfish', 'assets/images/enemy-jellyfish.png');
@@ -38,6 +46,9 @@ manager.loadImage('enemyBrachiosaurus', 'assets/images/enemy-brachiosaurus.png')
 manager.loadImage('bossTyrannosaurus', 'assets/images/boss-tyrannosaurus.png');
 
 assert.ok(manager.getImage('catWalk'));
+['symbolUp', 'symbolDown', 'symbolLeft', 'symbolRight', 'symbolV', 'symbolL', 'symbolCircle', 'symbolZ'].forEach((key) => {
+  assert.ok(manager.getImage(key));
+});
 assert.ok(manager.getImage('castleCorridorLoop'));
 assert.ok(manager.getImage('oceanSpaceshipCorridorLoop'));
 assert.ok(manager.getImage('enemyJellyfish'));
@@ -56,6 +67,14 @@ assert.ok(manager.getImage('bossTyrannosaurus'));
 assert.strictEqual(manager.getImage('missing'), null);
 
 [
+  'symbol-up.svg', 'symbol-up.png',
+  'symbol-down.svg', 'symbol-down.png',
+  'symbol-left.svg', 'symbol-left.png',
+  'symbol-right.svg', 'symbol-right.png',
+  'symbol-v.svg', 'symbol-v.png',
+  'symbol-l.svg', 'symbol-l.png',
+  'symbol-circle.svg', 'symbol-circle.png',
+  'symbol-z.svg', 'symbol-z.png',
   'dinosaur-park-corridor-loop.jpg',
   'enemy-pterosaur.png',
   'enemy-triceratops.png',

@@ -140,6 +140,53 @@ const enemyImageRenderer = new Renderer({
 enemyImageRenderer.drawEnemyImage({ kind: 'normal', radius: 24 }, { height: 384 }, 2);
 assert.deepStrictEqual(enemyImageArgs.slice(1, 5), [768, 0, 384, 384]);
 
+let symbolImageArgs = null;
+let symbolFallbackCount = 0;
+const symbolIconRenderer = new Renderer({
+  beginPath() {},
+  fill() {},
+  roundRect() {},
+  drawImage() {
+    symbolImageArgs = Array.prototype.slice.call(arguments);
+  },
+  fillText() {
+    symbolFallbackCount += 1;
+  }
+}, { width: 375, height: 667 }, {
+  getImage(key) {
+    return key === 'symbolZ' ? { width: 32, height: 32 } : null;
+  }
+});
+symbolIconRenderer.drawSymbolQueue({
+  kind: 'normal',
+  species: 'ghost',
+  radius: 24,
+  symbolDisplay: 'queue',
+  symbols: [SYMBOLS.Z]
+});
+assert.strictEqual(Renderer.SYMBOL_ICON_ASSET_KEYS[SYMBOLS.Z], 'symbolZ');
+assert.strictEqual(symbolImageArgs.length, 5);
+assert.deepStrictEqual(symbolImageArgs[0], { width: 32, height: 32 });
+assert.strictEqual(symbolFallbackCount, 0);
+
+let fallbackSymbol = null;
+const fallbackSymbolRenderer = new Renderer({
+  beginPath() {},
+  fill() {},
+  roundRect() {},
+  fillText(text) {
+    fallbackSymbol = text;
+  }
+}, { width: 375, height: 667 }, null);
+fallbackSymbolRenderer.drawSymbolQueue({
+  kind: 'normal',
+  species: 'ghost',
+  radius: 24,
+  symbolDisplay: 'queue',
+  symbols: [SYMBOLS.V]
+});
+assert.strictEqual(fallbackSymbol, 'V');
+
 assert.strictEqual(Renderer.HERO_SPRITE.animations.walk.frames.length, 12);
 assert.strictEqual(Renderer.HERO_SPRITE.animations.cast.frames.length, 12);
 assert.strictEqual(Renderer.HERO_SPRITE.animations.hurt.frames.length, 12);

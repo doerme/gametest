@@ -1,6 +1,6 @@
 'use strict';
 
-const { LABELS } = require('../input/GestureRecognizer');
+const { LABELS, SYMBOLS } = require('../input/GestureRecognizer');
 const { SCREENS } = require('../core/GameState');
 const { THEME_IDS, getTheme } = require('../levels/Themes');
 const { DIFFICULTY_MODES, getDifficultyButtons } = require('../ui/DifficultySelector');
@@ -18,6 +18,17 @@ const ENEMY_ASSET_KEYS = {
   triceratops: 'enemyTriceratops',
   brachiosaurus: 'enemyBrachiosaurus',
   tyrannosaurus: 'bossTyrannosaurus'
+};
+
+const SYMBOL_ICON_ASSET_KEYS = {
+  [SYMBOLS.UP]: 'symbolUp',
+  [SYMBOLS.DOWN]: 'symbolDown',
+  [SYMBOLS.LEFT]: 'symbolLeft',
+  [SYMBOLS.RIGHT]: 'symbolRight',
+  [SYMBOLS.V]: 'symbolV',
+  [SYMBOLS.L]: 'symbolL',
+  [SYMBOLS.CIRCLE]: 'symbolCircle',
+  [SYMBOLS.Z]: 'symbolZ'
 };
 
 const ENEMY_SPRITE = {
@@ -1279,8 +1290,21 @@ class Renderer {
       ctx.beginPath();
       ctx.roundRect(x - size / 2, y - size / 2, size, size, [7]);
       ctx.fill();
-      ctx.fillStyle = '#1d2740';
-      ctx.fillText(LABELS[indicator.symbol], x, y + 1);
+      const iconAssetKey = SYMBOL_ICON_ASSET_KEYS[indicator.symbol];
+      const symbolIcon = iconAssetKey && this.assets && this.assets.getImage(iconAssetKey);
+      if (symbolIcon) {
+        const iconSize = size * 0.86;
+        ctx.drawImage(
+          symbolIcon,
+          x - iconSize / 2,
+          y - iconSize / 2,
+          iconSize,
+          iconSize
+        );
+      } else {
+        ctx.fillStyle = '#1d2740';
+        ctx.fillText(LABELS[indicator.symbol], x, y + 1);
+      }
     }
   }
 
@@ -1514,6 +1538,7 @@ Renderer.getTransitionCopy = getTransitionCopy;
 Renderer.getWinTitle = getWinTitle;
 Renderer.getEnemySpriteFrame = getEnemySpriteFrame;
 Renderer.ENEMY_SPRITE = ENEMY_SPRITE;
+Renderer.SYMBOL_ICON_ASSET_KEYS = SYMBOL_ICON_ASSET_KEYS;
 Renderer.getHeroSpriteAnimation = getHeroSpriteAnimation;
 Renderer.getHeroSpriteFrame = getHeroSpriteFrame;
 Renderer.HERO_SPRITE = HERO_SPRITE;

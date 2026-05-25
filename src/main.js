@@ -88,6 +88,14 @@ function bootstrap() {
   assets.loadImage('catWalk', 'assets/images/cat-walk-v2-sheet.png');
   assets.loadImage('catCast', 'assets/images/cat-cast-v2-sheet.png');
   assets.loadImage('catHurt', 'assets/images/cat-hurt-v2-sheet.png');
+  assets.loadImage('symbolUp', 'assets/images/symbol-up.png');
+  assets.loadImage('symbolDown', 'assets/images/symbol-down.png');
+  assets.loadImage('symbolLeft', 'assets/images/symbol-left.png');
+  assets.loadImage('symbolRight', 'assets/images/symbol-right.png');
+  assets.loadImage('symbolV', 'assets/images/symbol-v.png');
+  assets.loadImage('symbolL', 'assets/images/symbol-l.png');
+  assets.loadImage('symbolCircle', 'assets/images/symbol-circle.png');
+  assets.loadImage('symbolZ', 'assets/images/symbol-z.png');
   assets.loadImage('castleCorridorLoop', 'assets/images/castle-corridor-loop.jpg');
   assets.loadImage('oceanSpaceshipCorridorLoop', 'assets/images/ocean-spaceship-corridor-loop.jpg');
   assets.loadImage('enemyJellyfish', 'assets/images/enemy-jellyfish-sheet.png');

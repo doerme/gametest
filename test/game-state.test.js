@@ -295,7 +295,7 @@ combo100Run.start();
 combo100Run.combo = 99;
 combo100Run.enemies = [
   new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 }),
-  new Enemy({ x: 80, y: 40, symbols: [SYMBOLS.LEFT], speed: 0, score: 120 })
+  new Enemy({ x: 80, y: 40, symbols: [SYMBOLS.LEFT, SYMBOLS.UP], speed: 0, score: 120 })
 ];
 combo100Run.handleGesture(rightGesture);
 assert.strictEqual(combo100Run.combo, 100);

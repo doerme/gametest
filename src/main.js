@@ -96,6 +96,7 @@ function bootstrap() {
   assets.loadImage('symbolL', 'assets/images/symbol-l.png');
   assets.loadImage('symbolCircle', 'assets/images/symbol-circle.png');
   assets.loadImage('symbolZ', 'assets/images/symbol-z.png');
+  assets.loadImage('symbolM', 'assets/images/symbol-m.png');
   assets.loadImage('castleCorridorLoop', 'assets/images/castle-corridor-loop.jpg');
   assets.loadImage('oceanSpaceshipCorridorLoop', 'assets/images/ocean-spaceship-corridor-loop.jpg');
   assets.loadImage('enemyJellyfish', 'assets/images/enemy-jellyfish-sheet.png');

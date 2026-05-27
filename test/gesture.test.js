@@ -34,7 +34,10 @@ const cases = [
   [SYMBOLS.Z, [{ x: 56, y: 68 }, { x: 102, y: 65 }, { x: 149, y: 70 }, { x: 119, y: 96 }, { x: 62, y: 142 }, { x: 105, y: 145 }, { x: 153, y: 141 }]],
   [SYMBOLS.Z, [{ x: 54, y: 65 }, { x: 84, y: 63 }, { x: 114, y: 66 }, { x: 127, y: 74 }, { x: 117, y: 87 }, { x: 99, y: 105 }, { x: 78, y: 124 }, { x: 67, y: 139 }, { x: 83, y: 146 }, { x: 112, y: 147 }, { x: 154, y: 145 }]],
   [SYMBOLS.Z, [{ x: 151, y: 146 }, { x: 104, y: 147 }, { x: 59, y: 145 }, { x: 112, y: 102 }, { x: 150, y: 64 }, { x: 101, y: 67 }, { x: 55, y: 65 }]],
-  [SYMBOLS.Z, [{ x: 48, y: 61 }, { x: 90, y: 65 }, { x: 152, y: 62 }, { x: 133, y: 83 }, { x: 104, y: 104 }, { x: 73, y: 132 }, { x: 55, y: 148 }, { x: 102, y: 150 }, { x: 158, y: 146 }]]
+  [SYMBOLS.Z, [{ x: 48, y: 61 }, { x: 90, y: 65 }, { x: 152, y: 62 }, { x: 133, y: 83 }, { x: 104, y: 104 }, { x: 73, y: 132 }, { x: 55, y: 148 }, { x: 102, y: 150 }, { x: 158, y: 146 }]],
+  [SYMBOLS.M, [{ x: 55, y: 148 }, { x: 55, y: 66 }, { x: 78, y: 100 }, { x: 102, y: 138 }, { x: 127, y: 99 }, { x: 150, y: 65 }, { x: 151, y: 147 }]],
+  [SYMBOLS.M, [{ x: 151, y: 147 }, { x: 150, y: 65 }, { x: 127, y: 99 }, { x: 102, y: 138 }, { x: 78, y: 100 }, { x: 55, y: 66 }, { x: 55, y: 148 }]],
+  [SYMBOLS.M, [{ x: 52, y: 145 }, { x: 56, y: 72 }, { x: 82, y: 104 }, { x: 101, y: 132 }, { x: 124, y: 101 }, { x: 147, y: 70 }, { x: 153, y: 146 }]]
 ];
 
 for (const [expected, points] of cases) {
@@ -43,5 +46,6 @@ for (const [expected, points] of cases) {
 
 assert.strictEqual(recognize([{ x: 1, y: 1 }, { x: 4, y: 3 }]), SYMBOLS.UNKNOWN);
 assert.strictEqual(LABELS[SYMBOLS.L], 'L');
+assert.strictEqual(LABELS[SYMBOLS.M], 'M');
 
 console.log('gesture.test.js passed');

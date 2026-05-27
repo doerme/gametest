@@ -34,7 +34,7 @@ const CASTLE_TIMELINE = [
   { time: 50.5, lane: 4, symbols: [SYMBOLS.UP, SYMBOLS.DOWN, SYMBOLS.V], speed: 28, radius: 35, score: 260 },
   { time: 56.0, lane: 0, symbols: [SYMBOLS.RIGHT], speed: 78, radius: 20, score: 140 },
   { time: 57.2, lane: 1, symbols: [SYMBOLS.LEFT], speed: 78, radius: 20, score: 140 },
-  { time: 60.0, lane: 4, symbols: [SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.L, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.L], speed: 26, radius: 42, score: 500, kind: 'boss' }
+  { time: 60.0, lane: 4, symbols: [SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.L, SYMBOLS.LEFT], speed: 26, radius: 42, score: 500, kind: 'boss' }
 ];
 
 const OCEAN_TIMELINE = [
@@ -59,7 +59,7 @@ const OCEAN_TIMELINE = [
   { time: 46.8, lane: 4, symbols: [SYMBOLS.UP, SYMBOLS.DOWN, SYMBOLS.V], speed: 44, radius: 34, score: 300 },
   { time: 51.0, lane: 0, symbols: [SYMBOLS.LEFT, SYMBOLS.V, SYMBOLS.RIGHT], speed: 55, radius: 33, score: 320 },
   { time: 54.5, lane: 1, symbols: [SYMBOLS.RIGHT, SYMBOLS.L], speed: 67, radius: 28, score: 230 },
-  { time: 60.0, lane: 4, symbols: [SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.L, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.L], speed: 32, radius: 48, score: 700, kind: 'boss' }
+  { time: 60.0, lane: 4, symbols: [SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.L, SYMBOLS.LEFT], speed: 32, radius: 48, score: 700, kind: 'boss' }
 ];
 
 const PENGUIN_HOTEL_TIMELINE = [
@@ -84,7 +84,7 @@ const PENGUIN_HOTEL_TIMELINE = [
   { time: 39.8, lane: 4, symbols: [SYMBOLS.UP, SYMBOLS.CIRCLE, SYMBOLS.DOWN, SYMBOLS.V], speed: 51, radius: 35, score: 400 },
   { time: 43.4, lane: 0, symbols: [SYMBOLS.LEFT, SYMBOLS.CIRCLE, SYMBOLS.V, SYMBOLS.RIGHT], speed: 63, radius: 34, score: 430 },
   { time: 46.3, lane: 1, symbols: [SYMBOLS.RIGHT, SYMBOLS.CIRCLE, SYMBOLS.L], speed: 77, radius: 29, score: 340 },
-  { time: 51.0, lane: 4, symbols: [SYMBOLS.CIRCLE, SYMBOLS.CIRCLE, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.L, SYMBOLS.CIRCLE, SYMBOLS.DOWN, SYMBOLS.CIRCLE, SYMBOLS.UP], speed: 37, radius: 50, score: 1000, kind: 'boss' }
+  { time: 51.0, lane: 4, symbols: [SYMBOLS.CIRCLE, SYMBOLS.CIRCLE, SYMBOLS.LEFT, SYMBOLS.RIGHT, SYMBOLS.V, SYMBOLS.L], speed: 37, radius: 50, score: 1000, kind: 'boss' }
 ];
 
 const DINOSAUR_PARK_TIMELINE = [
@@ -109,8 +109,28 @@ const DINOSAUR_PARK_TIMELINE = [
   { time: 39.8, lane: 4, symbols: [SYMBOLS.UP, SYMBOLS.CIRCLE, SYMBOLS.DOWN, SYMBOLS.V], speed: 55, radius: 35, score: 440 },
   { time: 43.4, lane: 0, symbols: [SYMBOLS.LEFT, SYMBOLS.Z, SYMBOLS.V, SYMBOLS.RIGHT], speed: 67, radius: 34, score: 470 },
   { time: 46.3, lane: 1, symbols: [SYMBOLS.RIGHT, SYMBOLS.CIRCLE, SYMBOLS.L], speed: 81, radius: 29, score: 380 },
-  { time: 51.0, lane: 4, symbols: [SYMBOLS.Z, SYMBOLS.CIRCLE, SYMBOLS.RIGHT, SYMBOLS.LEFT, SYMBOLS.V, SYMBOLS.L, SYMBOLS.Z, SYMBOLS.DOWN, SYMBOLS.CIRCLE, SYMBOLS.UP, SYMBOLS.Z, SYMBOLS.CIRCLE], speed: 41, radius: 54, score: 1300, kind: 'boss' }
+  { time: 51.0, lane: 4, symbols: [SYMBOLS.Z, SYMBOLS.CIRCLE, SYMBOLS.RIGHT, SYMBOLS.LEFT, SYMBOLS.V, SYMBOLS.L, SYMBOLS.Z], speed: 41, radius: 54, score: 1300, kind: 'boss' }
 ];
+
+const SKY_CITY_TIMELINE = DINOSAUR_PARK_TIMELINE.slice(0, -1).map((spawn, index) => ({
+  ...spawn,
+  speed: spawn.speed + 4,
+  score: (spawn.score || 100) + 40,
+  symbols: spawn.symbols.map((symbol, symbolIndex) => (
+    symbol === SYMBOLS.Z && (index + symbolIndex) % 2 === 0 ? SYMBOLS.M : symbol
+  ))
+})).concat([{
+  time: 51.0,
+  lane: 4,
+  symbols: [
+    SYMBOLS.M, SYMBOLS.Z, SYMBOLS.CIRCLE, SYMBOLS.RIGHT,
+    SYMBOLS.LEFT, SYMBOLS.V, SYMBOLS.L, SYMBOLS.M
+  ],
+  speed: 45,
+  radius: 58,
+  score: 1600,
+  kind: 'boss'
+}]);
 
 const LEVELS = [
   {
@@ -128,6 +148,10 @@ const LEVELS = [
   {
     symbolDisplay: 'current-and-dots',
     timeline: DINOSAUR_PARK_TIMELINE
+  },
+  {
+    symbolDisplay: 'current-and-dots',
+    timeline: SKY_CITY_TIMELINE
   }
 ];
 

@@ -29,6 +29,7 @@ manager.loadImage('symbolV', 'assets/images/symbol-v.png');
 manager.loadImage('symbolL', 'assets/images/symbol-l.png');
 manager.loadImage('symbolCircle', 'assets/images/symbol-circle.png');
 manager.loadImage('symbolZ', 'assets/images/symbol-z.png');
+manager.loadImage('symbolM', 'assets/images/symbol-m.png');
 manager.loadImage('castleCorridorLoop', 'assets/images/castle-corridor-loop.jpg');
 manager.loadImage('oceanSpaceshipCorridorLoop', 'assets/images/ocean-spaceship-corridor-loop.jpg');
 manager.loadImage('enemyJellyfish', 'assets/images/enemy-jellyfish.png');
@@ -46,7 +47,7 @@ manager.loadImage('enemyBrachiosaurus', 'assets/images/enemy-brachiosaurus.png')
 manager.loadImage('bossTyrannosaurus', 'assets/images/boss-tyrannosaurus.png');
 
 assert.ok(manager.getImage('catWalk'));
-['symbolUp', 'symbolDown', 'symbolLeft', 'symbolRight', 'symbolV', 'symbolL', 'symbolCircle', 'symbolZ'].forEach((key) => {
+['symbolUp', 'symbolDown', 'symbolLeft', 'symbolRight', 'symbolV', 'symbolL', 'symbolCircle', 'symbolZ', 'symbolM'].forEach((key) => {
   assert.ok(manager.getImage(key));
 });
 assert.ok(manager.getImage('castleCorridorLoop'));
@@ -75,6 +76,7 @@ assert.strictEqual(manager.getImage('missing'), null);
   'symbol-l.png',
   'symbol-circle.png',
   'symbol-z.png',
+  'symbol-m.png',
   'dinosaur-park-corridor-loop.jpg',
   'enemy-pterosaur.png',
   'enemy-triceratops.png',

@@ -119,6 +119,23 @@ function createDinosaurParkTheme() {
   return samples;
 }
 
+function createSkyCityTheme() {
+  const samples = new Float32Array(SAMPLE_COUNT);
+  const chimes = [76, 81, 84, 88, 86, 84, 81, 79, 76, 79, 84, 88, 91, 88, 84, 81];
+  [48, 55, 52, 57].forEach((note, index) => {
+    addNote(samples, index * 2, 1.96, note, 0.12, 'sine');
+    addNote(samples, index * 2, 1.94, note + 7, 0.08, 'sine');
+  });
+  for (let i = 0; i < chimes.length; i += 1) {
+    addNote(samples, i * 0.5, 0.42, chimes[i], 0.25, 'triangle');
+    addNote(samples, i * 0.5 + 0.06, 0.5, chimes[i] + 12, 0.07, 'sine');
+  }
+  [67, 69, 71, 74].forEach((note, index) => {
+    addNote(samples, index * 2 + 1.1, 0.82, note, 0.1, 'sine');
+  });
+  return samples;
+}
+
 function createVanishSfx() {
   const samples = new Float32Array(Math.round(SAMPLE_RATE * 0.46));
   addNote(samples, 0, 0.16, 84, 0.42, 'triangle');
@@ -159,4 +176,5 @@ writeWav('bgm-castle.wav', createCastleTheme());
 writeWav('bgm-ocean.wav', createOceanTheme());
 writeWav('bgm-penguin-hotel.wav', createPenguinTheme());
 writeWav('bgm-dinosaur-park.wav', createDinosaurParkTheme());
+writeWav('bgm-sky-city.wav', createSkyCityTheme());
 writeWav('sfx-vanish.wav', createVanishSfx());

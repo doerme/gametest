@@ -4,14 +4,16 @@ const THEME_IDS = {
   CASTLE: 'castle',
   OCEAN: 'ocean',
   PENGUIN_HOTEL: 'penguinHotel',
-  DINOSAUR_PARK: 'dinosaurPark'
+  DINOSAUR_PARK: 'dinosaurPark',
+  SKY_CITY: 'skyCity'
 };
 
 const THEME_ORDER = [
   THEME_IDS.CASTLE,
   THEME_IDS.OCEAN,
   THEME_IDS.PENGUIN_HOTEL,
-  THEME_IDS.DINOSAUR_PARK
+  THEME_IDS.DINOSAUR_PARK,
+  THEME_IDS.SKY_CITY
 ];
 
 const THEMES = {
@@ -63,6 +65,21 @@ const THEMES = {
       'triceratops', 'brachiosaurus', 'pterosaur', 'triceratops', 'brachiosaurus',
       'pterosaur', 'triceratops', 'brachiosaurus', 'pterosaur', 'triceratops',
       'brachiosaurus', 'tyrannosaurus'
+    ]
+  },
+  [THEME_IDS.SKY_CITY]: {
+    id: THEME_IDS.SKY_CITY,
+    name: '天空之城',
+    backgroundAsset: 'skyCityCorridorLoop',
+    music: 'assets/audio/bgm-sky-city.wav',
+    runeColor: 'rgba(255, 220, 132, 0.3)',
+    species: [
+      'cloudWisp', 'wingedSentinel', 'cloudWisp', 'wingedSentinel',
+      'cloudWisp', 'wingedSentinel', 'cloudWisp', 'wingedSentinel',
+      'cloudWisp', 'wingedSentinel', 'cloudWisp', 'wingedSentinel',
+      'cloudWisp', 'wingedSentinel', 'cloudWisp', 'wingedSentinel',
+      'cloudWisp', 'wingedSentinel', 'cloudWisp', 'wingedSentinel',
+      'cloudWisp', 'templeGriffin'
     ]
   }
 };

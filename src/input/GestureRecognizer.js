@@ -9,6 +9,7 @@ const SYMBOLS = {
   L: 'l',
   CIRCLE: 'circle',
   Z: 'z',
+  M: 'm',
   UNKNOWN: 'unknown'
 };
 
@@ -21,6 +22,7 @@ const LABELS = {
   [SYMBOLS.L]: 'L',
   [SYMBOLS.CIRCLE]: '○',
   [SYMBOLS.Z]: 'Z',
+  [SYMBOLS.M]: 'M',
   [SYMBOLS.UNKNOWN]: '?'
 };
 
@@ -259,6 +261,69 @@ function recognizeZShape(points, bounds) {
   return SYMBOLS.UNKNOWN;
 }
 
+function followsMDirection(points, bounds) {
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (
+    first.x > bounds.minX + bounds.width * 0.34 ||
+    first.y < bounds.maxY - bounds.height * 0.45 ||
+    last.x < bounds.maxX - bounds.width * 0.34 ||
+    last.y < bounds.maxY - bounds.height * 0.45
+  ) {
+    return false;
+  }
+
+  for (let leftIndex = 1; leftIndex < points.length - 2; leftIndex += 1) {
+    const leftPeak = points[leftIndex];
+    if (
+      leftPeak.x > bounds.minX + bounds.width * 0.38 ||
+      leftPeak.y > bounds.minY + bounds.height * 0.35 ||
+      first.y - leftPeak.y < bounds.height * 0.38
+    ) {
+      continue;
+    }
+
+    for (let valleyIndex = leftIndex + 1; valleyIndex < points.length - 1; valleyIndex += 1) {
+      const valley = points[valleyIndex];
+      if (
+        valley.x < bounds.minX + bounds.width * 0.25 ||
+        valley.x > bounds.maxX - bounds.width * 0.25 ||
+        valley.y - leftPeak.y < bounds.height * 0.3
+      ) {
+        continue;
+      }
+
+      for (let rightIndex = valleyIndex + 1; rightIndex < points.length - 1; rightIndex += 1) {
+        const rightPeak = points[rightIndex];
+        if (
+          rightPeak.x < bounds.maxX - bounds.width * 0.38 ||
+          rightPeak.y > bounds.minY + bounds.height * 0.35 ||
+          valley.y - rightPeak.y < bounds.height * 0.3 ||
+          last.y - rightPeak.y < bounds.height * 0.38
+        ) {
+          continue;
+        }
+
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function recognizeMShape(points, bounds) {
+  if (points.length < 5 || bounds.width < 30 || bounds.height < 28) {
+    return SYMBOLS.UNKNOWN;
+  }
+
+  if (followsMDirection(points, bounds) || followsMDirection(points.slice().reverse(), bounds)) {
+    return SYMBOLS.M;
+  }
+
+  return SYMBOLS.UNKNOWN;
+}
+
 function followsLDirection(points, bounds) {
   const first = points[0];
   const last = points[points.length - 1];
@@ -319,6 +384,11 @@ function recognize(points) {
   const circle = recognizeCircle(simplified, bounds);
   if (circle !== SYMBOLS.UNKNOWN) {
     return circle;
+  }
+
+  const mShape = recognizeMShape(simplified, bounds);
+  if (mShape !== SYMBOLS.UNKNOWN) {
+    return mShape;
   }
 
   const zShape = recognizeZShape(simplified, bounds);

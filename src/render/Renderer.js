@@ -29,7 +29,8 @@ const SYMBOL_ICON_ASSET_KEYS = {
   [SYMBOLS.V]: 'symbolV',
   [SYMBOLS.L]: 'symbolL',
   [SYMBOLS.CIRCLE]: 'symbolCircle',
-  [SYMBOLS.Z]: 'symbolZ'
+  [SYMBOLS.Z]: 'symbolZ',
+  [SYMBOLS.M]: 'symbolM'
 };
 
 const ENEMY_SPRITE = {
@@ -205,6 +206,9 @@ function getComboTargets(effect) {
 
 function getTransitionCopy(visibleLevel, themeId) {
   const title = getTheme(themeId).name;
+  if (visibleLevel === 5) {
+    return { title, hint: '第五关 · 新增符咒：M' };
+  }
   if (visibleLevel === 4) {
     return { title, hint: '第四关 · 新增符咒：Z' };
   }
@@ -215,7 +219,7 @@ function getTransitionCopy(visibleLevel, themeId) {
 }
 
 function getWinTitle() {
-  return '四关通关';
+  return '五关通关';
 }
 
 class Renderer {
@@ -264,6 +268,11 @@ class Renderer {
     const ctx = this.ctx;
     const scroll = (elapsed || 0) * 68;
     const theme = getTheme(themeId);
+    if (theme.id === THEME_IDS.SKY_CITY) {
+      this.drawFallbackSkyCityBackground(scroll);
+      return;
+    }
+
     if (theme.id === THEME_IDS.DINOSAUR_PARK) {
       const dinosaurCorridor = this.assets && this.assets.getImage(theme.backgroundAsset);
       if (dinosaurCorridor) {
@@ -595,6 +604,55 @@ class Renderer {
       ctx.lineTo(this.width * 0.81, y);
       ctx.stroke();
     }
+  }
+
+  drawFallbackSkyCityBackground(scroll) {
+    const ctx = this.ctx;
+    const gradient = ctx.createLinearGradient(0, 0, 0, this.height);
+    gradient.addColorStop(0, '#4ba8e5');
+    gradient.addColorStop(0.48, '#98d8f2');
+    gradient.addColorStop(1, '#e9f6ff');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.62)';
+    for (let i = 0; i < 9; i += 1) {
+      const side = i % 2 === 0 ? -1 : 1;
+      const x = side < 0 ? this.width * 0.12 : this.width * 0.88;
+      const y = ((i * 113 + scroll * 0.48) % (this.height + 100)) - 50;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 62 + (i % 3) * 12, 24 + (i % 2) * 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = '#f5f1e5';
+    ctx.beginPath();
+    ctx.moveTo(this.width * 0.29, 0);
+    ctx.lineTo(this.width * 0.71, 0);
+    ctx.lineTo(this.width * 0.9, this.height);
+    ctx.lineTo(this.width * 0.1, this.height);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(198, 153, 56, 0.55)';
+    ctx.lineWidth = 3;
+    for (let i = -2; i < 15; i += 1) {
+      const y = (i * 58 + scroll) % (this.height + 70);
+      const inset = Math.max(2, (this.height - y) * 0.18);
+      ctx.beginPath();
+      ctx.moveTo(this.width * 0.12 + inset, y);
+      ctx.lineTo(this.width * 0.88 - inset, y);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = 'rgba(226, 184, 72, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(this.width * 0.29, 0);
+    ctx.lineTo(this.width * 0.1, this.height);
+    ctx.moveTo(this.width * 0.71, 0);
+    ctx.lineTo(this.width * 0.9, this.height);
+    ctx.stroke();
   }
 
   drawTorchGlow(x, y, elapsed, phase) {
@@ -1043,6 +1101,8 @@ class Renderer {
       this.drawPenguinEnemyFallback(enemy);
     } else if (enemy.species === 'pterosaur' || enemy.species === 'triceratops' || enemy.species === 'brachiosaurus' || enemy.species === 'tyrannosaurus') {
       this.drawDinosaurEnemyFallback(enemy);
+    } else if (enemy.species === 'cloudWisp' || enemy.species === 'wingedSentinel' || enemy.species === 'templeGriffin') {
+      this.drawSkyCityEnemyFallback(enemy);
     } else {
       this.drawMarineEnemyFallback(enemy);
     }
@@ -1241,6 +1301,74 @@ class Renderer {
       ctx.fillStyle = '#fff1c8';
       ctx.fillRect(r * 0.95, -r * 0.12, r * 0.3, r * 0.08);
     }
+  }
+
+  drawSkyCityEnemyFallback(enemy) {
+    const ctx = this.ctx;
+    const r = enemy.radius;
+    if (enemy.species === 'cloudWisp') {
+      ctx.save();
+      ctx.shadowColor = '#9de8ff';
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = '#eafaff';
+      ctx.beginPath();
+      ctx.arc(-r * 0.42, r * 0.04, r * 0.42, 0, Math.PI * 2);
+      ctx.arc(0, -r * 0.2, r * 0.58, 0, Math.PI * 2);
+      ctx.arc(r * 0.48, r * 0.08, r * 0.36, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#e2be62';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.82, -0.2, Math.PI * 1.25);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
+    if (enemy.species === 'wingedSentinel') {
+      ctx.fillStyle = '#f7f7f1';
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.34, -r * 0.08);
+      ctx.lineTo(-r * 1.34, -r * 0.66);
+      ctx.lineTo(-r * 0.94, r * 0.4);
+      ctx.lineTo(-r * 0.34, r * 0.22);
+      ctx.moveTo(r * 0.34, -r * 0.08);
+      ctx.lineTo(r * 1.34, -r * 0.66);
+      ctx.lineTo(r * 0.94, r * 0.4);
+      ctx.lineTo(r * 0.34, r * 0.22);
+      ctx.fill();
+      ctx.fillStyle = '#f2dfae';
+      ctx.beginPath();
+      ctx.roundRect(-r * 0.42, -r * 0.62, r * 0.84, r * 1.18, [r * 0.2]);
+      ctx.fill();
+      ctx.fillStyle = '#57c9ef';
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+
+    ctx.fillStyle = '#f0e5c7';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.1, r * 0.12, r * 1.18, r * 0.68, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fbfbf2';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.42, -r * 0.16);
+    ctx.lineTo(-r * 1.62, -r * 1.06);
+    ctx.lineTo(-r * 0.88, r * 0.32);
+    ctx.moveTo(r * 0.22, -r * 0.16);
+    ctx.lineTo(r * 1.34, -r * 1.2);
+    ctx.lineTo(r * 0.78, r * 0.28);
+    ctx.fill();
+    ctx.fillStyle = '#ddae46';
+    ctx.beginPath();
+    ctx.arc(r * 0.8, -r * 0.24, r * 0.39, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#47b8ed';
+    ctx.beginPath();
+    ctx.arc(0, r * 0.06, r * 0.18, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   drawSymbolQueue(enemy) {

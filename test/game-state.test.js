@@ -159,8 +159,8 @@ assert.strictEqual(replay.difficulty, DIFFICULTY_MODES.PLUS_ONE);
 assert.strictEqual(replay.timeScale, 1.5);
 
 const themeLifecycle = new GameState(375, 667, null, sequenceRandom([
-  0.999999, 0.999999, 0.999999,
-  0, 0, 0
+  0.999999, 0.999999, 0.999999, 0.999999,
+  0, 0, 0, 0
 ]));
 const previewOrder = themeLifecycle.themeOrder.slice();
 assert.deepStrictEqual(previewOrder, THEME_ORDER);
@@ -524,6 +524,18 @@ assert.strictEqual(run.director.level, 4);
 assert.strictEqual(run.score, 900);
 assert.strictEqual(run.lives, 3);
 assert.strictEqual(run.difficulty, DIFFICULTY_MODES.PLUS_ONE);
+
+run.director.index = run.director.total;
+run.update(0);
+assert.strictEqual(run.screen, SCREENS.LEVEL_TRANSITION);
+
+run.handleTap(centerOf(buttons[0]));
+assert.strictEqual(run.screen, SCREENS.PLAYING);
+assert.strictEqual(run.level, 5);
+assert.strictEqual(run.director.level, 5);
+assert.strictEqual(run.score, 900);
+assert.strictEqual(run.lives, 3);
+assert.strictEqual(run.difficulty, DIFFICULTY_MODES.NORMAL);
 
 run.director.index = run.director.total;
 run.update(0);

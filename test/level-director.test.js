@@ -11,12 +11,12 @@ director.update(60, enemies);
 let boss = enemies[enemies.length - 1];
 
 assert.strictEqual(director.level, 1);
-assert.strictEqual(director.levelCount, 4);
+assert.strictEqual(director.levelCount, 5);
 assert.strictEqual(enemies.length, director.total);
 assert.ok(enemies.every((enemy) => enemy.species === 'ghost'));
 assert.ok(enemies.every((enemy) => enemy.symbolDisplay === 'queue'));
 assert.strictEqual(boss.kind, 'boss');
-assert.strictEqual(boss.symbols.length, 6);
+assert.strictEqual(boss.symbols.length, 4);
 assert.ok(enemies.every((enemy) => !enemy.symbols.includes(SYMBOLS.CIRCLE) && !enemy.symbols.includes(SYMBOLS.Z)));
 
 director.startLevel(2);
@@ -32,7 +32,7 @@ assert.ok(enemies.some((enemy) => enemy.species === 'shark'));
 assert.ok(enemies.every((enemy) => enemy.symbolDisplay === 'current-and-dots'));
 assert.strictEqual(boss.species, 'megalodon');
 assert.strictEqual(boss.kind, 'boss');
-assert.strictEqual(boss.symbols.length, 8);
+assert.strictEqual(boss.symbols.length, 5);
 assert.ok(enemies.every((enemy) => !enemy.symbols.includes(SYMBOLS.CIRCLE) && !enemy.symbols.includes(SYMBOLS.Z)));
 
 director.startLevel(3);
@@ -52,8 +52,8 @@ assert.strictEqual(boss.species, 'emperorPenguin');
 assert.strictEqual(boss.kind, 'boss');
 assert.strictEqual(boss.score, 1000);
 assert.strictEqual(boss.speed, 37);
-assert.strictEqual(boss.symbols.length, 10);
-assert.strictEqual(boss.symbols.filter((symbol) => symbol === SYMBOLS.CIRCLE).length, 4);
+assert.strictEqual(boss.symbols.length, 6);
+assert.strictEqual(boss.symbols.filter((symbol) => symbol === SYMBOLS.CIRCLE).length, 2);
 assert.strictEqual(LevelDirector.LEVELS[2].timeline[21].time, 51);
 
 director.startLevel(4);
@@ -76,12 +76,31 @@ assert.strictEqual(boss.speed, 41);
 assert.strictEqual(boss.radius, 54);
 assert.deepStrictEqual(boss.symbols, [
   SYMBOLS.Z, SYMBOLS.CIRCLE, SYMBOLS.RIGHT, SYMBOLS.LEFT,
-  SYMBOLS.V, SYMBOLS.L, SYMBOLS.Z, SYMBOLS.DOWN,
-  SYMBOLS.CIRCLE, SYMBOLS.UP, SYMBOLS.Z, SYMBOLS.CIRCLE
+  SYMBOLS.V, SYMBOLS.L, SYMBOLS.Z
 ]);
 assert.deepStrictEqual(LevelDirector.LEVELS[3].timeline[0].symbols, [SYMBOLS.CIRCLE, SYMBOLS.RIGHT]);
 assert.deepStrictEqual(LevelDirector.LEVELS[3].timeline[3].symbols, [SYMBOLS.LEFT, SYMBOLS.Z]);
 assert.strictEqual(LevelDirector.LEVELS[3].timeline[21].time, 51);
+
+director.startLevel(5);
+enemies = [];
+director.update(60, enemies);
+boss = enemies[enemies.length - 1];
+
+assert.strictEqual(director.level, 5);
+assert.ok(enemies.some((enemy) => enemy.species === 'cloudWisp'));
+assert.ok(enemies.some((enemy) => enemy.species === 'wingedSentinel'));
+assert.ok(enemies.some((enemy) => enemy.symbols.includes(SYMBOLS.M)));
+assert.ok(enemies.some((enemy) => enemy.symbols.includes(SYMBOLS.Z)));
+assert.ok(enemies.every((enemy) => enemy.symbolDisplay === 'current-and-dots'));
+assert.strictEqual(boss.species, 'templeGriffin');
+assert.strictEqual(boss.speed, 45);
+assert.strictEqual(boss.radius, 58);
+assert.strictEqual(boss.score, 1600);
+assert.deepStrictEqual(boss.symbols, [
+  SYMBOLS.M, SYMBOLS.Z, SYMBOLS.CIRCLE, SYMBOLS.RIGHT,
+  SYMBOLS.LEFT, SYMBOLS.V, SYMBOLS.L, SYMBOLS.M
+]);
 
 director.startLevel(1, THEME_IDS.DINOSAUR_PARK);
 enemies = [];
@@ -90,7 +109,7 @@ boss = enemies[enemies.length - 1];
 assert.ok(enemies.some((enemy) => enemy.species === 'pterosaur'));
 assert.strictEqual(boss.species, 'tyrannosaurus');
 assert.strictEqual(boss.speed, 26);
-assert.strictEqual(boss.symbols.length, 6);
+assert.strictEqual(boss.symbols.length, 4);
 assert.ok(enemies.every((enemy) => enemy.symbolDisplay === 'queue'));
 assert.ok(enemies.every((enemy) => !enemy.symbols.includes(SYMBOLS.CIRCLE) && !enemy.symbols.includes(SYMBOLS.Z)));
 
@@ -101,8 +120,17 @@ boss = enemies[enemies.length - 1];
 assert.ok(enemies.every((enemy) => enemy.species === 'ghost'));
 assert.strictEqual(boss.speed, 41);
 assert.strictEqual(boss.score, 1300);
-assert.strictEqual(boss.symbols.length, 12);
+assert.strictEqual(boss.symbols.length, 7);
 assert.ok(enemies.some((enemy) => enemy.symbols.includes(SYMBOLS.CIRCLE)));
 assert.ok(enemies.some((enemy) => enemy.symbols.includes(SYMBOLS.Z)));
+
+director.startLevel(2, THEME_IDS.SKY_CITY);
+enemies = [];
+director.update(60, enemies);
+boss = enemies[enemies.length - 1];
+assert.ok(enemies.some((enemy) => enemy.species === 'cloudWisp'));
+assert.ok(enemies.some((enemy) => enemy.species === 'wingedSentinel'));
+assert.strictEqual(boss.species, 'templeGriffin');
+assert.strictEqual(boss.symbols.length, 5);
 
 console.log('level-director.test.js passed');

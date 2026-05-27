@@ -62,20 +62,20 @@ assert.strictEqual(Renderer.getLevelLabel({
   screen: 'playing',
   difficulty: DIFFICULTY_MODES.NORMAL,
   level: 1,
-  totalLevels: 4
-}, 1), '第 1/4 关');
+  totalLevels: 5
+}, 1), '第 1/5 关');
 assert.strictEqual(Renderer.getLevelLabel({
   screen: 'playing',
   difficulty: DIFFICULTY_MODES.PLUS_ONE,
   level: 1,
-  totalLevels: 4
-}, 1), '第 1/4 关  +1');
+  totalLevels: 5
+}, 1), '第 1/5 关  +1');
 assert.strictEqual(Renderer.getLevelLabel({
   screen: 'level-transition',
   difficulty: DIFFICULTY_MODES.PLUS_ONE,
   level: 1,
-  totalLevels: 4
-}, 2), '第 2/4 关');
+  totalLevels: 5
+}, 2), '第 2/5 关');
 assert.strictEqual(Renderer.getComboLabel(0), '');
 assert.strictEqual(Renderer.getComboLabel(5), '连击 x5');
 assert.strictEqual(Renderer.getComboTier(2).multiplierLabel, '');
@@ -95,8 +95,9 @@ assert.strictEqual(Renderer.getSoundToggleLabel(true), '声音 开');
 assert.strictEqual(Renderer.getSoundToggleLabel(false), '声音 关');
 assert.deepStrictEqual(Renderer.getHeartSlotPosition(375, 667, 3), { x: 106, y: 639 });
 assert.deepStrictEqual(Renderer.getTransitionCopy(4, THEME_IDS.CASTLE), { title: '幽光古堡', hint: '第四关 · 新增符咒：Z' });
+assert.deepStrictEqual(Renderer.getTransitionCopy(5, THEME_IDS.SKY_CITY), { title: '天空之城', hint: '第五关 · 新增符咒：M' });
 assert.deepStrictEqual(Renderer.getTransitionCopy(2, THEME_IDS.DINOSAUR_PARK), { title: '恐龙乐园', hint: '第二关 · 符咒队列仅显示当前符号' });
-assert.strictEqual(Renderer.getWinTitle(), '四关通关');
+assert.strictEqual(Renderer.getWinTitle(), '五关通关');
 
 const requestedBackgrounds = [];
 const themeRenderer = new Renderer({}, { width: 375, height: 667 }, {
@@ -107,8 +108,10 @@ const themeRenderer = new Renderer({}, { width: 375, height: 667 }, {
 });
 themeRenderer.drawScrollingOceanBackground = function drawScrollingOceanBackground() {};
 themeRenderer.drawScrollingDinosaurBackground = function drawScrollingDinosaurBackground() {};
+themeRenderer.drawFallbackSkyCityBackground = function drawFallbackSkyCityBackground() {};
 themeRenderer.drawBackground(0, THEME_IDS.OCEAN);
 themeRenderer.drawBackground(0, THEME_IDS.DINOSAUR_PARK);
+themeRenderer.drawBackground(0, THEME_IDS.SKY_CITY);
 assert.deepStrictEqual(requestedBackgrounds, ['oceanSpaceshipCorridorLoop', 'dinosaurParkCorridorLoop']);
 
 let selectedRuneColor = null;
@@ -155,7 +158,7 @@ const symbolIconRenderer = new Renderer({
   }
 }, { width: 375, height: 667 }, {
   getImage(key) {
-    return key === 'symbolZ' ? { width: 64, height: 64 } : null;
+    return key === 'symbolM' ? { width: 64, height: 64 } : null;
   }
 });
 symbolIconRenderer.drawSymbolQueue({
@@ -163,9 +166,10 @@ symbolIconRenderer.drawSymbolQueue({
   species: 'ghost',
   radius: 24,
   symbolDisplay: 'queue',
-  symbols: [SYMBOLS.Z]
+  symbols: [SYMBOLS.M]
 });
 assert.strictEqual(Renderer.SYMBOL_ICON_ASSET_KEYS[SYMBOLS.Z], 'symbolZ');
+assert.strictEqual(Renderer.SYMBOL_ICON_ASSET_KEYS[SYMBOLS.M], 'symbolM');
 assert.strictEqual(symbolImageArgs.length, 5);
 assert.deepStrictEqual(symbolImageArgs[0], { width: 64, height: 64 });
 assert.ok(symbolImageArgs[3] >= 27);

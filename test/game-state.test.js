@@ -1,18 +1,25 @@
 'use strict';
 
 const assert = require('assert');
-const { GameState, SCREENS, getComboMultiplier, getHealthPotionSymbols } = require('../src/core/GameState');
+const { GameState, SCREENS, getComboMultiplier } = require('../src/core/GameState');
 const Enemy = require('../src/entities/Enemy');
 const { SYMBOLS } = require('../src/input/GestureRecognizer');
 const { THEME_IDS, THEME_ORDER, createThemeOrder } = require('../src/levels/Themes');
 const { DIFFICULTY_MODES, getDifficultyButtons } = require('../src/ui/DifficultySelector');
 const { getAudioToggleBounds } = require('../src/ui/AudioToggle');
+const { ITEM_TYPES, getItemSlots } = require('../src/ui/ItemBar');
 
 function centerOf(button) {
   return {
     x: button.x + button.width * 0.5,
     y: button.y + button.height * 0.5
   };
+}
+
+function itemCenterOf(state, type) {
+  const slot = getItemSlots(state.width, state.height, state.items).find((entry) => entry.type === type);
+  assert.ok(slot, 'expected visible item slot for ' + type);
+  return centerOf(slot);
 }
 
 function assertClose(actual, expected) {
@@ -187,15 +194,9 @@ assert.strictEqual(getComboMultiplier(10), 2);
 assert.strictEqual(getComboMultiplier(20), 2.5);
 assert.strictEqual(getComboMultiplier(50), 3);
 assert.strictEqual(getComboMultiplier(100), 4);
-assert.deepStrictEqual(getHealthPotionSymbols(1, DIFFICULTY_MODES.NORMAL), [SYMBOLS.UP]);
-assert.deepStrictEqual(getHealthPotionSymbols(1, DIFFICULTY_MODES.PLUS_ONE), [SYMBOLS.UP, SYMBOLS.V]);
-assert.deepStrictEqual(getHealthPotionSymbols(2, DIFFICULTY_MODES.PLUS_ONE), [SYMBOLS.V, SYMBOLS.L]);
-assert.deepStrictEqual(getHealthPotionSymbols(3, DIFFICULTY_MODES.PLUS_ONE), [SYMBOLS.CIRCLE, SYMBOLS.V]);
-assert.deepStrictEqual(getHealthPotionSymbols(4, DIFFICULTY_MODES.PLUS_ONE), [SYMBOLS.Z, SYMBOLS.CIRCLE]);
 
 const rightGesture = [{ x: 20, y: 20 }, { x: 110, y: 20 }];
 const upGesture = [{ x: 100, y: 140 }, { x: 100, y: 40 }];
-const vGesture = [{ x: 60, y: 70 }, { x: 100, y: 150 }, { x: 145, y: 70 }];
 
 function eliminationScoreAfterCombo(priorCombo) {
   const scoreRun = new GameState(375, 667, null);
@@ -227,146 +228,128 @@ combo10Run.enemies = [
 ];
 combo10Run.handleGesture(rightGesture);
 assert.strictEqual(combo10Run.combo, 10);
-assert.strictEqual(combo10Run.enemies.some((enemy) => enemy.kind === 'potion'), false);
-assert.strictEqual(combo10Run.enemies.length, 0);
-assert.ok(combo10Run.effects.some((effect) => effect.type === 'comboChain'));
+assert.strictEqual(combo10Run.items.comboChain, 1);
+assert.strictEqual(combo10Run.items.healthPotion, 0);
+assert.deepStrictEqual(combo10Run.enemies[0].symbols, [SYMBOLS.UP]);
+assert.strictEqual(combo10Run.effects.some((effect) => effect.type === 'comboChain'), false);
+assert.strictEqual(combo10Run.feedback.text, '命中 +30  获得紫色闪电');
+assert.ok(combo10Run.effects.some((effect) => (
+  effect.type === 'itemEarn'
+  && effect.itemType === ITEM_TYPES.COMBO_CHAIN
+  && effect.toX === itemCenterOf(combo10Run, ITEM_TYPES.COMBO_CHAIN).x
+  && effect.toY === itemCenterOf(combo10Run, ITEM_TYPES.COMBO_CHAIN).y
+)));
 
-const combo20Run = new GameState(375, 667, null);
-combo20Run.start();
-combo20Run.combo = 19;
-combo20Run.enemies = [
-  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT, SYMBOLS.UP], speed: 0, score: 100 }),
-  new Enemy({ x: 80, y: 40, symbols: [SYMBOLS.LEFT], speed: 0, score: 120 }),
-  new Enemy({ x: 120, y: 40, kind: 'potion', species: 'healthPotion', symbols: [SYMBOLS.UP], speed: 0, score: 0 })
+const combo15Run = new GameState(375, 667, null);
+combo15Run.start();
+combo15Run.combo = 14;
+combo15Run.enemies = [
+  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 })
 ];
-combo20Run.handleGesture(rightGesture);
-assert.strictEqual(combo20Run.combo, 20);
-assert.strictEqual(combo20Run.enemies.some((enemy) => enemy.kind === 'potion'), true);
-assert.strictEqual(combo20Run.enemies.length, 1);
-assert.strictEqual(combo20Run.enemies[0].kind, 'potion');
-assert.ok(combo20Run.effects.some((effect) => effect.type === 'comboChain'));
+combo15Run.handleGesture(rightGesture);
+assert.strictEqual(combo15Run.items.comboChain, 0);
+assert.strictEqual(combo15Run.items.healthPotion, 1);
+assert.strictEqual(combo15Run.enemies.some((enemy) => enemy.kind === 'potion'), false);
+assert.strictEqual(combo15Run.feedback.text, '消除 +200  获得血瓶');
+assert.ok(combo15Run.effects.some((effect) => (
+  effect.type === 'itemEarn'
+  && effect.itemType === ITEM_TYPES.HEALTH_POTION
+  && effect.toX === itemCenterOf(combo15Run, ITEM_TYPES.HEALTH_POTION).x
+  && effect.toY === itemCenterOf(combo15Run, ITEM_TYPES.HEALTH_POTION).y
+)));
 
 const combo30Run = new GameState(375, 667, null);
 combo30Run.start();
 combo30Run.combo = 29;
+combo30Run.items.comboChain = 2;
+combo30Run.items.healthPotion = 3;
 combo30Run.enemies = [
   new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT, SYMBOLS.UP], speed: 0, score: 100 }),
   new Enemy({ x: 80, y: 40, symbols: [SYMBOLS.LEFT, SYMBOLS.UP], speed: 0, score: 120 })
 ];
 combo30Run.handleGesture(rightGesture);
 assert.strictEqual(combo30Run.combo, 30);
-assert.strictEqual(combo30Run.enemies.filter((enemy) => enemy.kind === 'potion').length, 1);
-assert.ok(combo30Run.effects.some((effect) => effect.type === 'comboChain'));
+assert.strictEqual(combo30Run.items.comboChain, 3);
+assert.strictEqual(combo30Run.items.healthPotion, 4);
+assert.strictEqual(combo30Run.enemies.filter((enemy) => enemy.kind === 'potion').length, 0);
+assert.strictEqual(combo30Run.effects.some((effect) => effect.type === 'comboChain'), false);
 assert.deepStrictEqual(
-  combo30Run.enemies.find((enemy) => enemy.kind !== 'potion').symbols,
+  combo30Run.enemies[0].symbols,
   [SYMBOLS.UP]
 );
-
-const existingPotionAt30 = new GameState(375, 667, null);
-existingPotionAt30.start();
-existingPotionAt30.combo = 29;
-existingPotionAt30.enemies = [
-  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 }),
-  new Enemy({ x: 120, y: 40, kind: 'potion', species: 'healthPotion', symbols: [SYMBOLS.UP], speed: 0, score: 0 })
-];
-existingPotionAt30.handleGesture(rightGesture);
-assert.strictEqual(existingPotionAt30.enemies.filter((enemy) => enemy.kind === 'potion').length, 1);
-
-const combo50Run = new GameState(375, 667, null);
-combo50Run.start();
-combo50Run.combo = 49;
-combo50Run.enemies = [
-  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 }),
-  new Enemy({ x: 80, y: 40, symbols: [SYMBOLS.LEFT, SYMBOLS.UP], speed: 0, score: 120 }),
-  new Enemy({ x: 120, y: 40, kind: 'potion', species: 'healthPotion', symbols: [SYMBOLS.UP], speed: 0, score: 0 })
-];
-combo50Run.handleGesture(rightGesture);
-assert.strictEqual(combo50Run.combo, 50);
-assert.strictEqual(combo50Run.enemies.length, 2);
-assert.strictEqual(combo50Run.enemies.some((enemy) => enemy.kind === 'potion'), true);
+const doubleRewardEffects = combo30Run.effects.filter((effect) => effect.type === 'itemEarn');
+assert.strictEqual(doubleRewardEffects.length, 2);
 assert.deepStrictEqual(
-  combo50Run.enemies.find((enemy) => enemy.kind !== 'potion').symbols,
-  [SYMBOLS.UP]
+  doubleRewardEffects.map((effect) => effect.itemType),
+  [ITEM_TYPES.COMBO_CHAIN, ITEM_TYPES.HEALTH_POTION]
 );
-assert.ok(combo50Run.effects.some((effect) => effect.type === 'comboChain'));
+assert.ok(doubleRewardEffects.every((effect) => {
+  const target = itemCenterOf(combo30Run, effect.itemType);
+  return effect.toX === target.x && effect.toY === target.y;
+}));
+combo30Run.updateAnimations(1);
+assert.strictEqual(combo30Run.effects.some((effect) => effect.type === 'itemEarn'), false);
 
-const combo100Run = new GameState(375, 667, null);
-combo100Run.start();
-combo100Run.combo = 99;
-combo100Run.enemies = [
-  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 }),
+const chainUse = new GameState(375, 667, null);
+chainUse.start();
+chainUse.combo = 8;
+chainUse.score = 450;
+chainUse.items.comboChain = 2;
+chainUse.enemies = [
+  new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.UP], speed: 0, score: 100 }),
   new Enemy({ x: 80, y: 40, symbols: [SYMBOLS.LEFT, SYMBOLS.UP], speed: 0, score: 120 })
 ];
-combo100Run.handleGesture(rightGesture);
-assert.strictEqual(combo100Run.combo, 100);
-assert.strictEqual(combo100Run.enemies.length, 1);
-assert.deepStrictEqual(combo100Run.enemies[0].symbols, [SYMBOLS.UP]);
-assert.ok(combo100Run.effects.some((effect) => effect.type === 'comboChain'));
+chainUse.handleTap(itemCenterOf(chainUse, ITEM_TYPES.COMBO_CHAIN));
+assert.strictEqual(chainUse.items.comboChain, 1);
+assert.strictEqual(chainUse.enemies.length, 1);
+assert.deepStrictEqual(chainUse.enemies[0].symbols, [SYMBOLS.UP]);
+assert.strictEqual(chainUse.combo, 8);
+assert.strictEqual(chainUse.score, 450);
+assert.strictEqual(chainUse.feedback.text, '紫色闪电释放');
+assert.ok(chainUse.effects.some((effect) => effect.type === 'comboChain'));
 
-const normalPotionRun = new GameState(375, 667, null);
-normalPotionRun.start(DIFFICULTY_MODES.NORMAL);
-normalPotionRun.lives = 3;
-normalPotionRun.combo = 14;
-normalPotionRun.enemies = [new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 })];
-normalPotionRun.handleGesture(rightGesture);
-let potion = normalPotionRun.enemies.find((enemy) => enemy.kind === 'potion');
-assert.ok(potion);
-assert.deepStrictEqual(potion.symbols, [SYMBOLS.UP]);
-assert.strictEqual(normalPotionRun.feedback.text, '消除 +200  血瓶出现');
-const lightningBeforePotion = normalPotionRun.effects.filter((effect) => effect.type === 'lightning').length;
-normalPotionRun.handleGesture(upGesture);
-assert.strictEqual(normalPotionRun.lives, 4);
-assert.strictEqual(normalPotionRun.enemies.some((enemy) => enemy.kind === 'potion'), false);
-assert.strictEqual(normalPotionRun.feedback.text, '爱心 +1');
-assert.ok(normalPotionRun.effects.some((effect) => (
-  effect.type === 'potionToHeart'
-  && effect.x === potion.x
-  && effect.y === potion.y
-  && effect.heartIndex === 3
-)));
-assert.strictEqual(normalPotionRun.effects.filter((effect) => effect.type === 'lightning').length, lightningBeforePotion);
+const emptyChainUse = new GameState(375, 667, null);
+emptyChainUse.start();
+emptyChainUse.items.comboChain = 1;
+emptyChainUse.handleTap(itemCenterOf(emptyChainUse, ITEM_TYPES.COMBO_CHAIN));
+assert.strictEqual(emptyChainUse.items.comboChain, 1);
+assert.strictEqual(emptyChainUse.feedback.text, '没有可攻击目标');
 
-const plusPotionRun = new GameState(375, 667, null);
-plusPotionRun.start(DIFFICULTY_MODES.PLUS_ONE);
-plusPotionRun.lives = 3;
-plusPotionRun.combo = 14;
-plusPotionRun.enemies = [new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 })];
-plusPotionRun.handleGesture(rightGesture);
-potion = plusPotionRun.enemies.find((enemy) => enemy.kind === 'potion');
-assert.deepStrictEqual(potion.symbols, [SYMBOLS.UP, SYMBOLS.V]);
-const potionPosition = { x: potion.x, y: potion.y };
-plusPotionRun.update(0.1);
-assert.deepStrictEqual({ x: potion.x, y: potion.y }, potionPosition);
-assert.strictEqual(potion.dead, false);
-plusPotionRun.handleGesture(upGesture);
-assert.deepStrictEqual(potion.symbols, [SYMBOLS.V]);
-assert.strictEqual(plusPotionRun.lives, 3);
-assert.strictEqual(plusPotionRun.feedback.text, '血瓶解锁中');
-plusPotionRun.handleGesture(vGesture);
-assert.strictEqual(plusPotionRun.lives, 4);
-assert.strictEqual(plusPotionRun.feedback.text, '爱心 +1');
-assert.ok(plusPotionRun.effects.some((effect) => (
+const potionUse = new GameState(375, 667, null);
+potionUse.start(DIFFICULTY_MODES.PLUS_ONE);
+potionUse.lives = 3;
+potionUse.items.healthPotion = 2;
+const potionOrigin = itemCenterOf(potionUse, ITEM_TYPES.HEALTH_POTION);
+potionUse.handleTap(potionOrigin);
+assert.strictEqual(potionUse.lives, 4);
+assert.strictEqual(potionUse.items.healthPotion, 1);
+assert.strictEqual(potionUse.feedback.text, '爱心 +1');
+assert.ok(potionUse.effects.some((effect) => (
   effect.type === 'potionToHeart'
+  && effect.x === potionOrigin.x
+  && effect.y === potionOrigin.y
   && effect.heartIndex === 3
 )));
 
 const fullPotionRun = new GameState(375, 667, null);
 fullPotionRun.start(DIFFICULTY_MODES.NORMAL);
-fullPotionRun.enemies = [new Enemy({
-  x: 180,
-  y: 130,
-  radius: 30,
-  speed: 0,
-  score: 0,
-  kind: 'potion',
-  species: 'healthPotion',
-  symbols: [SYMBOLS.UP]
-})];
-fullPotionRun.handleGesture(upGesture);
+fullPotionRun.items.healthPotion = 1;
+fullPotionRun.handleTap(itemCenterOf(fullPotionRun, ITEM_TYPES.HEALTH_POTION));
 assert.strictEqual(fullPotionRun.lives, fullPotionRun.maxLives);
+assert.strictEqual(fullPotionRun.items.healthPotion, 1);
 assert.strictEqual(fullPotionRun.feedback.text, '爱心已满');
 assert.strictEqual(fullPotionRun.effects.some((effect) => effect.type === 'potionToHeart'), false);
-assert.strictEqual(fullPotionRun.effects.some((effect) => effect.type === 'lightning'), false);
+
+const itemLifecycle = new GameState(375, 667, null);
+itemLifecycle.start(DIFFICULTY_MODES.NORMAL);
+itemLifecycle.items.comboChain = 2;
+itemLifecycle.items.healthPotion = 3;
+itemLifecycle.beginLevelTransition();
+itemLifecycle.startNextLevel(DIFFICULTY_MODES.PLUS_ONE);
+assert.deepStrictEqual(itemLifecycle.items, { comboChain: 2, healthPotion: 3 });
+itemLifecycle.screen = SCREENS.WIN;
+itemLifecycle.handleTap({ x: 0, y: 0 });
+assert.deepStrictEqual(itemLifecycle.items, { comboChain: 0, healthPotion: 0 });
 
 const mixedScore = new GameState(375, 667, null);
 mixedScore.start();

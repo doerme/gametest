@@ -27,10 +27,6 @@ class Enemy {
 
     this.phase += dt * 4;
     this.hitFlash = Math.max(0, this.hitFlash - dt);
-    if (this.kind === 'potion') {
-      return;
-    }
-
     const travelDt = dt * (movementScale || 1);
     const dir = normalizeVector(hero.x - this.x, hero.y - this.y);
     this.x += dir.x * this.speed * travelDt;

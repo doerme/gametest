@@ -21,8 +21,8 @@
 - 敌人符号队列清空后消失并加分。
 - 一次施法会命中所有“队列首符号”匹配的敌人；多符号敌人需要连续画完队列才会消失。
 - 连续有效施法会积累 `COMBO`；消灭怪物时，`Combo x3 / x5 / x10 / x20 / x50 / x100` 起分别获得 `1.2x / 1.5x / 2.0x / 2.5x / 3.0x / 4.0x` 基础消灭分倍率，徽章随档位强化并放大，Miss、掉心或换关会清零。
-- 每达到 `Combo x10` 的倍数会触发紫色连锁闪电；每达到 `Combo x15` 的倍数会尝试出现血瓶，场上已有血瓶时不会重复生成。按照瓶子上方的符咒解锁后恢复 `1` 颗爱心，普通难度需要 `1` 笔，`+1` 难度需要 `2` 笔。
-- 第一关与第二关结束后会进入下一关难度选择页；重新选择后继续闯关，得分和剩余生命会延续。
+- 每达到 `Combo x10` 的倍数会获得 `1` 个紫色连锁闪电道具；每达到 `Combo x15` 的倍数会获得 `1` 个血瓶道具。获得时道具会从连击徽章飞入屏幕左侧中部库存，便于点击使用；爱心固定在左下角。点击紫色闪电会攻击当前敌人，点击血瓶会恢复 `1` 颗爱心；无目标或爱心已满时不会消耗。
+- 第一关与第二关结束后会进入下一关难度选择页；重新选择后继续闯关，得分、剩余生命和未使用道具会延续。
 - 第二关起敌人只展示当前需要绘制的符号，圆点表示尚未揭示的后续符号数量。
 - 第三关起新增 `○` 并沿用隐藏队列机制，长 Boss 队列会显示当前符号和剩余数量。
 - 第四关首次携带 `Z` 符咒，最终 Boss 会混合考察全部符咒；这些规则不受随机主题影响。
@@ -34,7 +34,7 @@
 ## 角色资源
 
 - 主角贴图：`assets/images/cat-walk-v2-sheet.png`、`assets/images/cat-cast-v2-sheet.png`、`assets/images/cat-hurt-v2-sheet.png`，分别对应行走、施法、受击动画；每张均为 12 帧横向透明精灵图，每帧 `128 x 128`。
-- 手势提示图标：`assets/images/symbol-up.png`、`symbol-down.png`、`symbol-left.png`、`symbol-right.png`、`symbol-v.png`、`symbol-l.png`、`symbol-circle.png` 与 `symbol-z.png`，分别用于敌人与血瓶上方的八种符咒；可用 `node scripts/generate-symbol-icons.js` 重新生成高清透明图标。
+- 手势提示图标：`assets/images/symbol-up.png`、`symbol-down.png`、`symbol-left.png`、`symbol-right.png`、`symbol-v.png`、`symbol-l.png`、`symbol-circle.png` 与 `symbol-z.png`，用于敌人上方的八种符咒；可用 `node scripts/generate-symbol-icons.js` 重新生成高清透明图标。
 - 主角动画轨道在 `src/render/Renderer.js` 的 `HERO_SPRITE.animations` 中独立配置：`walk`、`cast`、`hurt` 均可分别调整使用的帧序列和 `fps`，施法与受击会从各自首帧开始播放。
 - 十二帧动画当前节奏为：行走 `12 fps`、施法 `16 fps`、受击 `14 fps`；施法与受击的角色动作窗口独立于短促特效，保证动作能完整舒展播放。
 - 古堡主题背景：`assets/images/castle-corridor-loop.jpg`，原创斜俯视古堡长廊无缝地图；整张地图与火把光晕会持续向下循环滚动。

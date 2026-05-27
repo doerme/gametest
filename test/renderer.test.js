@@ -6,6 +6,7 @@ const { SYMBOLS } = require('../src/input/GestureRecognizer');
 const { THEME_IDS } = require('../src/levels/Themes');
 const { DIFFICULTY_MODES, getDifficultyButtons, findDifficultyAtPoint } = require('../src/ui/DifficultySelector');
 const { getAudioToggleBounds, isAudioToggleHit } = require('../src/ui/AudioToggle');
+const { ITEM_TYPES, getItemSlots, findItemAtPoint } = require('../src/ui/ItemBar');
 
 const queue = Renderer.getSymbolIndicators({
   symbolDisplay: 'queue',
@@ -92,7 +93,7 @@ assert.strictEqual(Renderer.getComboPulse(3, { type: 'hit', combo: 3, age: 0.5 }
 assert.strictEqual(Renderer.getComboPulse(3, { type: 'miss', combo: 3, age: 0 }).burst, 0);
 assert.strictEqual(Renderer.getSoundToggleLabel(true), '声音 开');
 assert.strictEqual(Renderer.getSoundToggleLabel(false), '声音 关');
-assert.deepStrictEqual(Renderer.getHeartSlotPosition(375, 3), { x: 269, y: 31 });
+assert.deepStrictEqual(Renderer.getHeartSlotPosition(375, 667, 3), { x: 106, y: 639 });
 assert.deepStrictEqual(Renderer.getTransitionCopy(4, THEME_IDS.CASTLE), { title: '幽光古堡', hint: '第四关 · 新增符咒：Z' });
 assert.deepStrictEqual(Renderer.getTransitionCopy(2, THEME_IDS.DINOSAUR_PARK), { title: '恐龙乐园', hint: '第二关 · 符咒队列仅显示当前符号' });
 assert.strictEqual(Renderer.getWinTitle(), '四关通关');
@@ -209,6 +210,87 @@ assert.strictEqual(isAudioToggleHit(375, {
   y: audioToggle.y + audioToggle.height / 2
 }), true);
 assert.strictEqual(isAudioToggleHit(375, { x: 0, y: 0 }), false);
+
+const itemSlots = getItemSlots(375, 667, { healthPotion: 2, comboChain: 3 });
+assert.deepStrictEqual(itemSlots.map((slot) => slot.type), [ITEM_TYPES.HEALTH_POTION, ITEM_TYPES.COMBO_CHAIN]);
+assert.ok(itemSlots[0].y > itemSlots[1].y);
+assert.strictEqual((itemSlots[0].y + itemSlots[0].height + itemSlots[1].y) * 0.5, 667 * 0.5);
+const singleItemSlot = getItemSlots(375, 667, { healthPotion: 0, comboChain: 1 })[0];
+assert.strictEqual(singleItemSlot.y + singleItemSlot.height * 0.5, 667 * 0.5);
+assert.ok(itemSlots[0].y + itemSlots[0].height < Renderer.getHeartSlotPosition(375, 667, 0).y);
+assert.strictEqual(findItemAtPoint(375, 667, { healthPotion: 2, comboChain: 3 }, {
+  x: itemSlots[1].x + 3,
+  y: itemSlots[1].y + 3
+}), ITEM_TYPES.COMBO_CHAIN);
+assert.strictEqual(findItemAtPoint(375, 667, { healthPotion: 2, comboChain: 3 }, { x: 200, y: 600 }), null);
+
+const itemLabels = [];
+let itemStrokes = 0;
+const itemRenderer = new Renderer({
+  save() {},
+  restore() {},
+  beginPath() {},
+  fill() {},
+  stroke() {
+    itemStrokes += 1;
+  },
+  moveTo() {},
+  lineTo() {},
+  bezierCurveTo() {},
+  translate() {},
+  scale() {},
+  roundRect() {},
+  fillText(text) {
+    itemLabels.push(text);
+  }
+}, { width: 375, height: 667 }, null);
+itemRenderer.drawItemBar({
+  screen: 'playing',
+  elapsed: 0,
+  items: { healthPotion: 2, comboChain: 3 }
+});
+assert.deepStrictEqual(itemLabels, ['2', '3']);
+assert.ok(itemStrokes >= 3);
+itemRenderer.drawItemBar({
+  screen: 'title',
+  elapsed: 0,
+  items: { healthPotion: 2, comboChain: 3 }
+});
+assert.deepStrictEqual(itemLabels, ['2', '3']);
+
+const earnedIcons = [];
+const rewardRenderer = new Renderer({
+  save() {},
+  restore() {},
+  beginPath() {},
+  stroke() {},
+  arc() {},
+  translate() {},
+  scale() {}
+}, { width: 375, height: 667 }, null);
+rewardRenderer.drawHealthPotion = function drawHealthPotion() {
+  earnedIcons.push(ITEM_TYPES.HEALTH_POTION);
+};
+rewardRenderer.drawComboChainItemIcon = function drawComboChainItemIcon() {
+  earnedIcons.push(ITEM_TYPES.COMBO_CHAIN);
+};
+rewardRenderer.drawItemEarnEffect({
+  type: 'itemEarn',
+  itemType: ITEM_TYPES.HEALTH_POTION,
+  age: 0.64,
+  duration: 0.72,
+  toX: itemSlots[0].x,
+  toY: itemSlots[0].y
+});
+rewardRenderer.drawItemEarnEffect({
+  type: 'itemEarn',
+  itemType: ITEM_TYPES.COMBO_CHAIN,
+  age: 0.64,
+  duration: 0.72,
+  toX: itemSlots[1].x,
+  toY: itemSlots[1].y
+});
+assert.deepStrictEqual(earnedIcons, [ITEM_TYPES.HEALTH_POTION, ITEM_TYPES.COMBO_CHAIN]);
 
 const sequenceOnlyRadii = [];
 const sequenceOnlyContext = {

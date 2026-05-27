@@ -6,6 +6,7 @@ const Enemy = require('../entities/Enemy');
 const { recognize, SYMBOLS } = require('../input/GestureRecognizer');
 const { DIFFICULTY_MODES, getDifficulty, findDifficultyAtPoint } = require('../ui/DifficultySelector');
 const { isAudioToggleHit } = require('../ui/AudioToggle');
+const { ITEM_TYPES, getItemSlots, findItemAtPoint } = require('../ui/ItemBar');
 
 const SCREENS = {
   TITLE: 'title',
@@ -22,7 +23,8 @@ const ANIMATION_DURATIONS = {
   lightning: 0.3,
   comboChain: 0.5,
   heartLoss: 0.62,
-  potionToHeart: 0.5
+  potionToHeart: 0.5,
+  itemEarn: 0.72
 };
 
 const HERO_ANIMATION_DURATIONS = {
@@ -31,12 +33,6 @@ const HERO_ANIMATION_DURATIONS = {
 };
 
 const MAX_LIVES = 5;
-const HEALTH_POTION_SYMBOLS = {
-  1: [SYMBOLS.UP, SYMBOLS.V],
-  2: [SYMBOLS.V, SYMBOLS.L],
-  3: [SYMBOLS.CIRCLE, SYMBOLS.V],
-  4: [SYMBOLS.Z, SYMBOLS.CIRCLE]
-};
 
 function getComboMultiplier(combo) {
   if (combo >= 100) {
@@ -58,12 +54,6 @@ function getComboMultiplier(combo) {
     return 1.2;
   }
   return 1;
-}
-
-function getHealthPotionSymbols(level, difficulty) {
-  const available = HEALTH_POTION_SYMBOLS[level] || HEALTH_POTION_SYMBOLS[1];
-  const unlockCount = difficulty === DIFFICULTY_MODES.PLUS_ONE ? 2 : 1;
-  return available.slice(0, unlockCount);
 }
 
 class GameState {
@@ -110,6 +100,10 @@ class GameState {
     this.elapsed = 0;
     this.transitionRemaining = 0;
     this.combo = 0;
+    this.items = {
+      comboChain: 0,
+      healthPotion: 0
+    };
     this.enemies = [];
     this.feedback = null;
     this.effects = [];
@@ -303,12 +297,25 @@ class GameState {
     }
   }
 
-  triggerPotionToHeart(potion, heartIndex) {
+  triggerPotionToHeart(origin, heartIndex) {
     this.addEffect('potionToHeart', {
-      x: potion.x,
-      y: potion.y,
-      radius: potion.radius,
+      x: origin.x,
+      y: origin.y,
+      radius: origin.radius,
       heartIndex
+    });
+  }
+
+  triggerItemEarn(itemType) {
+    const slot = getItemSlots(this.width, this.height, this.items).find((entry) => entry.type === itemType);
+    if (!slot) {
+      return;
+    }
+
+    this.addEffect('itemEarn', {
+      itemType,
+      toX: slot.x + slot.width * 0.5,
+      toY: slot.y + slot.height * 0.5
     });
   }
 
@@ -319,16 +326,14 @@ class GameState {
       radius: enemy.radius,
       kind: enemy.kind
     });
-    if (enemy.kind !== 'potion') {
-      this.addEffect('lightning', {
-        fromX: this.hero.x + this.hero.radius * 0.72,
-        fromY: this.hero.y - this.hero.radius * 0.92,
-        toX: enemy.x,
-        toY: enemy.y,
-        radius: enemy.radius,
-        kind: enemy.kind
-      });
-    }
+    this.addEffect('lightning', {
+      fromX: this.hero.x + this.hero.radius * 0.72,
+      fromY: this.hero.y - this.hero.radius * 0.92,
+      toX: enemy.x,
+      toY: enemy.y,
+      radius: enemy.radius,
+      kind: enemy.kind
+    });
   }
 
   triggerComboChain(targets) {
@@ -350,34 +355,12 @@ class GameState {
 
     for (let i = 0; i < targets.length; i += 1) {
       const enemy = targets[i];
-      if (enemy.kind === 'potion') {
-        continue;
-      }
       const hit = enemy.takeComboHit();
       if (hit && enemy.dead) {
         this.triggerVanish(enemy);
       }
     }
     this.enemies = this.enemies.filter((enemy) => !enemy.dead);
-  }
-
-  spawnHealthPotion() {
-    if (this.enemies.some((enemy) => enemy.kind === 'potion' && !enemy.dead)) {
-      return false;
-    }
-
-    this.enemies.push(new Enemy({
-      x: this.width * 0.5,
-      y: this.height * 0.24,
-      radius: 30,
-      speed: 0,
-      score: 0,
-      kind: 'potion',
-      species: 'healthPotion',
-      symbolDisplay: 'queue',
-      symbols: getHealthPotionSymbols(this.level, this.difficulty)
-    }));
-    return true;
   }
 
   toggleSound() {
@@ -409,6 +392,14 @@ class GameState {
       return;
     }
 
+    if (this.screen === SCREENS.PLAYING) {
+      const itemType = findItemAtPoint(this.width, this.height, this.items, point);
+      if (itemType) {
+        this.useItem(itemType);
+      }
+      return;
+    }
+
     if (this.screen === SCREENS.WIN || this.screen === SCREENS.LOSE) {
       this.difficulty = null;
       this.timeScale = 1;
@@ -416,6 +407,47 @@ class GameState {
       this.resetRun();
       this.screen = SCREENS.TITLE;
     }
+  }
+
+  useItem(itemType) {
+    if (!this.items[itemType] || this.items[itemType] <= 0) {
+      return false;
+    }
+
+    if (itemType === ITEM_TYPES.COMBO_CHAIN) {
+      const targets = this.enemies.filter((enemy) => !enemy.dead);
+      if (targets.length === 0) {
+        this.feedback = { text: '没有可攻击目标', age: 0, type: 'item' };
+        return false;
+      }
+
+      this.items.comboChain -= 1;
+      this.triggerComboChain(targets);
+      this.feedback = { text: '紫色闪电释放', age: 0, type: 'hit' };
+      return true;
+    }
+
+    if (itemType === ITEM_TYPES.HEALTH_POTION) {
+      if (this.lives >= this.maxLives) {
+        this.feedback = { text: '爱心已满', age: 0, type: 'item' };
+        return false;
+      }
+
+      const slots = getItemSlots(this.width, this.height, this.items);
+      const slot = slots.find((entry) => entry.type === ITEM_TYPES.HEALTH_POTION);
+      this.items.healthPotion -= 1;
+      const recoveredHeartIndex = this.lives;
+      this.lives += 1;
+      this.triggerPotionToHeart({
+        x: slot.x + slot.width * 0.5,
+        y: slot.y + slot.height * 0.5,
+        radius: 22
+      }, recoveredHeartIndex);
+      this.feedback = { text: '爱心 +1', age: 0, type: 'hit' };
+      return true;
+    }
+
+    return false;
   }
 
   handleGesture(points) {
@@ -438,28 +470,9 @@ class GameState {
     let vanished = 0;
     let partialHits = 0;
     let vanishedScore = 0;
-    let potionProgress = false;
-    let potionUnlocked = false;
-    let recoveredHeart = false;
     for (let i = 0; i < targets.length; i += 1) {
       const target = targets[i];
       target.applySymbol(symbol);
-      if (target.kind === 'potion') {
-        if (target.symbols.length === 0) {
-          potionUnlocked = true;
-          if (this.lives < this.maxLives) {
-            const recoveredHeartIndex = this.lives;
-            this.lives += 1;
-            recoveredHeart = true;
-            this.triggerPotionToHeart(target, recoveredHeartIndex);
-          }
-          this.triggerVanish(target);
-        } else {
-          potionProgress = true;
-        }
-        continue;
-      }
-
       if (target.symbols.length === 0) {
         vanished += 1;
         vanishedScore += target.score;
@@ -476,14 +489,20 @@ class GameState {
     const scoreFeedback = vanished > 0
       ? '消除 +' + earned
       : (partialHits > 0 ? '命中 +' + earned : '');
-    let feedbackText = potionUnlocked
-      ? (recoveredHeart ? '爱心 +1' : '爱心已满')
-      : (scoreFeedback || (potionProgress ? '血瓶解锁中' : ''));
-    if (potionUnlocked && scoreFeedback) {
-      feedbackText += '  ' + scoreFeedback;
+    let feedbackText = scoreFeedback;
+    const earnedItems = [];
+    if (this.combo % 10 === 0) {
+      this.items.comboChain += 1;
+      earnedItems.push(ITEM_TYPES.COMBO_CHAIN);
+      feedbackText += '  获得紫色闪电';
     }
-    if (this.combo % 15 === 0 && this.spawnHealthPotion()) {
-      feedbackText += '  血瓶出现';
+    if (this.combo % 15 === 0) {
+      this.items.healthPotion += 1;
+      earnedItems.push(ITEM_TYPES.HEALTH_POTION);
+      feedbackText += '  获得血瓶';
+    }
+    for (let i = 0; i < earnedItems.length; i += 1) {
+      this.triggerItemEarn(earnedItems[i]);
     }
     this.feedback = {
       text: feedbackText,
@@ -493,10 +512,6 @@ class GameState {
       multiplier: vanished > 0 ? multiplier : null
     };
     this.enemies = this.enemies.filter((enemy) => !enemy.dead);
-    if (this.combo % 10 === 0) {
-      const comboTargets = this.enemies.filter((enemy) => !enemy.dead && enemy.kind !== 'potion');
-      this.triggerComboChain(comboTargets);
-    }
     if (this.sound) {
       this.sound.play(vanished > 0 ? 'vanish' : 'hit');
     }
@@ -523,6 +538,5 @@ class GameState {
 module.exports = {
   GameState,
   SCREENS,
-  getComboMultiplier,
-  getHealthPotionSymbols
+  getComboMultiplier
 };

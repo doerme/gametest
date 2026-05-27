@@ -5,6 +5,7 @@ const { SCREENS } = require('../core/GameState');
 const { THEME_IDS, getTheme } = require('../levels/Themes');
 const { DIFFICULTY_MODES, getDifficultyButtons } = require('../ui/DifficultySelector');
 const { getAudioToggleBounds } = require('../ui/AudioToggle');
+const { ITEM_TYPES, getHeartSlotPosition, getItemSlots } = require('../ui/ItemBar');
 
 const ENEMY_ASSET_KEYS = {
   jellyfish: 'enemyJellyfish',
@@ -198,13 +199,6 @@ function getSoundToggleLabel(enabled) {
   return enabled ? '声音 开' : '声音 关';
 }
 
-function getHeartSlotPosition(width, heartIndex) {
-  return {
-    x: width - 28 - heartIndex * 26,
-    y: 31
-  };
-}
-
 function getComboTargets(effect) {
   return effect.targets || [];
 }
@@ -250,6 +244,7 @@ class Renderer {
     this.drawEffects(state.effects);
     this.drawGesture(input.currentPath);
     this.drawHud(state, visibleLevel);
+    this.drawItemEarnEffects(state.effects);
 
     if (state.screen === SCREENS.TITLE) {
       this.drawDifficultyOverlay(getTheme(visibleThemeId).name, '划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
@@ -840,7 +835,7 @@ class Renderer {
     const ctx = this.ctx;
     const progress = effect.age / effect.duration;
     const alpha = Math.max(0, 1 - progress);
-    const color = effect.kind === 'boss' ? '#d6a6ff' : (effect.kind === 'potion' ? '#ff8fa8' : '#c6f6ff');
+    const color = effect.kind === 'boss' ? '#d6a6ff' : '#c6f6ff';
     const ringRadius = effect.radius * (0.74 + progress * 1.55);
 
     ctx.save();
@@ -963,7 +958,7 @@ class Renderer {
     const ctx = this.ctx;
     const progress = Math.max(0, Math.min(1, effect.age / effect.duration));
     const eased = 1 - Math.pow(1 - progress, 3);
-    const target = getHeartSlotPosition(this.width, effect.heartIndex);
+    const target = getHeartSlotPosition(this.width, this.height, effect.heartIndex);
     const arcLift = Math.sin(progress * Math.PI) * Math.max(28, this.height * 0.08);
     const x = effect.x + (target.x - effect.x) * eased;
     const y = effect.y + (target.y - effect.y) * eased - arcLift;
@@ -998,7 +993,7 @@ class Renderer {
   drawHeartLossEffect(effect) {
     const ctx = this.ctx;
     const progress = Math.max(0, Math.min(1, effect.age / effect.duration));
-    const target = getHeartSlotPosition(this.width, effect.heartIndex);
+    const target = getHeartSlotPosition(this.width, this.height, effect.heartIndex);
     const direction = effect.burstCount > 1 && effect.burstIndex % 2 === 1 ? 1 : -1;
     const driftX = direction * progress * (8 + effect.burstIndex * 2);
     const driftY = progress * 28;
@@ -1040,9 +1035,7 @@ class Renderer {
 
     const assetKey = ENEMY_ASSET_KEYS[enemy.species];
     const image = assetKey && this.assets && this.assets.getImage(assetKey);
-    if (enemy.kind === 'potion') {
-      this.drawHealthPotion(enemy);
-    } else if (image) {
+    if (image) {
       this.drawEnemyImage(enemy, image, frame);
     } else if (enemy.species === 'ghost') {
       this.drawGhostEnemy(enemy, frame);
@@ -1346,15 +1339,13 @@ class Renderer {
     ctx.textAlign = 'center';
     ctx.fillText(getLevelLabel(state, visibleLevel), this.width * 0.5, 31);
 
-    for (let i = 0; i < 5; i += 1) {
-      this.drawHeart(this.width - 28 - i * 26, 31, i < state.lives);
-    }
-
     this.drawComboCounter(state);
+    this.drawHeartBar(state);
+    this.drawItemBar(state);
 
     if (state.feedback) {
       ctx.globalAlpha = Math.max(0, 1 - state.feedback.age / 0.7);
-      ctx.fillStyle = state.feedback.type === 'hit' ? '#a4ffbf' : '#ff9a87';
+      ctx.fillStyle = state.feedback.type === 'hit' ? '#a4ffbf' : (state.feedback.type === 'item' ? '#fff2c2' : '#ff9a87');
       ctx.font = 'bold 24px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(state.feedback.text, this.width * 0.5, 104 - state.feedback.age * 24);
@@ -1424,6 +1415,131 @@ class Renderer {
       ctx.fillText(tier.multiplierLabel, width - 24, 0);
     }
 
+    ctx.restore();
+  }
+
+  drawHeartBar(state) {
+    for (let i = 0; i < 5; i += 1) {
+      const position = getHeartSlotPosition(this.width, this.height, i);
+      this.drawHeart(position.x, position.y, i < state.lives);
+    }
+  }
+
+  drawItemBar(state) {
+    if (state.screen !== SCREENS.PLAYING) {
+      return;
+    }
+
+    const slots = getItemSlots(this.width, this.height, state.items);
+    for (let i = 0; i < slots.length; i += 1) {
+      this.drawItemSlot(slots[i], state.elapsed || 0);
+    }
+  }
+
+  drawItemSlot(slot, elapsed) {
+    const ctx = this.ctx;
+    const centerX = slot.x + slot.width * 0.5;
+    const centerY = slot.y + slot.height * 0.5;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(8, 13, 25, 0.68)';
+    ctx.strokeStyle = slot.type === ITEM_TYPES.COMBO_CHAIN ? '#d7a2ff' : '#ff8fa8';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(slot.x, slot.y, slot.width, slot.height, [13]);
+    ctx.fill();
+    ctx.stroke();
+    ctx.translate(centerX, centerY);
+    if (slot.type === ITEM_TYPES.HEALTH_POTION) {
+      this.drawHealthPotion({ radius: 18, phase: elapsed * 4 });
+    } else {
+      this.drawComboChainItemIcon(20);
+    }
+    ctx.restore();
+
+    const label = slot.count > 99 ? '99+' : String(slot.count);
+    const badgeWidth = label.length > 2 ? 28 : 21;
+    ctx.save();
+    ctx.fillStyle = '#fff2c2';
+    ctx.beginPath();
+    ctx.roundRect(slot.x + slot.width - badgeWidth + 5, slot.y + 4, badgeWidth, 18, [9]);
+    ctx.fill();
+    ctx.fillStyle = '#38224a';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, slot.x + slot.width - badgeWidth * 0.5 + 5, slot.y + 13);
+    ctx.restore();
+  }
+
+  drawItemEarnEffects(effects) {
+    if (!effects) {
+      return;
+    }
+
+    for (let i = 0; i < effects.length; i += 1) {
+      if (effects[i].type === 'itemEarn') {
+        this.drawItemEarnEffect(effects[i]);
+      }
+    }
+  }
+
+  drawItemEarnEffect(effect) {
+    const ctx = this.ctx;
+    const progress = Math.max(0, Math.min(1, effect.age / effect.duration));
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const fromX = 52;
+    const fromY = 85;
+    const arcLift = Math.sin(progress * Math.PI) * Math.max(34, this.height * 0.09);
+    const x = fromX + (effect.toX - fromX) * eased;
+    const y = fromY + (effect.toY - fromY) * eased - arcLift;
+    const scale = 1.1 - eased * 0.28;
+    const arrival = Math.max(0, (progress - 0.72) / 0.28);
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = Math.max(0, 1 - Math.max(0, progress - 0.92) / 0.08);
+    if (effect.itemType === ITEM_TYPES.HEALTH_POTION) {
+      this.drawHealthPotion({ radius: 17, phase: progress * Math.PI * 4 });
+    } else {
+      this.drawComboChainItemIcon(19);
+    }
+    ctx.restore();
+
+    if (arrival > 0) {
+      ctx.save();
+      ctx.translate(effect.toX, effect.toY);
+      ctx.globalAlpha = 1 - arrival;
+      ctx.strokeStyle = effect.itemType === ITEM_TYPES.COMBO_CHAIN ? '#d7a2ff' : '#ff8fa8';
+      ctx.lineWidth = 2.4;
+      ctx.shadowColor = ctx.strokeStyle;
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.arc(0, 0, 18 + arrival * 16, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  drawComboChainItemIcon(radius) {
+    const ctx = this.ctx;
+
+    ctx.save();
+    ctx.strokeStyle = '#ead2ff';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = '#ca78ff';
+    ctx.shadowBlur = 15;
+    ctx.beginPath();
+    ctx.moveTo(radius * 0.2, -radius * 0.95);
+    ctx.lineTo(-radius * 0.46, -radius * 0.08);
+    ctx.lineTo(radius * 0.04, -radius * 0.08);
+    ctx.lineTo(-radius * 0.24, radius * 0.96);
+    ctx.lineTo(radius * 0.68, -radius * 0.23);
+    ctx.lineTo(radius * 0.18, -radius * 0.23);
+    ctx.stroke();
     ctx.restore();
   }
 

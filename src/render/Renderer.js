@@ -772,100 +772,121 @@ class Renderer {
     ctx.save();
 
     const sky = ctx.createLinearGradient(0, 0, 0, this.height);
-    sky.addColorStop(0, '#45346b');
-    sky.addColorStop(0.32, '#d2807f');
-    sky.addColorStop(0.58, '#f2b56f');
-    sky.addColorStop(1, '#3d8aa4');
+    sky.addColorStop(0, '#374c83');
+    sky.addColorStop(0.34, '#d58c8a');
+    sky.addColorStop(0.62, '#f2be7b');
+    sky.addColorStop(1, '#357d96');
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, this.width, this.height);
 
-    const horizon = this.height * 0.42;
     ctx.fillStyle = 'rgba(255, 219, 155, 0.28)';
     ctx.beginPath();
-    ctx.arc(this.width * 0.76, horizon * 0.62, this.width * 0.14, 0, Math.PI * 2);
+    ctx.arc(this.width * 0.76, this.height * 0.18, this.width * 0.13, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = 'rgba(39, 55, 82, 0.34)';
-    for (let i = 0; i < 4; i += 1) {
-      const x = this.width * (0.1 + i * 0.23);
-      const y = horizon - 12 + (i % 2) * 8;
+    const sea = ctx.createLinearGradient(0, this.height * 0.24, 0, this.height);
+    sea.addColorStop(0, 'rgba(87, 175, 190, 0.66)');
+    sea.addColorStop(0.5, 'rgba(49, 133, 157, 0.88)');
+    sea.addColorStop(1, '#214e72');
+    ctx.fillStyle = sea;
+    ctx.fillRect(0, this.height * 0.24, this.width, this.height * 0.76);
+
+    ctx.strokeStyle = 'rgba(255, 229, 176, 0.32)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 14; i += 1) {
+      const y = ((i * 48 + scroll * 0.42) % (this.height + 80)) - 40;
       ctx.beginPath();
-      ctx.moveTo(x - 34, y + 14);
-      ctx.lineTo(x + 18, y - 20);
-      ctx.lineTo(x + 58, y + 14);
+      ctx.moveTo(this.width * 0.08, y);
+      ctx.bezierCurveTo(this.width * 0.34, y + 8, this.width * 0.66, y - 9, this.width * 0.92, y + 5);
+      ctx.stroke();
+    }
+
+    ctx.save();
+    ctx.globalAlpha = 0.38;
+    ctx.fillStyle = '#263652';
+    for (let i = 0; i < 5; i += 1) {
+      const x = this.width * (0.08 + i * 0.2);
+      const y = this.height * (0.18 + (i % 2) * 0.05);
+      ctx.beginPath();
+      ctx.moveTo(x - 28, y + 12);
+      ctx.lineTo(x + 14, y - 18);
+      ctx.lineTo(x + 48, y + 12);
       ctx.closePath();
       ctx.fill();
     }
+    ctx.restore();
 
-    const sea = ctx.createLinearGradient(0, horizon, 0, this.height);
-    sea.addColorStop(0, 'rgba(81, 177, 188, 0.78)');
-    sea.addColorStop(0.52, 'rgba(51, 133, 155, 0.9)');
-    sea.addColorStop(1, '#1f5b79');
-    ctx.fillStyle = sea;
-    ctx.fillRect(0, horizon, this.width, this.height - horizon);
+    const vanishingY = this.height * 0.18;
+    const leftBottom = this.width * 0.19;
+    const rightBottom = this.width * 0.81;
+    const leftTop = this.width * 0.46;
+    const rightTop = this.width * 0.54;
 
-    ctx.strokeStyle = 'rgba(255, 229, 176, 0.35)';
+    ctx.strokeStyle = '#252c3f';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(leftTop, vanishingY);
+    ctx.lineTo(leftBottom, this.height + 20);
+    ctx.moveTo(rightTop, vanishingY);
+    ctx.lineTo(rightBottom, this.height + 20);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255, 226, 154, 0.28)';
     ctx.lineWidth = 2;
-    for (let i = 0; i < 11; i += 1) {
-      const y = horizon + ((i * 43 + scroll * 0.18) % (this.height - horizon + 60)) - 30;
+    ctx.beginPath();
+    ctx.moveTo(this.width * 0.5, vanishingY);
+    ctx.lineTo(this.width * 0.5, this.height);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(37, 44, 63, 0.72)';
+    ctx.lineWidth = 4;
+    for (let i = -2; i < 16; i += 1) {
+      const y = ((i * 58 + scroll * 0.8) % (this.height + 90)) - 45;
+      const progress = Math.max(0, Math.min(1, (y - vanishingY) / (this.height - vanishingY)));
+      const left = leftTop + (leftBottom - leftTop) * progress;
+      const right = rightTop + (rightBottom - rightTop) * progress;
+      const inset = (right - left) * 0.08;
       ctx.beginPath();
-      ctx.moveTo(this.width * 0.08, y);
-      ctx.bezierCurveTo(this.width * 0.32, y + 10, this.width * 0.67, y - 9, this.width * 0.94, y + 3);
+      ctx.moveTo(left + inset, y);
+      ctx.lineTo(right - inset, y);
       ctx.stroke();
     }
 
+    const trainY = this.height * 0.62 - Math.sin((elapsed || 0) * 0.8) * 7;
+    const trainW = this.width * 0.28;
+    const trainH = this.height * 0.28;
     ctx.save();
-    ctx.globalAlpha = 0.44;
-    ctx.fillStyle = '#2b344a';
-    ctx.fillRect(this.width * 0.07, horizon - 28, this.width * 0.2, 18);
-    ctx.fillRect(this.width * 0.11, horizon - 56, this.width * 0.055, 30);
-    ctx.fillRect(this.width * 0.2, horizon - 47, this.width * 0.045, 22);
-    ctx.restore();
-
-    const trainX = ((elapsed || 0) * 44) % (this.width + 220) - 160;
-    ctx.save();
-    ctx.translate(trainX, horizon - 34);
-    ctx.fillStyle = 'rgba(33, 37, 55, 0.82)';
+    ctx.translate(this.width * 0.5, trainY);
+    ctx.shadowColor = 'rgba(255, 195, 117, 0.42)';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = 'rgba(29, 34, 51, 0.9)';
     ctx.beginPath();
-    ctx.roundRect(0, -24, 142, 30, [9]);
+    ctx.roundRect(-trainW * 0.5, -trainH * 0.62, trainW, trainH, [trainW * 0.12]);
     ctx.fill();
-    ctx.fillRect(118, -18, 48, 24);
-    ctx.fillStyle = 'rgba(255, 214, 140, 0.82)';
-    for (let i = 0; i < 5; i += 1) {
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255, 211, 132, 0.82)';
+    for (let i = 0; i < 4; i += 1) {
       ctx.beginPath();
-      ctx.roundRect(14 + i * 23, -18, 12, 11, [3]);
+      ctx.roundRect(-trainW * 0.32, -trainH * 0.4 + i * trainH * 0.2, trainW * 0.64, trainH * 0.1, [4]);
       ctx.fill();
     }
+    ctx.fillStyle = '#141a2b';
+    ctx.beginPath();
+    ctx.roundRect(-trainW * 0.42, -trainH * 0.72, trainW * 0.84, trainH * 0.16, [6]);
+    ctx.fill();
     ctx.restore();
 
-    ctx.strokeStyle = '#2e3141';
-    ctx.lineWidth = 4;
-    for (let rail = 0; rail < 2; rail += 1) {
-      const y = horizon + 18 + rail * 24;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(this.width, y + this.height * 0.12);
-      ctx.stroke();
-    }
-
-    ctx.strokeStyle = 'rgba(28, 33, 48, 0.62)';
-    ctx.lineWidth = 3;
-    for (let i = -2; i < 13; i += 1) {
-      const x = ((i * 58 + scroll * 0.62) % (this.width + 90)) - 45;
-      ctx.beginPath();
-      ctx.moveTo(x, horizon + 8);
-      ctx.lineTo(x + 36, horizon + 74);
-      ctx.stroke();
-    }
-
     ctx.fillStyle = 'rgba(255, 208, 127, 0.72)';
+    const signalX = this.width * 0.2;
+    const signalY = this.height * 0.24;
     ctx.beginPath();
-    ctx.arc(this.width * 0.18, horizon - 47, 5, 0, Math.PI * 2);
+    ctx.arc(signalX, signalY, 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = 'rgba(255, 208, 127, 0.42)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(this.width * 0.18, horizon - 47, 16 + Math.sin(elapsed * 2) * 2, 0, Math.PI * 2);
+    ctx.arc(signalX, signalY, 16 + Math.sin(elapsed * 2) * 2, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.restore();
@@ -1702,25 +1723,26 @@ class Renderer {
     const r = enemy.radius;
     if (enemy.species === 'paperSpirit') {
       ctx.save();
-      ctx.shadowColor = '#ffd899';
-      ctx.shadowBlur = 10;
-      ctx.fillStyle = '#fff4dc';
+      ctx.shadowColor = '#ffe0ac';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = '#fff2d8';
       ctx.beginPath();
-      ctx.moveTo(-r * 0.72, -r * 0.78);
-      ctx.quadraticCurveTo(0, -r * 1.02, r * 0.72, -r * 0.7);
-      ctx.lineTo(r * 0.56, r * 0.76);
-      ctx.quadraticCurveTo(0, r * 1.02, -r * 0.58, r * 0.72);
+      ctx.moveTo(-r * 0.6, -r * 0.9);
+      ctx.quadraticCurveTo(0, -r * 1.18, r * 0.62, -r * 0.86);
+      ctx.lineTo(r * 0.5, r * 0.62);
+      ctx.quadraticCurveTo(r * 0.14, r * 0.96, 0, r * 0.62);
+      ctx.quadraticCurveTo(-r * 0.18, r * 1.05, -r * 0.56, r * 0.68);
       ctx.closePath();
       ctx.fill();
 
       ctx.shadowBlur = 0;
-      ctx.strokeStyle = '#a66f5e';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#a56d5d';
+      ctx.lineWidth = 2.2;
       ctx.beginPath();
-      ctx.moveTo(-r * 0.5, -r * 0.34);
-      ctx.quadraticCurveTo(0, -r * 0.18, r * 0.48, -r * 0.36);
-      ctx.moveTo(-r * 0.42, r * 0.18);
-      ctx.quadraticCurveTo(0, r * 0.34, r * 0.42, r * 0.16);
+      ctx.moveTo(-r * 0.42, -r * 0.32);
+      ctx.quadraticCurveTo(0, -r * 0.16, r * 0.42, -r * 0.34);
+      ctx.moveTo(-r * 0.38, r * 0.12);
+      ctx.quadraticCurveTo(0, r * 0.28, r * 0.36, r * 0.1);
       ctx.stroke();
 
       ctx.fillStyle = '#273247';
@@ -1728,6 +1750,13 @@ class Renderer {
       ctx.arc(-r * 0.22, -r * 0.05, r * 0.08, 0, Math.PI * 2);
       ctx.arc(r * 0.22, -r * 0.05, r * 0.08, 0, Math.PI * 2);
       ctx.fill();
+
+      ctx.strokeStyle = 'rgba(82, 141, 154, 0.64)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.72, r * 0.56);
+      ctx.quadraticCurveTo(-r * 0.22, r * 0.78, r * 0.2, r * 0.55);
+      ctx.stroke();
       ctx.restore();
       return;
     }
@@ -1736,25 +1765,35 @@ class Renderer {
       ctx.save();
       ctx.shadowColor = '#ffcc72';
       ctx.shadowBlur = 15;
-      ctx.fillStyle = '#ffcf86';
+      ctx.fillStyle = '#ffd99a';
       ctx.beginPath();
       ctx.ellipse(0, -r * 0.1, r * 0.58, r * 0.78, 0, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.shadowBlur = 0;
-      ctx.strokeStyle = '#8a5e55';
+      ctx.strokeStyle = '#875d55';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(0, -r * 0.1, r * 0.72, Math.PI * 0.18, Math.PI * 0.82);
+      ctx.moveTo(-r * 0.5, -r * 0.28);
+      ctx.lineTo(r * 0.5, -r * 0.28);
+      ctx.moveTo(-r * 0.42, r * 0.12);
+      ctx.lineTo(r * 0.42, r * 0.12);
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(96, 182, 204, 0.8)';
+      ctx.fillStyle = 'rgba(96, 182, 204, 0.82)';
       ctx.beginPath();
       ctx.moveTo(-r * 0.72, r * 0.48);
       ctx.bezierCurveTo(-r * 0.32, r * 0.72, r * 0.32, r * 0.25, r * 0.72, r * 0.5);
       ctx.lineTo(r * 0.72, r * 0.78);
       ctx.bezierCurveTo(r * 0.22, r * 0.48, -r * 0.22, r * 0.94, -r * 0.72, r * 0.68);
       ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#273247';
+      ctx.beginPath();
+      ctx.arc(-r * 0.16, -r * 0.04, r * 0.06, 0, Math.PI * 2);
+      ctx.arc(r * 0.16, -r * 0.04, r * 0.06, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
       return;
@@ -1781,6 +1820,11 @@ class Renderer {
     ctx.fill();
     ctx.fillRect(-r * 0.44, -r * 1.42, r * 0.88, r * 0.38);
 
+    ctx.fillStyle = '#f0c36c';
+    ctx.beginPath();
+    ctx.roundRect(-r * 0.22, -r * 1.3, r * 0.44, r * 0.12, [r * 0.03]);
+    ctx.fill();
+
     ctx.fillStyle = '#ffcb74';
     ctx.beginPath();
     ctx.arc(-r * 0.18, -r * 0.48, r * 0.07, 0, Math.PI * 2);
@@ -1803,6 +1847,12 @@ class Renderer {
     ctx.lineTo(r * 0.24, -r * 0.08);
     ctx.closePath();
     ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255, 211, 132, 0.7)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, r * 0.18, r * 0.5, Math.PI * 0.08, Math.PI * 0.92);
+    ctx.stroke();
     ctx.restore();
   }
 

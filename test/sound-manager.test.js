@@ -42,6 +42,8 @@ assert.strictEqual(sound.effect.volume, 0.72);
 Object.keys(SoundManager.BGM_TRACKS).forEach((level) => {
   assert.strictEqual(fs.existsSync(path.join(__dirname, '..', SoundManager.BGM_TRACKS[level])), true);
 });
+const seaTrainBgm = fs.readFileSync(path.join(__dirname, '..', SoundManager.BGM_TRACKS[THEME_IDS.SEA_TRAIN]));
+assert.ok(seaTrainBgm.some((byte, index) => index >= 44 && byte !== 0));
 Object.keys(SoundManager.EFFECT_TRACKS).forEach((effect) => {
   assert.strictEqual(fs.existsSync(path.join(__dirname, '..', SoundManager.EFFECT_TRACKS[effect])), true);
 });

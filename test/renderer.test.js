@@ -62,20 +62,20 @@ assert.strictEqual(Renderer.getLevelLabel({
   screen: 'playing',
   difficulty: DIFFICULTY_MODES.NORMAL,
   level: 1,
-  totalLevels: 5
-}, 1), '第 1/5 关');
+  totalLevels: 6
+}, 1), '第 1/6 关');
 assert.strictEqual(Renderer.getLevelLabel({
   screen: 'playing',
   difficulty: DIFFICULTY_MODES.PLUS_ONE,
   level: 1,
-  totalLevels: 5
-}, 1), '第 1/5 关  +1');
+  totalLevels: 6
+}, 1), '第 1/6 关  +1');
 assert.strictEqual(Renderer.getLevelLabel({
   screen: 'level-transition',
   difficulty: DIFFICULTY_MODES.PLUS_ONE,
   level: 1,
-  totalLevels: 5
-}, 2), '第 2/5 关');
+  totalLevels: 6
+}, 2), '第 2/6 关');
 assert.strictEqual(Renderer.getComboLabel(0), '');
 assert.strictEqual(Renderer.getComboLabel(5), '连击 x5');
 assert.strictEqual(Renderer.getComboTier(2).multiplierLabel, '');
@@ -96,8 +96,9 @@ assert.strictEqual(Renderer.getSoundToggleLabel(false), '声音 关');
 assert.deepStrictEqual(Renderer.getHeartSlotPosition(375, 667, 3), { x: 106, y: 639 });
 assert.deepStrictEqual(Renderer.getTransitionCopy(4, THEME_IDS.CASTLE), { title: '幽光古堡', hint: '第四关 · 新增符咒：Z' });
 assert.deepStrictEqual(Renderer.getTransitionCopy(5, THEME_IDS.SKY_CITY), { title: '天空之城', hint: '第五关 · 新增符咒：M' });
+assert.deepStrictEqual(Renderer.getTransitionCopy(6, THEME_IDS.SEA_TRAIN), { title: '海上列车', hint: '第六关 · 新增符咒：S' });
 assert.deepStrictEqual(Renderer.getTransitionCopy(2, THEME_IDS.DINOSAUR_PARK), { title: '恐龙乐园', hint: '第二关 · 符咒队列仅显示当前符号' });
-assert.strictEqual(Renderer.getWinTitle(), '五关通关');
+assert.strictEqual(Renderer.getWinTitle(), '六关通关');
 
 const requestedBackgrounds = [];
 const themeRenderer = new Renderer({}, { width: 375, height: 667 }, {
@@ -106,13 +107,102 @@ const themeRenderer = new Renderer({}, { width: 375, height: 667 }, {
     return {};
   }
 });
+let skyFallbackCalls = 0;
+let seaTrainFallbackCalls = 0;
 themeRenderer.drawScrollingOceanBackground = function drawScrollingOceanBackground() {};
 themeRenderer.drawScrollingDinosaurBackground = function drawScrollingDinosaurBackground() {};
-themeRenderer.drawFallbackSkyCityBackground = function drawFallbackSkyCityBackground() {};
+themeRenderer.drawFallbackSkyCityBackground = function drawFallbackSkyCityBackground() {
+  skyFallbackCalls += 1;
+};
+themeRenderer.drawFallbackSeaTrainBackground = function drawFallbackSeaTrainBackground() {
+  seaTrainFallbackCalls += 1;
+};
 themeRenderer.drawBackground(0, THEME_IDS.OCEAN);
 themeRenderer.drawBackground(0, THEME_IDS.DINOSAUR_PARK);
 themeRenderer.drawBackground(0, THEME_IDS.SKY_CITY);
+themeRenderer.drawBackground(0, THEME_IDS.SEA_TRAIN);
 assert.deepStrictEqual(requestedBackgrounds, ['oceanSpaceshipCorridorLoop', 'dinosaurParkCorridorLoop']);
+assert.strictEqual(skyFallbackCalls, 1);
+assert.strictEqual(seaTrainFallbackCalls, 1);
+
+function createCanvasSmokeContext() {
+  const calls = [];
+  const states = [];
+  const context = {
+    calls,
+    shadowColor: 'transparent',
+    shadowBlur: 0,
+    save() {
+      calls.push('save');
+      states.push({
+        shadowColor: context.shadowColor,
+        shadowBlur: context.shadowBlur
+      });
+    },
+    restore() {
+      calls.push('restore');
+      const state = states.pop();
+      if (state) {
+        context.shadowColor = state.shadowColor;
+        context.shadowBlur = state.shadowBlur;
+      }
+    },
+    beginPath() {},
+    closePath() {},
+    fill() {},
+    stroke() {},
+    fillRect() {},
+    moveTo() {},
+    lineTo() {},
+    bezierCurveTo() {},
+    quadraticCurveTo() {},
+    arc() {},
+    ellipse() {},
+    roundRect() {},
+    translate() {},
+    scale() {},
+    rotate() {},
+    fillText() {},
+    createLinearGradient() {
+      return {
+        addColorStop() {}
+      };
+    },
+    createRadialGradient() {
+      return {
+        addColorStop() {}
+      };
+    }
+  };
+  return context;
+}
+
+const skyCanvasContext = createCanvasSmokeContext();
+const skyCanvasRenderer = new Renderer(skyCanvasContext, { width: 375, height: 667 }, null);
+skyCanvasRenderer.drawFallbackSkyCityBackground(42);
+skyCanvasRenderer.drawSkyCityEnemyFallback({ species: 'cloudWisp', radius: 24, phase: 0.4 });
+skyCanvasRenderer.drawSkyCityEnemyFallback({ species: 'wingedSentinel', radius: 26, phase: 0.6 });
+skyCanvasRenderer.drawSkyCityEnemyFallback({ species: 'templeGriffin', radius: 34, phase: 0.8 });
+assert.strictEqual(skyCanvasContext.calls.filter((call) => call === 'save').length, skyCanvasContext.calls.filter((call) => call === 'restore').length);
+assert.ok(skyCanvasContext.calls.length >= 8);
+
+const seaTrainCanvasContext = createCanvasSmokeContext();
+const seaTrainCanvasRenderer = new Renderer(seaTrainCanvasContext, { width: 375, height: 667 }, null);
+seaTrainCanvasRenderer.drawFallbackSeaTrainBackground(54, 1.2);
+seaTrainCanvasRenderer.drawSeaTrainEnemyFallback({ species: 'paperSpirit', radius: 24, phase: 0.4 });
+seaTrainCanvasRenderer.drawSeaTrainEnemyFallback({ species: 'waveLantern', radius: 26, phase: 0.6 });
+seaTrainCanvasRenderer.drawSeaTrainEnemyFallback({ species: 'trainConductor', radius: 34, phase: 0.8 });
+assert.strictEqual(seaTrainCanvasContext.calls.filter((call) => call === 'save').length, seaTrainCanvasContext.calls.filter((call) => call === 'restore').length);
+assert.ok(seaTrainCanvasContext.calls.length >= 8);
+
+const resultCanvasContext = createCanvasSmokeContext();
+const resultCanvasRenderer = new Renderer(resultCanvasContext, { width: 375, height: 667 }, null);
+resultCanvasRenderer.drawOverlay('六关通关', '得分 1200', '点击再来一局', 'win');
+resultCanvasRenderer.drawOverlay('爱心耗尽', '得分 80', '点击重试', 'lose');
+assert.strictEqual(resultCanvasContext.calls.filter((call) => call === 'save').length, resultCanvasContext.calls.filter((call) => call === 'restore').length);
+assert.ok(resultCanvasContext.calls.length >= 4);
+assert.strictEqual(resultCanvasContext.shadowColor, 'transparent');
+assert.strictEqual(resultCanvasContext.shadowBlur, 0);
 
 let selectedRuneColor = null;
 const runeRenderer = new Renderer({
@@ -158,7 +248,7 @@ const symbolIconRenderer = new Renderer({
   }
 }, { width: 375, height: 667 }, {
   getImage(key) {
-    return key === 'symbolM' ? { width: 64, height: 64 } : null;
+    return key === 'symbolS' ? { width: 64, height: 64 } : null;
   }
 });
 symbolIconRenderer.drawSymbolQueue({
@@ -166,10 +256,11 @@ symbolIconRenderer.drawSymbolQueue({
   species: 'ghost',
   radius: 24,
   symbolDisplay: 'queue',
-  symbols: [SYMBOLS.M]
+  symbols: [SYMBOLS.S]
 });
 assert.strictEqual(Renderer.SYMBOL_ICON_ASSET_KEYS[SYMBOLS.Z], 'symbolZ');
 assert.strictEqual(Renderer.SYMBOL_ICON_ASSET_KEYS[SYMBOLS.M], 'symbolM');
+assert.strictEqual(Renderer.SYMBOL_ICON_ASSET_KEYS[SYMBOLS.S], 'symbolS');
 assert.strictEqual(symbolImageArgs.length, 5);
 assert.deepStrictEqual(symbolImageArgs[0], { width: 64, height: 64 });
 assert.ok(symbolImageArgs[3] >= 27);

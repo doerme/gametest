@@ -11,13 +11,14 @@ director.update(60, enemies);
 let boss = enemies[enemies.length - 1];
 
 assert.strictEqual(director.level, 1);
-assert.strictEqual(director.levelCount, 5);
+assert.strictEqual(director.levelCount, 6);
 assert.strictEqual(enemies.length, director.total);
 assert.ok(enemies.every((enemy) => enemy.species === 'ghost'));
 assert.ok(enemies.every((enemy) => enemy.symbolDisplay === 'queue'));
 assert.strictEqual(boss.kind, 'boss');
 assert.strictEqual(boss.symbols.length, 4);
 assert.ok(enemies.every((enemy) => !enemy.symbols.includes(SYMBOLS.CIRCLE) && !enemy.symbols.includes(SYMBOLS.Z)));
+assert.strictEqual(LevelDirector.LEVELS[0].timeline[21].time, 45);
 
 director.startLevel(2);
 enemies = [];
@@ -34,6 +35,7 @@ assert.strictEqual(boss.species, 'megalodon');
 assert.strictEqual(boss.kind, 'boss');
 assert.strictEqual(boss.symbols.length, 5);
 assert.ok(enemies.every((enemy) => !enemy.symbols.includes(SYMBOLS.CIRCLE) && !enemy.symbols.includes(SYMBOLS.Z)));
+assert.strictEqual(LevelDirector.LEVELS[1].timeline[21].time, 45);
 
 director.startLevel(3);
 enemies = [];
@@ -54,7 +56,7 @@ assert.strictEqual(boss.score, 1000);
 assert.strictEqual(boss.speed, 37);
 assert.strictEqual(boss.symbols.length, 6);
 assert.strictEqual(boss.symbols.filter((symbol) => symbol === SYMBOLS.CIRCLE).length, 2);
-assert.strictEqual(LevelDirector.LEVELS[2].timeline[21].time, 51);
+assert.strictEqual(LevelDirector.LEVELS[2].timeline[21].time, 36);
 
 director.startLevel(4);
 enemies = [];
@@ -80,7 +82,7 @@ assert.deepStrictEqual(boss.symbols, [
 ]);
 assert.deepStrictEqual(LevelDirector.LEVELS[3].timeline[0].symbols, [SYMBOLS.CIRCLE, SYMBOLS.RIGHT]);
 assert.deepStrictEqual(LevelDirector.LEVELS[3].timeline[3].symbols, [SYMBOLS.LEFT, SYMBOLS.Z]);
-assert.strictEqual(LevelDirector.LEVELS[3].timeline[21].time, 51);
+assert.strictEqual(LevelDirector.LEVELS[3].timeline[21].time, 36);
 
 director.startLevel(5);
 enemies = [];
@@ -101,6 +103,28 @@ assert.deepStrictEqual(boss.symbols, [
   SYMBOLS.M, SYMBOLS.Z, SYMBOLS.CIRCLE, SYMBOLS.RIGHT,
   SYMBOLS.LEFT, SYMBOLS.V, SYMBOLS.L, SYMBOLS.M
 ]);
+assert.strictEqual(LevelDirector.LEVELS[4].timeline[21].time, 36);
+
+director.startLevel(6);
+enemies = [];
+director.update(60, enemies);
+boss = enemies[enemies.length - 1];
+
+assert.strictEqual(director.level, 6);
+assert.ok(enemies.some((enemy) => enemy.species === 'paperSpirit'));
+assert.ok(enemies.some((enemy) => enemy.species === 'waveLantern'));
+assert.ok(enemies.some((enemy) => enemy.symbols.includes(SYMBOLS.S)));
+assert.ok(enemies.some((enemy) => enemy.symbols.includes(SYMBOLS.M)));
+assert.ok(enemies.every((enemy) => enemy.symbolDisplay === 'current-and-dots'));
+assert.strictEqual(boss.species, 'trainConductor');
+assert.strictEqual(boss.speed, 49);
+assert.strictEqual(boss.radius, 62);
+assert.strictEqual(boss.score, 1900);
+assert.deepStrictEqual(boss.symbols, [
+  SYMBOLS.S, SYMBOLS.M, SYMBOLS.Z, SYMBOLS.CIRCLE, SYMBOLS.RIGHT,
+  SYMBOLS.LEFT, SYMBOLS.V, SYMBOLS.L, SYMBOLS.S
+]);
+assert.strictEqual(LevelDirector.LEVELS[5].timeline[21].time, 36);
 
 director.startLevel(1, THEME_IDS.DINOSAUR_PARK);
 enemies = [];
@@ -132,5 +156,14 @@ assert.ok(enemies.some((enemy) => enemy.species === 'cloudWisp'));
 assert.ok(enemies.some((enemy) => enemy.species === 'wingedSentinel'));
 assert.strictEqual(boss.species, 'templeGriffin');
 assert.strictEqual(boss.symbols.length, 5);
+
+director.startLevel(3, THEME_IDS.SEA_TRAIN);
+enemies = [];
+director.update(60, enemies);
+boss = enemies[enemies.length - 1];
+assert.ok(enemies.some((enemy) => enemy.species === 'paperSpirit'));
+assert.ok(enemies.some((enemy) => enemy.species === 'waveLantern'));
+assert.strictEqual(boss.species, 'trainConductor');
+assert.strictEqual(boss.symbols.length, 6);
 
 console.log('level-director.test.js passed');

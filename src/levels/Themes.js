@@ -5,7 +5,8 @@ const THEME_IDS = {
   OCEAN: 'ocean',
   PENGUIN_HOTEL: 'penguinHotel',
   DINOSAUR_PARK: 'dinosaurPark',
-  SKY_CITY: 'skyCity'
+  SKY_CITY: 'skyCity',
+  SEA_TRAIN: 'seaTrain'
 };
 
 const THEME_ORDER = [
@@ -13,7 +14,8 @@ const THEME_ORDER = [
   THEME_IDS.OCEAN,
   THEME_IDS.PENGUIN_HOTEL,
   THEME_IDS.DINOSAUR_PARK,
-  THEME_IDS.SKY_CITY
+  THEME_IDS.SKY_CITY,
+  THEME_IDS.SEA_TRAIN
 ];
 
 const THEMES = {
@@ -80,6 +82,21 @@ const THEMES = {
       'cloudWisp', 'wingedSentinel', 'cloudWisp', 'wingedSentinel',
       'cloudWisp', 'wingedSentinel', 'cloudWisp', 'wingedSentinel',
       'cloudWisp', 'templeGriffin'
+    ]
+  },
+  [THEME_IDS.SEA_TRAIN]: {
+    id: THEME_IDS.SEA_TRAIN,
+    name: '海上列车',
+    backgroundAsset: 'seaTrainHorizon',
+    music: 'assets/audio/bgm-sea-train.wav',
+    runeColor: 'rgba(255, 198, 132, 0.28)',
+    species: [
+      'paperSpirit', 'waveLantern', 'paperSpirit', 'waveLantern',
+      'paperSpirit', 'waveLantern', 'paperSpirit', 'waveLantern',
+      'paperSpirit', 'waveLantern', 'paperSpirit', 'waveLantern',
+      'paperSpirit', 'waveLantern', 'paperSpirit', 'waveLantern',
+      'paperSpirit', 'waveLantern', 'paperSpirit', 'waveLantern',
+      'paperSpirit', 'trainConductor'
     ]
   }
 };

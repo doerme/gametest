@@ -10,6 +10,7 @@ const SYMBOLS = {
   CIRCLE: 'circle',
   Z: 'z',
   M: 'm',
+  S: 's',
   UNKNOWN: 'unknown'
 };
 
@@ -23,6 +24,7 @@ const LABELS = {
   [SYMBOLS.CIRCLE]: '○',
   [SYMBOLS.Z]: 'Z',
   [SYMBOLS.M]: 'M',
+  [SYMBOLS.S]: 'S',
   [SYMBOLS.UNKNOWN]: '?'
 };
 
@@ -324,6 +326,77 @@ function recognizeMShape(points, bounds) {
   return SYMBOLS.UNKNOWN;
 }
 
+function followsSDirection(points, bounds) {
+  const first = points[0];
+  const last = points[points.length - 1];
+
+  if (
+    first.x < bounds.maxX - bounds.width * 0.42 ||
+    first.y > bounds.minY + bounds.height * 0.4 ||
+    last.x > bounds.minX + bounds.width * 0.42 ||
+    last.y < bounds.maxY - bounds.height * 0.38
+  ) {
+    return false;
+  }
+
+  let topLeftIndex = -1;
+  for (let i = 1; i < points.length - 2; i += 1) {
+    const p = points[i];
+    if (
+      p.x <= bounds.minX + bounds.width * 0.4 &&
+      p.y <= bounds.minY + bounds.height * 0.42
+    ) {
+      topLeftIndex = i;
+      break;
+    }
+  }
+
+  if (topLeftIndex < 0) {
+    return false;
+  }
+
+  let middleRightIndex = -1;
+  for (let i = topLeftIndex + 1; i < points.length - 1; i += 1) {
+    const p = points[i];
+    if (
+      p.x >= bounds.maxX - bounds.width * 0.38 &&
+      p.y >= bounds.minY + bounds.height * 0.3 &&
+      p.y <= bounds.maxY - bounds.height * 0.2
+    ) {
+      middleRightIndex = i;
+      break;
+    }
+  }
+
+  if (middleRightIndex < 0) {
+    return false;
+  }
+
+  for (let i = middleRightIndex + 1; i < points.length; i += 1) {
+    const p = points[i];
+    if (
+      p.x <= bounds.minX + bounds.width * 0.42 &&
+      p.y >= bounds.maxY - bounds.height * 0.38
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function recognizeSShape(points, bounds) {
+  if (points.length < 6 || bounds.width < 30 || bounds.height < 36) {
+    return SYMBOLS.UNKNOWN;
+  }
+
+  if (followsSDirection(points, bounds) || followsSDirection(points.slice().reverse(), bounds)) {
+    return SYMBOLS.S;
+  }
+
+  return SYMBOLS.UNKNOWN;
+}
+
 function followsLDirection(points, bounds) {
   const first = points[0];
   const last = points[points.length - 1];
@@ -394,6 +467,11 @@ function recognize(points) {
   const zShape = recognizeZShape(simplified, bounds);
   if (zShape !== SYMBOLS.UNKNOWN) {
     return zShape;
+  }
+
+  const sShape = recognizeSShape(simplified, bounds);
+  if (sShape !== SYMBOLS.UNKNOWN) {
+    return sShape;
   }
 
   const lShape = recognizeLShape(simplified, bounds);

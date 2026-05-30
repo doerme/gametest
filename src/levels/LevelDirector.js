@@ -132,26 +132,75 @@ const SKY_CITY_TIMELINE = DINOSAUR_PARK_TIMELINE.slice(0, -1).map((spawn, index)
   kind: 'boss'
 }]);
 
+const SEA_TRAIN_TIMELINE = SKY_CITY_TIMELINE.slice(0, -1).map((spawn, index) => ({
+  ...spawn,
+  speed: spawn.speed + 3,
+  score: (spawn.score || 100) + 50,
+  symbols: spawn.symbols.map((symbol, symbolIndex) => {
+    if (symbol === SYMBOLS.M && (index + symbolIndex) % 2 === 0) {
+      return SYMBOLS.S;
+    }
+    if (symbol === SYMBOLS.Z && (index + symbolIndex) % 3 === 0) {
+      return SYMBOLS.S;
+    }
+    return symbol;
+  })
+})).concat([{
+  time: 51.0,
+  lane: 4,
+  symbols: [
+    SYMBOLS.S, SYMBOLS.M, SYMBOLS.Z, SYMBOLS.CIRCLE, SYMBOLS.RIGHT,
+    SYMBOLS.LEFT, SYMBOLS.V, SYMBOLS.L, SYMBOLS.S
+  ],
+  speed: 49,
+  radius: 62,
+  score: 1900,
+  kind: 'boss'
+}]);
+
+const LEVEL_TIME_REDUCTION = 15;
+
+function reduceTimelineDuration(timeline, reduction) {
+  const firstTime = timeline[0].time;
+  const lastTime = timeline[timeline.length - 1].time;
+  const targetLastTime = Math.max(firstTime, lastTime - reduction);
+  const originalSpan = lastTime - firstTime;
+  const targetSpan = targetLastTime - firstTime;
+
+  if (originalSpan <= 0) {
+    return timeline.map((spawn) => ({ ...spawn, time: targetLastTime }));
+  }
+
+  return timeline.map((spawn) => ({
+    ...spawn,
+    time: Number((firstTime + ((spawn.time - firstTime) * targetSpan / originalSpan)).toFixed(2))
+  }));
+}
+
 const LEVELS = [
   {
     symbolDisplay: 'queue',
-    timeline: CASTLE_TIMELINE
+    timeline: reduceTimelineDuration(CASTLE_TIMELINE, LEVEL_TIME_REDUCTION)
   },
   {
     symbolDisplay: 'current-and-dots',
-    timeline: OCEAN_TIMELINE
+    timeline: reduceTimelineDuration(OCEAN_TIMELINE, LEVEL_TIME_REDUCTION)
   },
   {
     symbolDisplay: 'current-and-dots',
-    timeline: PENGUIN_HOTEL_TIMELINE
+    timeline: reduceTimelineDuration(PENGUIN_HOTEL_TIMELINE, LEVEL_TIME_REDUCTION)
   },
   {
     symbolDisplay: 'current-and-dots',
-    timeline: DINOSAUR_PARK_TIMELINE
+    timeline: reduceTimelineDuration(DINOSAUR_PARK_TIMELINE, LEVEL_TIME_REDUCTION)
   },
   {
     symbolDisplay: 'current-and-dots',
-    timeline: SKY_CITY_TIMELINE
+    timeline: reduceTimelineDuration(SKY_CITY_TIMELINE, LEVEL_TIME_REDUCTION)
+  },
+  {
+    symbolDisplay: 'current-and-dots',
+    timeline: reduceTimelineDuration(SEA_TRAIN_TIMELINE, LEVEL_TIME_REDUCTION)
   }
 ];
 
@@ -208,5 +257,6 @@ class LevelDirector {
 }
 
 LevelDirector.LEVELS = LEVELS;
+LevelDirector.LEVEL_TIME_REDUCTION = LEVEL_TIME_REDUCTION;
 
 module.exports = LevelDirector;

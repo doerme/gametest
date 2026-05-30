@@ -136,6 +136,10 @@ function createSkyCityTheme() {
   return samples;
 }
 
+function createSilentTheme() {
+  return new Float32Array(SAMPLE_COUNT);
+}
+
 function createVanishSfx() {
   const samples = new Float32Array(Math.round(SAMPLE_RATE * 0.46));
   addNote(samples, 0, 0.16, 84, 0.42, 'triangle');
@@ -177,4 +181,5 @@ writeWav('bgm-ocean.wav', createOceanTheme());
 writeWav('bgm-penguin-hotel.wav', createPenguinTheme());
 writeWav('bgm-dinosaur-park.wav', createDinosaurParkTheme());
 writeWav('bgm-sky-city.wav', createSkyCityTheme());
+writeWav('bgm-sea-train.wav', createSilentTheme());
 writeWav('sfx-vanish.wav', createVanishSfx());

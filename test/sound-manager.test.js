@@ -69,11 +69,14 @@ assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:pla
 sound.playMusic(THEME_IDS.DINOSAUR_PARK);
 assert.strictEqual(sound.music.src, SoundManager.BGM_TRACKS[THEME_IDS.DINOSAUR_PARK]);
 assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:play', 'effect:stop', 'music:pause', 'music:play', 'music:play']);
+sound.playMusic(THEME_IDS.SEA_TRAIN);
+assert.strictEqual(sound.music.src, SoundManager.BGM_TRACKS[THEME_IDS.SEA_TRAIN]);
+assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:play', 'effect:stop', 'music:pause', 'music:play', 'music:play', 'music:play']);
 sound.vibrateDamage();
-assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:play', 'effect:stop', 'music:pause', 'music:play', 'music:play', 'vibrate']);
+assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:play', 'effect:stop', 'music:pause', 'music:play', 'music:play', 'music:play', 'vibrate']);
 sound.stopMusic();
 assert.strictEqual(sound.currentTrack, null);
-assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:play', 'effect:stop', 'music:pause', 'music:play', 'music:play', 'vibrate', 'music:stop']);
+assert.deepStrictEqual(events.slice(), ['music:play', 'effect:stop', 'effect:play', 'effect:stop', 'music:pause', 'music:play', 'music:play', 'music:play', 'vibrate', 'music:stop']);
 
 const silent = new SoundManager(null);
 silent.setSoundEnabled(false);

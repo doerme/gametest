@@ -147,30 +147,68 @@ function createCanvasSmokeContext() {
         context.shadowBlur = state.shadowBlur;
       }
     },
-    beginPath() {},
-    closePath() {},
-    fill() {},
-    stroke() {},
-    fillRect() {},
-    moveTo() {},
-    lineTo() {},
-    bezierCurveTo() {},
-    quadraticCurveTo() {},
-    arc() {},
-    ellipse() {},
-    roundRect() {},
-    translate() {},
-    scale() {},
-    rotate() {},
-    fillText() {},
+    beginPath() {
+      calls.push('beginPath');
+    },
+    closePath() {
+      calls.push('closePath');
+    },
+    fill() {
+      calls.push('fill');
+    },
+    stroke() {
+      calls.push('stroke');
+    },
+    fillRect() {
+      calls.push('fillRect');
+    },
+    moveTo() {
+      calls.push('moveTo');
+    },
+    lineTo() {
+      calls.push('lineTo');
+    },
+    bezierCurveTo() {
+      calls.push('bezierCurveTo');
+    },
+    quadraticCurveTo() {
+      calls.push('quadraticCurveTo');
+    },
+    arc() {
+      calls.push('arc');
+    },
+    ellipse() {
+      calls.push('ellipse');
+    },
+    roundRect() {
+      calls.push('roundRect');
+    },
+    translate() {
+      calls.push('translate');
+    },
+    scale() {
+      calls.push('scale');
+    },
+    rotate() {
+      calls.push('rotate');
+    },
+    fillText() {
+      calls.push('fillText');
+    },
     createLinearGradient() {
+      calls.push('createLinearGradient');
       return {
-        addColorStop() {}
+        addColorStop() {
+          calls.push('addColorStop');
+        }
       };
     },
     createRadialGradient() {
+      calls.push('createRadialGradient');
       return {
-        addColorStop() {}
+        addColorStop() {
+          calls.push('addColorStop');
+        }
       };
     }
   };
@@ -184,7 +222,9 @@ skyCanvasRenderer.drawSkyCityEnemyFallback({ species: 'cloudWisp', radius: 24, p
 skyCanvasRenderer.drawSkyCityEnemyFallback({ species: 'wingedSentinel', radius: 26, phase: 0.6 });
 skyCanvasRenderer.drawSkyCityEnemyFallback({ species: 'templeGriffin', radius: 34, phase: 0.8 });
 assert.strictEqual(skyCanvasContext.calls.filter((call) => call === 'save').length, skyCanvasContext.calls.filter((call) => call === 'restore').length);
-assert.ok(skyCanvasContext.calls.length >= 8);
+assert.ok(skyCanvasContext.calls.filter((call) => call === 'fill').length >= 100);
+assert.ok(skyCanvasContext.calls.filter((call) => call === 'stroke').length >= 90);
+assert.ok(skyCanvasContext.calls.filter((call) => call === 'ellipse').length >= 64);
 
 const seaTrainCanvasContext = createCanvasSmokeContext();
 const seaTrainCanvasRenderer = new Renderer(seaTrainCanvasContext, { width: 375, height: 667 }, null);
@@ -193,7 +233,9 @@ seaTrainCanvasRenderer.drawSeaTrainEnemyFallback({ species: 'paperSpirit', radiu
 seaTrainCanvasRenderer.drawSeaTrainEnemyFallback({ species: 'waveLantern', radius: 26, phase: 0.6 });
 seaTrainCanvasRenderer.drawSeaTrainEnemyFallback({ species: 'trainConductor', radius: 34, phase: 0.8 });
 assert.strictEqual(seaTrainCanvasContext.calls.filter((call) => call === 'save').length, seaTrainCanvasContext.calls.filter((call) => call === 'restore').length);
-assert.ok(seaTrainCanvasContext.calls.length >= 8);
+assert.ok(seaTrainCanvasContext.calls.filter((call) => call === 'fill').length >= 34);
+assert.ok(seaTrainCanvasContext.calls.filter((call) => call === 'stroke').length >= 78);
+assert.ok(seaTrainCanvasContext.calls.filter((call) => call === 'roundRect').length >= 10);
 
 const resultCanvasContext = createCanvasSmokeContext();
 const resultCanvasRenderer = new Renderer(resultCanvasContext, { width: 375, height: 667 }, null);

@@ -1,10 +1,29 @@
 'use strict';
 
+const installWechatPhaserAdapter = require('./platform/wechatPhaserAdapter');
 const { GameState } = require('./core/GameState');
 const InputManager = require('./input/InputManager');
 const Renderer = require('./render/Renderer');
 const SoundManager = require('./audio/SoundManager');
 const AssetManager = require('./assets/AssetManager');
+
+function safeSet(target, key, value) {
+  if (!target) {
+    return;
+  }
+  try {
+    target[key] = value;
+  } catch (_error) {
+    // WeChat Mini Game runtime may expose host objects with read-only fields.
+  }
+}
+
+function safeSetMissing(target, key, value) {
+  if (!target || target[key] !== undefined) {
+    return;
+  }
+  safeSet(target, key, value);
+}
 
 function getSystemInfo(wxApi) {
   if (wxApi && wxApi.getSystemInfoSync) {
@@ -66,25 +85,7 @@ function createRaf(canvas) {
   };
 }
 
-function bootstrap() {
-  const wxApi = typeof wx !== 'undefined' ? wx : null;
-  const info = getSystemInfo(wxApi);
-  const canvas = createCanvas(wxApi);
-  const ratio = info.pixelRatio || 1;
-  const width = info.windowWidth || 375;
-  const height = info.windowHeight || 667;
-
-  canvas.width = Math.floor(width * ratio);
-  canvas.height = Math.floor(height * ratio);
-  canvas.style = canvas.style || {};
-  canvas.style.width = width + 'px';
-  canvas.style.height = height + 'px';
-
-  const ctx = canvas.getContext('2d');
-  ctx.scale(ratio, ratio);
-  ensureRoundRect(ctx);
-
-  const assets = new AssetManager(wxApi);
+function loadNativeAssets(assets) {
   assets.loadImage('catWalk', 'assets/images/cat-walk-v2-sheet.png');
   assets.loadImage('catCast', 'assets/images/cat-cast-v2-sheet.png');
   assets.loadImage('catHurt', 'assets/images/cat-hurt-v2-sheet.png');
@@ -100,19 +101,76 @@ function bootstrap() {
   assets.loadImage('symbolS', 'assets/images/symbol-s.png');
   assets.loadImage('castleCorridorLoop', 'assets/images/castle-corridor-loop.jpg');
   assets.loadImage('oceanSpaceshipCorridorLoop', 'assets/images/ocean-spaceship-corridor-loop.jpg');
+  assets.loadImage('penguinHotelCorridorLoop', 'assets/images/penguin-hotel-corridor-loop.jpg');
+  assets.loadImage('dinosaurParkCorridorLoop', 'assets/images/dinosaur-park-corridor-loop.jpg');
   assets.loadImage('enemyJellyfish', 'assets/images/enemy-jellyfish-sheet.png');
   assets.loadImage('enemyPufferfish', 'assets/images/enemy-pufferfish-sheet.png');
   assets.loadImage('enemyShark', 'assets/images/enemy-shark-sheet.png');
   assets.loadImage('bossMegalodon', 'assets/images/boss-megalodon-sheet.png');
-  assets.loadImage('penguinHotelCorridorLoop', 'assets/images/penguin-hotel-corridor-loop.jpg');
   assets.loadImage('enemyPenguinBellhop', 'assets/images/enemy-penguin-bellhop-sheet.png');
   assets.loadImage('enemyPenguinChef', 'assets/images/enemy-penguin-chef-sheet.png');
   assets.loadImage('bossEmperorPenguin', 'assets/images/boss-emperor-penguin-sheet.png');
-  assets.loadImage('dinosaurParkCorridorLoop', 'assets/images/dinosaur-park-corridor-loop.jpg');
   assets.loadImage('enemyPterosaur', 'assets/images/enemy-pterosaur-sheet.png');
   assets.loadImage('enemyTriceratops', 'assets/images/enemy-triceratops-sheet.png');
   assets.loadImage('enemyBrachiosaurus', 'assets/images/enemy-brachiosaurus-sheet.png');
   assets.loadImage('bossTyrannosaurus', 'assets/images/boss-tyrannosaurus-sheet.png');
+}
+
+function drawBootError(canvas, error, width, height, ratio) {
+  if (!canvas || !canvas.getContext) {
+    return;
+  }
+
+  const message = error && (error.stack || error.message) ? (error.stack || error.message) : String(error);
+  const context = canvas.getContext('2d');
+  if (!context) {
+    return;
+  }
+
+  const scale = ratio || 1;
+  context.save();
+  context.setTransform(scale, 0, 0, scale, 0, 0);
+  context.fillStyle = '#071127';
+  context.fillRect(0, 0, width, height);
+  context.fillStyle = '#ffdf7e';
+  context.font = '16px Arial';
+  context.fillText('启动失败，请查看控制台', 20, 36);
+  context.fillStyle = '#ffffff';
+  context.font = '12px Arial';
+
+  const lines = message.split('\n').join(' ').match(/.{1,42}/g) || [message];
+  for (let i = 0; i < Math.min(lines.length, 12); i += 1) {
+    context.fillText(lines[i], 20, 68 + i * 18);
+  }
+  context.restore();
+}
+
+function reportBootError(wxApi, canvas, error, width, height, ratio) {
+  console.error(error);
+  drawBootError(canvas, error, width, height, ratio);
+  if (wxApi && wxApi.showModal) {
+    wxApi.showModal({
+      title: '启动失败',
+      content: error && error.message ? error.message : String(error),
+      showCancel: false
+    });
+  }
+}
+
+function bootstrapNativeGame(wxApi, canvas, width, height, ratio) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Canvas 2D context is unavailable.');
+  }
+
+  if (!canvas.__spellCanvasScaled) {
+    ctx.scale(ratio, ratio);
+    canvas.__spellCanvasScaled = true;
+  }
+  ensureRoundRect(ctx);
+
+  const assets = new AssetManager(wxApi);
+  loadNativeAssets(assets);
 
   const sound = new SoundManager(wxApi);
   const state = new GameState(width, height, sound);
@@ -140,6 +198,73 @@ function bootstrap() {
   }
 
   loop();
+  return { state, input, renderer };
+}
+
+function bootstrapPhaserGame(wxApi, canvas, info, width, height, ratio) {
+  installWechatPhaserAdapter({ wxApi, canvas, info, width, height, pixelRatio: ratio });
+  const Phaser = require('phaser/dist/phaser');
+  const createSpellGameScene = require('./phaser/SpellGameScene');
+  const SpellGameScene = createSpellGameScene(Phaser, { wxApi, canvas, width, height, pixelRatio: ratio });
+
+  return new Phaser.Game({
+    type: Phaser.CANVAS,
+    canvas,
+    width,
+    height,
+    resolution: ratio,
+    backgroundColor: '#071127',
+    parent: null,
+    audio: {
+      noAudio: true
+    },
+    input: {
+      activePointers: 3,
+      windowEvents: false
+    },
+    scale: {
+      mode: Phaser.Scale.NONE,
+      width,
+      height
+    },
+    render: {
+      antialias: true,
+      pixelArt: false,
+      roundPixels: false
+    },
+    autoFocus: false,
+    scene: [SpellGameScene]
+  });
+}
+
+function bootstrap() {
+  const wxApi = typeof wx !== 'undefined' ? wx : null;
+  const info = getSystemInfo(wxApi);
+  const canvas = createCanvas(wxApi);
+  const ratio = info.pixelRatio || 1;
+  const width = info.windowWidth || 375;
+  const height = info.windowHeight || 667;
+
+  safeSet(canvas, 'width', Math.floor(width * ratio));
+  safeSet(canvas, 'height', Math.floor(height * ratio));
+  safeSetMissing(canvas, 'style', {});
+  safeSet(canvas.style, 'width', width + 'px');
+  safeSet(canvas.style, 'height', height + 'px');
+  safeSetMissing(canvas, 'addEventListener', function addEventListener() {});
+  safeSetMissing(canvas, 'removeEventListener', function removeEventListener() {});
+  safeSetMissing(canvas, 'getBoundingClientRect', function getBoundingClientRect() {
+    return { left: 0, top: 0, width, height };
+  });
+
+  try {
+    if (wxApi) {
+      return bootstrapNativeGame(wxApi, canvas, width, height, ratio);
+    }
+    return bootstrapPhaserGame(wxApi, canvas, info, width, height, ratio);
+  } catch (error) {
+    reportBootError(wxApi, canvas, error, width, height, ratio);
+    return null;
+  }
 }
 
 bootstrap();

@@ -1,0 +1,26 @@
+{
+  "name": "game",
+  "version": "1.0.0",
+  "description": "原创微信小游戏：符咒学院",
+  "main": "game.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "for f in test/*.test.js; do node \"$f\" || exit 1; done"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/doerme/gametest.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/doerme/gametest/issues"
+  },
+  "homepage": "https://github.com/doerme/gametest#readme",
+  "dependencies": {
+    "phaser": "^3.90.0"
+  }
+}

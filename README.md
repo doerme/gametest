@@ -4,11 +4,22 @@
 
 ## 运行
 
+### 微信小游戏
+
+首次拉取或 Phaser 依赖变化后：
+
+```bash
+npm install
+```
+
 1. 打开微信开发者工具。
 2. 选择“小游戏”并导入本目录：`/Users/liangxiaoming/Documents/game`。
 3. AppID 可先使用测试号或保留 `touristappid`。
-4. 点击编译后，在模拟器中点击开始游戏。
-5. 真机预览时，修改代码或贴图后请重新编译并重新生成预览二维码。
+4. 在菜单中执行“工具 -> 构建 npm”，生成微信小游戏可用的 npm 依赖。
+5. 点击编译后，在模拟器中点击开始游戏。
+6. 真机预览时，修改代码、贴图或 npm 依赖后请重新编译并重新生成预览二维码。
+
+当前版本底层使用 Phaser 3 接管画布、主循环、资源加载、动画和指针输入；玩法规则仍由 `src/core/GameState.js` 等原有逻辑模块维护。
 
 ## 核心操作
 
@@ -55,10 +66,5 @@
 ## 本地检查
 
 ```bash
-node test/gesture.test.js
-node test/game-state.test.js
-node test/asset-manager.test.js
-node test/level-director.test.js
-node test/renderer.test.js
-node test/sound-manager.test.js
+npm test
 ```

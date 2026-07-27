@@ -246,6 +246,12 @@ assert.ok(resultCanvasContext.calls.length >= 4);
 assert.strictEqual(resultCanvasContext.shadowColor, 'transparent');
 assert.strictEqual(resultCanvasContext.shadowBlur, 0);
 
+const healthNoticeContext = createCanvasSmokeContext();
+const healthNoticeRenderer = new Renderer(healthNoticeContext, { width: 375, height: 667 }, null);
+healthNoticeRenderer.drawHealthNotice();
+assert.strictEqual(healthNoticeContext.calls.filter((call) => call === 'save').length, healthNoticeContext.calls.filter((call) => call === 'restore').length);
+assert.ok(healthNoticeContext.calls.filter((call) => call === 'fillText').length >= 6);
+
 let selectedRuneColor = null;
 const runeRenderer = new Renderer({
   save() {},

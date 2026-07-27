@@ -174,6 +174,7 @@ function bootstrapNativeGame(wxApi, canvas, width, height, ratio) {
 
   const sound = new SoundManager(wxApi);
   const state = new GameState(width, height, sound);
+  state.healthNoticeVisible = true;
   const input = new InputManager(wxApi, canvas);
   const renderer = new Renderer(ctx, { width, height }, assets);
 
@@ -181,6 +182,10 @@ function bootstrapNativeGame(wxApi, canvas, width, height, ratio) {
     state.handleGesture(points);
   };
   input.onTap = function onTap(point) {
+    if (state.healthNoticeVisible) {
+      state.healthNoticeVisible = false;
+      return;
+    }
     state.handleTap(point);
   };
   input.bind();

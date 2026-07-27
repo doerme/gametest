@@ -254,8 +254,13 @@ class Renderer {
     this.drawHud(state, visibleLevel);
     this.drawItemEarnEffects(state.effects);
 
+    if (state.healthNoticeVisible) {
+      this.drawHealthNotice();
+      return;
+    }
+
     if (state.screen === SCREENS.TITLE) {
-      this.drawDifficultyOverlay(getTheme(visibleThemeId).name, '划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
+      this.drawDifficultyOverlay('符咒学院', getTheme(visibleThemeId).name + ' · 划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
     } else if (state.screen === SCREENS.LEVEL_TRANSITION) {
       const copy = getTransitionCopy(visibleLevel, visibleThemeId);
       this.drawDifficultyOverlay(copy.title, copy.hint, '选择本关难度');
@@ -266,6 +271,36 @@ class Renderer {
     }
 
     this.drawAudioToggle(state.soundEnabled);
+  }
+
+  drawHealthNotice() {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.fillStyle = 'rgba(4, 8, 18, 0.94)';
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff2c2';
+    ctx.font = 'bold 32px sans-serif';
+    ctx.fillText('健康游戏忠告', this.width * 0.5, this.height * 0.25);
+
+    const lines = [
+      '抵制不良游戏，拒绝盗版游戏。',
+      '注意自我保护，谨防受骗上当。',
+      '适度游戏益脑，沉迷游戏伤身。',
+      '合理安排时间，享受健康生活。'
+    ];
+    ctx.fillStyle = '#d8e6ff';
+    ctx.font = '18px sans-serif';
+    for (let i = 0; i < lines.length; i += 1) {
+      ctx.fillText(lines[i], this.width * 0.5, this.height * (0.37 + i * 0.07));
+    }
+
+    ctx.fillStyle = '#ffdc6f';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText('点击屏幕进入游戏', this.width * 0.5, this.height * 0.72);
+    ctx.restore();
   }
 
   drawBackground(elapsed, themeId) {
@@ -2326,9 +2361,10 @@ class Renderer {
     ctx.fillText('分数 ' + state.score, 16, 31);
 
     ctx.fillStyle = '#d8e6ff';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(getLevelLabel(state, visibleLevel), this.width * 0.5, 31);
+    const themeId = state.getThemeId ? state.getThemeId(visibleLevel) : THEME_IDS.CASTLE;
+    ctx.fillText(getLevelLabel(state, visibleLevel) + ' · ' + getTheme(themeId).name, this.width * 0.5, 31);
 
     this.drawComboCounter(state);
     this.drawHeartBar(state);

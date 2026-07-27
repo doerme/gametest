@@ -35,14 +35,15 @@ from reportlab.platypus import (
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "copyright-materials"
-SOURCE_PDF = OUT_DIR / "符咒学院小游戏软件_程序鉴别材料_源码前30页后30页.pdf"
-MANUAL_PDF = OUT_DIR / "符咒学院小游戏软件_文档鉴别材料_软件说明书.pdf"
+SCREENSHOT_DIR = OUT_DIR / "screenshots"
+SOURCE_PDF = OUT_DIR / "符咒学院游戏软件_程序鉴别材料_源码前30页后30页.pdf"
+MANUAL_PDF = OUT_DIR / "符咒学院游戏软件_文档鉴别材料_软件说明书.pdf"
 
 FONT_REGULAR = "CN-Regular"
 FONT_BOLD = "CN-Bold"
 FONT_MONO = "CN-Mono"
 
-SOFTWARE_NAME = "符咒学院小游戏软件"
+SOFTWARE_NAME = "符咒学院游戏软件"
 VERSION = "V1.0"
 TODAY = date.today().isoformat()
 
@@ -246,6 +247,44 @@ def image_flowable(path: Path, max_width: float, max_height: float) -> RLImage |
     return RLImage(str(path), width=width * ratio, height=height * ratio)
 
 
+def screenshot_grid(
+    items: Sequence[Tuple[str, str]],
+    styles: dict[str, ParagraphStyle],
+) -> Table:
+    cells = []
+    for filename, caption in items:
+        screenshot = image_flowable(SCREENSHOT_DIR / filename, 56 * mm, 100 * mm)
+        if screenshot is None:
+            raise FileNotFoundError(f"Screenshot is required: {SCREENSHOT_DIR / filename}")
+        cells.append(
+            [
+                screenshot,
+                Spacer(1, 3),
+                p(caption, styles["small"]),
+            ]
+        )
+
+    while len(cells) < 2:
+        cells.append("")
+
+    grid = Table([cells], colWidths=[76 * mm, 76 * mm], hAlign="LEFT")
+    grid.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("BOX", (0, 0), (-1, -1), 0.45, colors.HexColor("#CBD5E1")),
+                ("INNERGRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#E2E8F0")),
+                ("LEFTPADDING", (0, 0), (-1, -1), 7),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ]
+        )
+    )
+    return grid
+
+
 def build_styles() -> dict[str, ParagraphStyle]:
     base = getSampleStyleSheet()
     styles = {
@@ -383,11 +422,191 @@ def add_cover(story: list, styles: dict[str, ParagraphStyle]) -> None:
     )
 
 
+def add_compliance_visuals(story: list, styles: dict[str, ParagraphStyle]) -> None:
+    story.append(p("补正重点：游戏完整流程与界面图示", styles["h1"]))
+    story.append(
+        p(
+            "本节以实际游戏界面截图，完整说明玩家从启动软件、阅读健康游戏忠告、进入主界面、"
+            "选择难度、绘制符咒、击退敌人、切换关卡，直至通关或失败后重新开始的全过程。"
+            "截图同时覆盖软件内全部六套场景、主角动作、敌方角色及可体验系统。",
+            styles["body"],
+        )
+    )
+    story.append(p("1. 游戏方法与完整游玩流程", styles["h2"]))
+    story.append(
+        number_list(
+            [
+                "启动软件后首先显示“健康游戏忠告”，玩家阅读后点击屏幕进入游戏。",
+                "主界面显示游戏名称“符咒学院”、当前主题、声音开关及普通难度、+1 难度选项。",
+                "玩家选择难度进入关卡；+1 难度会提高敌人移动、出怪和场景滚动速度。",
+                "敌人从场景远端向主角靠近，敌人上方显示当前需绘制的方向、字母或图形符咒。",
+                "玩家在触摸屏上按提示绘制符咒，系统实时识别轨迹并匹配敌人符号队列。",
+                "匹配成功会攻击敌人；清空符号队列后消灭敌人并计分，连续命中可累积 Combo 和倍率。",
+                "达到指定连击数后获得紫色闪电或血瓶，点击道具可攻击敌人或恢复一颗生命。",
+                "敌人接触主角时扣除生命；当前关卡全部敌人和 Boss 被清除后进入下一关难度选择。",
+                "完成六关后显示通关界面；生命归零则显示失败界面。",
+                "玩家在通关或失败界面点击屏幕返回主界面，可重新选择难度并开始新一局。",
+            ],
+            styles["body"],
+        )
+    )
+    story.append(
+        screenshot_grid(
+            [
+                (
+                    "01-health-warning.png",
+                    "图 1  健康游戏忠告。内容包括抵制不良游戏、注意自我保护、适度游戏和合理安排时间。",
+                ),
+                (
+                    "02-main-title.png",
+                    "图 2  游戏主界面。清晰显示游戏名称“符咒学院”、玩法提示、难度选择和声音开关。",
+                ),
+            ],
+            styles,
+        )
+    )
+    story.append(PageBreak())
+
+    story.append(p("2. 全部场景与敌方角色", styles["h2"]))
+    story.append(
+        p(
+            "软件共包含六套可进入场景。每张图均为实际游戏进行界面，显示场景名称、主角、"
+            "该主题全部敌方角色、符咒提示、分数、关卡、连击、道具、生命和声音开关。",
+            styles["body"],
+        )
+    )
+    story.append(
+        screenshot_grid(
+            [
+                (
+                    "03-gameplay-castle.png",
+                    "图 3  幽光古堡场景。角色：小法师猫、幽灵；展示基础符咒队列和完整战斗界面。",
+                ),
+                (
+                    "04-gameplay-ocean.png",
+                    "图 4  深海飞船长廊。角色：小法师猫、水母、河豚、鲨鱼、巨齿鲨 Boss。",
+                ),
+            ],
+            styles,
+        )
+    )
+    story.append(PageBreak())
+    story.append(
+        screenshot_grid(
+            [
+                (
+                    "05-gameplay-penguin.png",
+                    "图 5  极光企鹅酒店。角色：小法师猫、企鹅门童、企鹅厨师、帝企鹅 Boss。",
+                ),
+                (
+                    "06-gameplay-dinosaur.png",
+                    "图 6  恐龙乐园。角色：小法师猫、翼龙、三角龙、腕龙、霸王龙 Boss。",
+                ),
+            ],
+            styles,
+        )
+    )
+    story.append(PageBreak())
+    story.append(
+        screenshot_grid(
+            [
+                (
+                    "07-gameplay-sky-city.png",
+                    "图 7  天空之城。角色：小法师猫、云灵、翼卫、圣殿狮鹫 Boss。",
+                ),
+                (
+                    "08-gameplay-sea-train.png",
+                    "图 8  海上列车。角色：小法师猫、纸灵、浪灯、列车长 Boss。",
+                ),
+            ],
+            styles,
+        )
+    )
+    story.append(PageBreak())
+
+    story.append(p("3. 主角形象与主要战斗系统", styles["h2"]))
+    story.append(
+        screenshot_grid(
+            [
+                (
+                    "09-hero-actions.png",
+                    "图 9  主角小法师猫的全部动作形象：行走、施法和受击。",
+                ),
+                (
+                    "10-combat-systems.png",
+                    "图 10  触摸画符、符咒队列、连击倍率、紫色闪电、血瓶、生命值、得分及声音控制系统。",
+                ),
+            ],
+            styles,
+        )
+    )
+    story.append(Spacer(1, 7))
+    systems = [
+        [p("系统", styles["cell_bold"]), p("可体验内容", styles["cell_bold"])],
+        [p("健康忠告与启动", styles["cell"]), p("启动时显示健康游戏忠告，点击后进入带游戏名称的主界面。", styles["cell"])],
+        [p("难度系统", styles["cell"]), p("每关可选择普通难度或 +1 难度。", styles["cell"])],
+        [p("手势识别系统", styles["cell"]), p("支持上、下、左、右、V、L、圆形、Z、M、S 十类符咒。", styles["cell"])],
+        [p("敌人与 Boss 系统", styles["cell"]), p("普通敌人和 Boss 携带不同长度的符号队列，并按关卡逐步增强。", styles["cell"])],
+        [p("连击计分系统", styles["cell"]), p("连续有效施法累积 Combo，并按档位获得消除分数倍率。", styles["cell"])],
+        [p("道具系统", styles["cell"]), p("紫色闪电攻击当前敌人，血瓶恢复一颗生命。", styles["cell"])],
+        [p("生命与反馈系统", styles["cell"]), p("五颗爱心、受击扣血、角色受击动画和移动端短震动反馈。", styles["cell"])],
+        [p("场景与关卡系统", styles["cell"]), p("六套随机主题、关卡时间轴、阶段过渡和符咒逐步解锁。", styles["cell"])],
+        [p("音频系统", styles["cell"]), p("各主题循环背景音乐、消灭音效和声音开关。", styles["cell"])],
+        [p("结算与重开系统", styles["cell"]), p("六关通关、生命耗尽失败、得分展示及点击重新开始。", styles["cell"])],
+    ]
+    story.append(table(systems, [42 * mm, 112 * mm]))
+    story.append(PageBreak())
+
+    story.append(p("4. 关卡过渡与结束流程", styles["h2"]))
+    story.append(
+        screenshot_grid(
+            [
+                (
+                    "11-level-transition.png",
+                    "图 11  关卡过渡页。显示下一场景名称、新符咒提示，并允许重新选择本关难度。",
+                ),
+                (
+                    "12-win.png",
+                    "图 12  六关通关页。显示最终得分和“点击再来一局”入口。",
+                ),
+            ],
+            styles,
+        )
+    )
+    story.append(Spacer(1, 8))
+    story.append(
+        screenshot_grid(
+            [
+                (
+                    "13-lose.png",
+                    "图 13  生命耗尽失败页。显示本局得分和“点击重试”入口，完成从开始到结束的闭环。",
+                ),
+            ],
+            styles,
+        )
+    )
+    story.append(Spacer(1, 8))
+    story.append(p("5. 主要特点", styles["h2"]))
+    story.append(
+        bullets(
+            [
+                "原创角色与六套主题场景结合，每局主题顺序随机且不重复。",
+                "通过触摸轨迹识别十类符咒，将手势操作直接转化为施法攻击。",
+                "敌人符号队列、逐关解锁符咒和 Boss 挑战共同形成由易到难的关卡体验。",
+                "连击倍率与紫色闪电、血瓶道具联动，兼顾连续操作奖励和生存策略。",
+                "采用 Canvas 全屏渲染，提供滚动背景、角色动画、敌人动画、攻击特效、音效和震动反馈。",
+            ],
+            styles["body"],
+        )
+    )
+    story.append(PageBreak())
+
+
 def add_overview(story: list, styles: dict[str, ParagraphStyle]) -> None:
     story.append(p("一、软件概述", styles["h1"]))
     story.append(
         p(
-            "《符咒学院小游戏软件》是一款运行于微信小游戏平台的原创休闲益智游戏软件。"
+            "《符咒学院游戏软件》是一款运行于微信小游戏平台的原创休闲益智游戏软件。"
             "软件以触摸手势绘制、符号识别、敌人消除和多关卡闯关为核心，玩家通过在"
             "移动设备屏幕上绘制符咒轨迹完成施法，击退不断靠近主角的敌人。软件使用"
             "原生 JavaScript 编写，采用 Canvas 完成图像渲染和动画表现，适用于支持"
@@ -655,7 +874,7 @@ def add_appendix(story: list, styles: dict[str, ParagraphStyle]) -> None:
     story.append(p("十三、结语", styles["h1"]))
     story.append(
         p(
-            "本说明书依据当前项目文件、配置、资源和核心代码整理，用于描述《符咒学院小游戏软件》"
+            "本说明书依据当前项目文件、配置、资源和核心代码整理，用于描述《符咒学院游戏软件》"
             "的开发目的、运行环境、软件结构、主要功能、操作流程和技术特点。文档内容与当前项目"
             "实现保持一致，可作为软件著作权登记的文档鉴别材料使用。",
             styles["body"],
@@ -937,6 +1156,7 @@ def generate_manual_pdf() -> int:
     styles = build_styles()
     story: list = []
     add_cover(story, styles)
+    add_compliance_visuals(story, styles)
     add_overview(story, styles)
     add_environment(story, styles)
     add_structure(story, styles)

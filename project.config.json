@@ -1,133 +1,145 @@
 {
-    "description": "Original gesture spell mini game MVP",
-    "appid": "wxb8fc97b860b32dd8",
-    "projectname": "gesture-spell-mvp",
-    "compileType": "game",
-    "libVersion": "3.7.12",
-    "setting": {
-        "urlCheck": false,
-        "es6": true,
-        "enhance": true,
-        "postcss": false,
-        "minified": false,
-        "uglifyFileName": false,
-        "compileWorklet": false,
-        "uploadWithSourceMap": true,
-        "packNpmManually": false,
-        "packNpmRelationList": [],
-        "minifyWXSS": true,
-        "minifyWXML": true,
-        "localPlugins": false,
-        "disableUseStrict": false,
-        "useCompilerPlugins": false,
-        "condition": false,
-        "swc": false,
-        "disableSWC": true,
-        "babelSetting": {
-            "ignore": [],
-            "disablePlugins": [],
-            "outputPath": ""
-        }
-    },
-    "condition": {},
-    "simulatorPluginLibVersion": {},
-    "packOptions": {
-        "ignore": [
-            {
-                "type": "folder",
-                "value": "scripts"
-            },
-            {
-                "type": "folder",
-                "value": "test"
-            },
-            {
-                "type": "file",
-                "value": "README.md"
-            },
-            {
-                "type": "file",
-                "value": "frontend-ai-two-month-plan.md"
-            },
-            {
-                "type": "file",
-                "value": "soft-copyright-materials.md"
-            },
-            {
-                "type": "file",
-                "value": "package-lock.json"
-            },
-            {
-                "type": "file",
-                "value": "wechat_devtools_2.01.2510290_darwin_x64.dmg"
-            },
-            {
-                "type": "folder",
-                "value": "copyright-materials"
-            },
-            {
-                "type": "file",
-                "value": "assets/.DS_Store"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/.DS_Store"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/castle-hall-bg.jpg"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/boss-emperor-penguin.png"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/boss-megalodon.png"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/boss-tyrannosaurus.png"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/cat-walk-sheet.png"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/enemy-brachiosaurus.png"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/enemy-jellyfish.png"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/enemy-penguin-bellhop.png"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/enemy-penguin-chef.png"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/enemy-pterosaur.png"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/enemy-pufferfish.png"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/enemy-shark.png"
-            },
-            {
-                "type": "file",
-                "value": "assets/images/enemy-triceratops.png"
-            }
-        ],
-        "include": []
-    },
-    "isGameTourist": false,
-    "editorSetting": {}
+  "description": "Original gesture spell mini game MVP",
+  "appid": "wxb8fc97b860b32dd8",
+  "projectname": "gesture-spell-mvp",
+  "compileType": "game",
+  "libVersion": "3.7.12",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": false,
+    "minified": false,
+    "uglifyFileName": false,
+    "compileWorklet": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "condition": {},
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [
+      {
+        "value": "scripts",
+        "type": "folder"
+      },
+      {
+        "value": "test",
+        "type": "folder"
+      },
+      {
+        "value": "README.md",
+        "type": "file"
+      },
+      {
+        "value": "frontend-ai-two-month-plan.md",
+        "type": "file"
+      },
+      {
+        "value": "soft-copyright-materials.md",
+        "type": "file"
+      },
+      {
+        "value": "package-lock.json",
+        "type": "file"
+      },
+      {
+        "value": "wechat_devtools_2.01.2510290_darwin_x64.dmg",
+        "type": "file"
+      },
+      {
+        "value": "copyright-materials",
+        "type": "folder"
+      },
+      {
+        "value": "tmp",
+        "type": "folder"
+      },
+      {
+        "value": "output",
+        "type": "folder"
+      },
+      {
+        "value": "assets/.DS_Store",
+        "type": "file"
+      },
+      {
+        "value": "assets/images/.DS_Store",
+        "type": "file"
+      },
+      {
+        "value": "assets/audio/bgm-*.wav",
+        "type": "glob"
+      },
+      {
+        "value": "assets/images/castle-hall-bg.jpg",
+        "type": "file"
+      },
+      {
+        "value": "assets/images/boss-emperor-penguin.png",
+        "type": "file"
+      },
+      {
+        "value": "assets/images/boss-megalodon.png",
+        "type": "file"
+      },
+      {
+        "value": "assets/images/boss-tyrannosaurus.png",
+        "type": "file"
+      },
+      {
+        "value": "assets/images/cat-walk-sheet.png",
+        "type": "file"
+      },
+      {
+        "value": "assets/images/enemy-brachiosaurus.png",
+        "type": "file"
+      },
+      {
+        "value": "assets/images/enemy-jellyfish.png",
+        "type": "file"
+      },
+      {
+        "value": "assets/images/enemy-penguin-bellhop.png",
+        "type": "file"
+      },
+      {
+        "value": "assets/images/enemy-penguin-chef.png",
+        "type": "file"
+      },
+      {
+        "value": "assets/images/enemy-pterosaur.png",
+        "type": "file"
+      },
+      {
+        "value": "assets/images/enemy-pufferfish.png",
+        "type": "file"
+      },
+      {
+        "value": "assets/images/enemy-shark.png",
+        "type": "file"
+      },
+      {
+        "value": "assets/images/enemy-triceratops.png",
+        "type": "file"
+      }
+    ],
+    "include": []
+  },
+  "isGameTourist": false,
+  "editorSetting": {}
 }

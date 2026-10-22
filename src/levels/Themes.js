@@ -23,7 +23,7 @@ const THEMES = {
     id: THEME_IDS.CASTLE,
     name: '幽光古堡',
     backgroundAsset: 'castleCorridorLoop',
-    music: 'assets/audio/bgm-castle.wav',
+    music: 'assets/audio/bgm-castle.m4a',
     runeColor: 'rgba(255, 235, 171, 0.18)',
     species: new Array(22).fill('ghost')
   },
@@ -31,7 +31,7 @@ const THEMES = {
     id: THEME_IDS.OCEAN,
     name: '深海飞船长廊',
     backgroundAsset: 'oceanSpaceshipCorridorLoop',
-    music: 'assets/audio/bgm-ocean.wav',
+    music: 'assets/audio/bgm-ocean.m4a',
     runeColor: 'rgba(115, 244, 255, 0.22)',
     species: [
       'jellyfish', 'jellyfish', 'jellyfish', 'jellyfish', 'pufferfish', 'jellyfish',
@@ -44,7 +44,7 @@ const THEMES = {
     id: THEME_IDS.PENGUIN_HOTEL,
     name: '极光企鹅酒店',
     backgroundAsset: 'penguinHotelCorridorLoop',
-    music: 'assets/audio/bgm-penguin-hotel.wav',
+    music: 'assets/audio/bgm-penguin-hotel.m4a',
     runeColor: 'rgba(172, 249, 255, 0.28)',
     species: [
       'penguinBellhop', 'penguinChef', 'penguinBellhop', 'penguinChef',
@@ -59,7 +59,7 @@ const THEMES = {
     id: THEME_IDS.DINOSAUR_PARK,
     name: '恐龙乐园',
     backgroundAsset: 'dinosaurParkCorridorLoop',
-    music: 'assets/audio/bgm-dinosaur-park.wav',
+    music: 'assets/audio/bgm-dinosaur-park.m4a',
     runeColor: 'rgba(228, 190, 72, 0.31)',
     species: [
       'pterosaur', 'triceratops', 'brachiosaurus', 'pterosaur', 'triceratops',
@@ -73,7 +73,7 @@ const THEMES = {
     id: THEME_IDS.SKY_CITY,
     name: '天空之城',
     backgroundAsset: 'skyCityCorridorLoop',
-    music: 'assets/audio/bgm-sky-city.wav',
+    music: 'assets/audio/bgm-sky-city.m4a',
     runeColor: 'rgba(255, 220, 132, 0.3)',
     species: [
       'cloudWisp', 'wingedSentinel', 'cloudWisp', 'wingedSentinel',
@@ -88,7 +88,7 @@ const THEMES = {
     id: THEME_IDS.SEA_TRAIN,
     name: '海上列车',
     backgroundAsset: 'seaTrainHorizon',
-    music: 'assets/audio/bgm-sea-train.wav',
+    music: 'assets/audio/bgm-sea-train.m4a',
     runeColor: 'rgba(255, 198, 132, 0.28)',
     species: [
       'paperSpirit', 'waveLantern', 'paperSpirit', 'waveLantern',

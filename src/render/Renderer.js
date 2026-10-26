@@ -209,20 +209,20 @@ function getComboTargets(effect) {
 const GAME_TITLE = '符咒闯关';
 
 function getTransitionCopy(visibleLevel, themeId) {
-  const themeName = getTheme(themeId).name;
+  const subtitle = getTheme(themeId).name;
   if (visibleLevel === 6) {
-    return { title: '第六关', hint: themeName + ' · 新增符咒：S' };
+    return { title: '第六关', subtitle, hint: '新增符咒：S' };
   }
   if (visibleLevel === 5) {
-    return { title: '第五关', hint: themeName + ' · 新增符咒：M' };
+    return { title: '第五关', subtitle, hint: '新增符咒：M' };
   }
   if (visibleLevel === 4) {
-    return { title: '第四关', hint: themeName + ' · 新增符咒：Z' };
+    return { title: '第四关', subtitle, hint: '新增符咒：Z' };
   }
   if (visibleLevel === 3) {
-    return { title: '第三关', hint: themeName + ' · 新增符咒：○' };
+    return { title: '第三关', subtitle, hint: '新增符咒：○' };
   }
-  return { title: '第二关', hint: themeName + ' · 符咒队列仅显示当前符号' };
+  return { title: '第二关', subtitle, hint: '符咒队列仅显示当前符号' };
 }
 
 function getWinTitle() {
@@ -263,10 +263,10 @@ class Renderer {
     }
 
     if (state.screen === SCREENS.TITLE) {
-      this.drawDifficultyOverlay(GAME_TITLE, getTheme(visibleThemeId).name + ' · 划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
+      this.drawDifficultyOverlay(GAME_TITLE, getTheme(visibleThemeId).name, '划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
     } else if (state.screen === SCREENS.LEVEL_TRANSITION) {
       const copy = getTransitionCopy(visibleLevel, visibleThemeId);
-      this.drawDifficultyOverlay(copy.title, copy.hint, '选择本关难度');
+      this.drawDifficultyOverlay(copy.title, copy.subtitle, copy.hint, '选择本关难度');
     } else if (state.screen === SCREENS.WIN) {
       this.drawOverlay(getWinTitle(), '得分 ' + state.score, '点击再来一局', 'win');
     } else if (state.screen === SCREENS.LOSE) {
@@ -2586,7 +2586,7 @@ class Renderer {
     ctx.restore();
   }
 
-  drawDifficultyOverlay(title, subtitle, prompt) {
+  drawDifficultyOverlay(title, subtitle, hint, prompt) {
     const ctx = this.ctx;
     ctx.fillStyle = 'rgba(8, 13, 25, 0.7)';
     ctx.fillRect(0, 0, this.width, this.height);
@@ -2595,11 +2595,16 @@ class Renderer {
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#fff2c2';
     ctx.font = 'bold 40px sans-serif';
-    ctx.fillText(title, this.width * 0.5, this.height * 0.29);
+    ctx.fillText(title, this.width * 0.5, this.height * 0.27);
+
+    // 关卡主题名作为副标题独占一行
+    ctx.fillStyle = '#ffdc6f';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillText(subtitle, this.width * 0.5, this.height * 0.335);
 
     ctx.fillStyle = '#d8e6ff';
-    ctx.font = '20px sans-serif';
-    ctx.fillText(subtitle, this.width * 0.5, this.height * 0.38);
+    ctx.font = '17px sans-serif';
+    ctx.fillText(hint, this.width * 0.5, this.height * 0.39);
 
     ctx.fillStyle = '#ffdc6f';
     ctx.font = 'bold 18px sans-serif';

@@ -562,10 +562,10 @@ function createSpellGameScene(Phaser, runtime) {
     drawOverlay(visibleLevel, visibleThemeId) {
       this.overlayLayer.removeAll(true);
       if (this.state.screen === SCREENS.TITLE) {
-        this.drawDifficultyOverlay(RendererHelpers.GAME_TITLE, getTheme(visibleThemeId).name + ' · 划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
+        this.drawDifficultyOverlay(RendererHelpers.GAME_TITLE, getTheme(visibleThemeId).name, '划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
       } else if (this.state.screen === SCREENS.LEVEL_TRANSITION) {
         const copy = RendererHelpers.getTransitionCopy(visibleLevel, visibleThemeId);
-        this.drawDifficultyOverlay(copy.title, copy.hint, '选择下一关难度');
+        this.drawDifficultyOverlay(copy.title, copy.subtitle, copy.hint, '选择下一关难度');
       } else if (this.state.screen === SCREENS.WIN) {
         this.drawResultOverlay(RendererHelpers.getWinTitle(), '得分 ' + this.state.score, '点击再来一局', 0x143422);
       } else if (this.state.screen === SCREENS.LOSE) {
@@ -573,10 +573,11 @@ function createSpellGameScene(Phaser, runtime) {
       }
     }
 
-    drawDifficultyOverlay(title, subtitle, prompt) {
+    drawDifficultyOverlay(title, subtitle, hint, prompt) {
       this.drawDimPanel();
-      this.addOverlayText(this.width * 0.5, this.height * 0.29, title, 34, '#fff2ad');
-      this.addOverlayText(this.width * 0.5, this.height * 0.38, subtitle, 17, '#d8f4ff');
+      this.addOverlayText(this.width * 0.5, this.height * 0.27, title, 34, '#fff2ad');
+      this.addOverlayText(this.width * 0.5, this.height * 0.335, subtitle, 21, '#ffdc6f');
+      this.addOverlayText(this.width * 0.5, this.height * 0.39, hint, 16, '#d8f4ff');
       this.addOverlayText(this.width * 0.5, this.height * 0.46, prompt, 18, '#ffffff');
       const buttons = getDifficultyButtons(this.width, this.height);
       for (let i = 0; i < buttons.length; i += 1) {

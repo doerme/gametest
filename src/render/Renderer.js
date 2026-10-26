@@ -205,21 +205,24 @@ function getComboTargets(effect) {
   return effect.targets || [];
 }
 
+// 界面大标题需与平台登记的小游戏名称一致，主题名只作为副标题展示
+const GAME_TITLE = '符咒闯关';
+
 function getTransitionCopy(visibleLevel, themeId) {
-  const title = getTheme(themeId).name;
+  const themeName = getTheme(themeId).name;
   if (visibleLevel === 6) {
-    return { title, hint: '第六关 · 新增符咒：S' };
+    return { title: '第六关', hint: themeName + ' · 新增符咒：S' };
   }
   if (visibleLevel === 5) {
-    return { title, hint: '第五关 · 新增符咒：M' };
+    return { title: '第五关', hint: themeName + ' · 新增符咒：M' };
   }
   if (visibleLevel === 4) {
-    return { title, hint: '第四关 · 新增符咒：Z' };
+    return { title: '第四关', hint: themeName + ' · 新增符咒：Z' };
   }
   if (visibleLevel === 3) {
-    return { title, hint: '第三关 · 新增符咒：○' };
+    return { title: '第三关', hint: themeName + ' · 新增符咒：○' };
   }
-  return { title, hint: '第二关 · 符咒队列仅显示当前符号' };
+  return { title: '第二关', hint: themeName + ' · 符咒队列仅显示当前符号' };
 }
 
 function getWinTitle() {
@@ -260,7 +263,7 @@ class Renderer {
     }
 
     if (state.screen === SCREENS.TITLE) {
-      this.drawDifficultyOverlay('符咒学院', getTheme(visibleThemeId).name + ' · 划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
+      this.drawDifficultyOverlay(GAME_TITLE, getTheme(visibleThemeId).name + ' · 划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
     } else if (state.screen === SCREENS.LEVEL_TRANSITION) {
       const copy = getTransitionCopy(visibleLevel, visibleThemeId);
       this.drawDifficultyOverlay(copy.title, copy.hint, '选择本关难度');
@@ -2867,6 +2870,7 @@ Renderer.getComboPulse = getComboPulse;
 Renderer.getSoundToggleLabel = getSoundToggleLabel;
 Renderer.getHeartSlotPosition = getHeartSlotPosition;
 Renderer.getTransitionCopy = getTransitionCopy;
+Renderer.GAME_TITLE = GAME_TITLE;
 Renderer.getWinTitle = getWinTitle;
 Renderer.getEnemySpriteFrame = getEnemySpriteFrame;
 Renderer.ENEMY_SPRITE = ENEMY_SPRITE;

@@ -562,7 +562,7 @@ function createSpellGameScene(Phaser, runtime) {
     drawOverlay(visibleLevel, visibleThemeId) {
       this.overlayLayer.removeAll(true);
       if (this.state.screen === SCREENS.TITLE) {
-        this.drawDifficultyOverlay(getTheme(visibleThemeId).name, '划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
+        this.drawDifficultyOverlay(RendererHelpers.GAME_TITLE, getTheme(visibleThemeId).name + ' · 划箭头方向；V 和 L 照形状画', '选择难度开始游戏');
       } else if (this.state.screen === SCREENS.LEVEL_TRANSITION) {
         const copy = RendererHelpers.getTransitionCopy(visibleLevel, visibleThemeId);
         this.drawDifficultyOverlay(copy.title, copy.hint, '选择下一关难度');

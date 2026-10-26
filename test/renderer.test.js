@@ -94,10 +94,11 @@ assert.strictEqual(Renderer.getComboPulse(3, { type: 'miss', combo: 3, age: 0 })
 assert.strictEqual(Renderer.getSoundToggleLabel(true), '声音 开');
 assert.strictEqual(Renderer.getSoundToggleLabel(false), '声音 关');
 assert.deepStrictEqual(Renderer.getHeartSlotPosition(375, 667, 3), { x: 106, y: 639 });
-assert.deepStrictEqual(Renderer.getTransitionCopy(4, THEME_IDS.CASTLE), { title: '幽光古堡', hint: '第四关 · 新增符咒：Z' });
-assert.deepStrictEqual(Renderer.getTransitionCopy(5, THEME_IDS.SKY_CITY), { title: '天空之城', hint: '第五关 · 新增符咒：M' });
-assert.deepStrictEqual(Renderer.getTransitionCopy(6, THEME_IDS.SEA_TRAIN), { title: '海上列车', hint: '第六关 · 新增符咒：S' });
-assert.deepStrictEqual(Renderer.getTransitionCopy(2, THEME_IDS.DINOSAUR_PARK), { title: '恐龙乐园', hint: '第二关 · 符咒队列仅显示当前符号' });
+assert.strictEqual(Renderer.GAME_TITLE, '符咒闯关');
+assert.deepStrictEqual(Renderer.getTransitionCopy(4, THEME_IDS.CASTLE), { title: '第四关', hint: '幽光古堡 · 新增符咒：Z' });
+assert.deepStrictEqual(Renderer.getTransitionCopy(5, THEME_IDS.SKY_CITY), { title: '第五关', hint: '天空之城 · 新增符咒：M' });
+assert.deepStrictEqual(Renderer.getTransitionCopy(6, THEME_IDS.SEA_TRAIN), { title: '第六关', hint: '海上列车 · 新增符咒：S' });
+assert.deepStrictEqual(Renderer.getTransitionCopy(2, THEME_IDS.DINOSAUR_PARK), { title: '第二关', hint: '恐龙乐园 · 符咒队列仅显示当前符号' });
 assert.strictEqual(Renderer.getWinTitle(), '六关通关');
 
 const requestedBackgrounds = [];

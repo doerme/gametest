@@ -34,16 +34,17 @@ from reportlab.platypus import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT_DIR = ROOT / "copyright-materials"
-SCREENSHOT_DIR = OUT_DIR / "screenshots"
-SOURCE_PDF = OUT_DIR / "符咒学院游戏软件_程序鉴别材料_源码前30页后30页.pdf"
-MANUAL_PDF = OUT_DIR / "符咒学院游戏软件_文档鉴别材料_软件说明书.pdf"
+MATERIALS_DIR = ROOT / "copyright-materials"
+OUT_DIR = MATERIALS_DIR / "补正上传"
+SCREENSHOT_DIR = MATERIALS_DIR / "screenshots"
+SOURCE_PDF = OUT_DIR / "猫咪的符咒学院游戏软件_程序鉴别材料_源码前30页后30页.pdf"
+MANUAL_PDF = OUT_DIR / "猫咪的符咒学院游戏软件_文档鉴别材料_软件说明书.pdf"
 
 FONT_REGULAR = "CN-Regular"
 FONT_BOLD = "CN-Bold"
 FONT_MONO = "CN-Mono"
 
-SOFTWARE_NAME = "符咒学院游戏软件"
+SOFTWARE_NAME = "猫咪的符咒学院游戏软件"
 VERSION = "V1.0"
 TODAY = date.today().isoformat()
 
@@ -142,57 +143,34 @@ def draw_footer(c: canvas.Canvas, page_num: int, title: str) -> None:
 
 
 def generate_source_pdf() -> int:
-    lines = read_source_lines()
-    if len(lines) < 3000:
-        selected = lines[:]
-        total_pages = (len(selected) + 49) // 50
-    else:
-        selected = lines[:1500] + lines[-1500:]
-        total_pages = 60
+    """Keep submitted source unchanged and replace only registration headers."""
+    import io
+    import pymupdf
 
+    original = MATERIALS_DIR / "符咒学院游戏软件_程序鉴别材料_源码前30页后30页.pdf"
+    source = pymupdf.open(original)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    c = canvas.Canvas(str(SOURCE_PDF), pagesize=A4)
-    width, height = A4
-    margin_x = 15 * mm
-    top_y = height - 18 * mm
-    line_height = 4.35 * mm
-    font_size = 7.2
-    max_code_width = width - margin_x * 2 - 20 * mm
-
-    for page_index in range(total_pages):
-        page_num = page_index + 1
-        page_lines = selected[page_index * 50 : (page_index + 1) * 50]
-
-        c.setFont(FONT_BOLD, 10)
-        c.setFillColor(colors.black)
-        c.drawString(margin_x, height - 10 * mm, f"{SOFTWARE_NAME} {VERSION} 源程序")
-        c.setFont(FONT_REGULAR, 8)
-        c.drawRightString(width - margin_x, height - 10 * mm, "一般交存：前连续30页和后连续30页")
-
-        y = top_y
-        for offset in range(50):
-            if offset < len(page_lines):
-                rel, original_line, code = page_lines[offset]
-                line_no = "" if original_line == 0 else str(original_line)
-                prefix = f"{rel}:{line_no}".rstrip(":")
-                prefix = truncate_to_width(prefix, 18 * mm, FONT_REGULAR, 6.4)
-                code_text = truncate_to_width(clean_code_line(code), max_code_width, FONT_MONO, font_size)
-            else:
-                prefix = ""
-                code_text = ""
-
-            c.setFont(FONT_REGULAR, 6.4)
-            c.setFillColor(colors.HexColor("#6B7280"))
-            c.drawRightString(margin_x + 18 * mm, y, prefix)
-            c.setFont(FONT_MONO, font_size)
-            c.setFillColor(colors.black)
-            c.drawString(margin_x + 20 * mm, y, code_text)
-            y -= line_height
-
-        draw_footer(c, page_num, "程序鉴别材料")
-        c.showPage()
-
-    c.save()
+    for index, page in enumerate(source):
+        # These bands contain only the old document header and footer.
+        page.add_redact_annot(pymupdf.Rect(40, 14, 365, 34), fill=(1, 1, 1))
+        page.add_redact_annot(pymupdf.Rect(45, 803, 450, 825), fill=(1, 1, 1))
+        page.apply_redactions(images=0)
+        overlay_bytes = io.BytesIO()
+        overlay = canvas.Canvas(overlay_bytes, pagesize=A4)
+        overlay.setFont(FONT_BOLD, 10)
+        overlay.drawString(15 * mm, A4[1] - 10 * mm, f"{SOFTWARE_NAME} {VERSION} 源程序")
+        overlay.setFont(FONT_REGULAR, 8)
+        overlay.setFillColor(colors.HexColor("#586174"))
+        overlay.drawString(18 * mm, 9.5 * mm, f"程序鉴别材料 | {SOFTWARE_NAME} {VERSION}")
+        overlay.save()
+        overlay_pdf = pymupdf.open(stream=overlay_bytes.getvalue(), filetype="pdf")
+        page.show_pdf_page(page.rect, overlay_pdf, 0)
+        overlay_pdf.close()
+    source.set_metadata({"title": f"{SOFTWARE_NAME} {VERSION} 源程序", "author": "",
+                         "subject": "程序鉴别材料：一般交存"})
+    source.save(str(SOURCE_PDF), garbage=4, deflate=True)
+    total_pages = len(source)
+    source.close()
     return total_pages
 
 
@@ -426,7 +404,7 @@ def add_compliance_visuals(story: list, styles: dict[str, ParagraphStyle]) -> No
     story.append(p("补正重点：游戏完整流程与界面图示", styles["h1"]))
     story.append(
         p(
-            "本节以实际游戏界面截图，完整说明玩家从启动软件、阅读健康游戏忠告、进入主界面、"
+            "本软件登记全称为“猫咪的符咒学院游戏软件”，界面沿用“符咒学院”标题。本节使用项目渲染器生成的界面截图，完整说明玩家从启动软件、阅读健康游戏忠告、进入主界面、"
             "选择难度、绘制符咒、击退敌人、切换关卡，直至通关或失败后重新开始的全过程。"
             "截图同时覆盖软件内全部六套场景、主角动作、敌方角色及可体验系统。",
             styles["body"],
@@ -437,7 +415,7 @@ def add_compliance_visuals(story: list, styles: dict[str, ParagraphStyle]) -> No
         number_list(
             [
                 "启动软件后首先显示“健康游戏忠告”，玩家阅读后点击屏幕进入游戏。",
-                "主界面显示游戏名称“符咒学院”、当前主题、声音开关及普通难度、+1 难度选项。",
+                "主界面显示游戏标题“符咒学院”、当前主题、声音开关及普通难度、+1 难度选项。",
                 "玩家选择难度进入关卡；+1 难度会提高敌人移动、出怪和场景滚动速度。",
                 "敌人从场景远端向主角靠近，敌人上方显示当前需绘制的方向、字母或图形符咒。",
                 "玩家在触摸屏上按提示绘制符咒，系统实时识别轨迹并匹配敌人符号队列。",
@@ -459,7 +437,7 @@ def add_compliance_visuals(story: list, styles: dict[str, ParagraphStyle]) -> No
                 ),
                 (
                     "02-main-title.png",
-                    "图 2  游戏主界面。清晰显示游戏名称“符咒学院”、玩法提示、难度选择和声音开关。",
+                    "图 2  游戏主界面。清晰显示界面标题“符咒学院”、玩法提示、难度选择和声音开关。",
                 ),
             ],
             styles,
@@ -470,7 +448,7 @@ def add_compliance_visuals(story: list, styles: dict[str, ParagraphStyle]) -> No
     story.append(p("2. 全部场景与敌方角色", styles["h2"]))
     story.append(
         p(
-            "软件共包含六套可进入场景。每张图均为实际游戏进行界面，显示场景名称、主角、"
+            "软件共包含六套可进入场景。每张图均为项目渲染器生成的游戏进行界面，显示场景名称、主角、"
             "该主题全部敌方角色、符咒提示、分数、关卡、连击、道具、生命和声音开关。",
             styles["body"],
         )
@@ -606,7 +584,7 @@ def add_overview(story: list, styles: dict[str, ParagraphStyle]) -> None:
     story.append(p("一、软件概述", styles["h1"]))
     story.append(
         p(
-            "《符咒学院游戏软件》是一款运行于微信小游戏平台的原创休闲益智游戏软件。"
+            "《猫咪的符咒学院游戏软件》是一款运行于微信小游戏平台的原创休闲益智游戏软件。"
             "软件以触摸手势绘制、符号识别、敌人消除和多关卡闯关为核心，玩家通过在"
             "移动设备屏幕上绘制符咒轨迹完成施法，击退不断靠近主角的敌人。软件使用"
             "原生 JavaScript 编写，采用 Canvas 完成图像渲染和动画表现，适用于支持"
@@ -617,13 +595,11 @@ def add_overview(story: list, styles: dict[str, ParagraphStyle]) -> None:
     metadata = [
         [p("项目", styles["cell_bold"]), p("内容", styles["cell_bold"])],
         [p("软件全称", styles["cell"]), p(SOFTWARE_NAME, styles["cell"])],
-        [p("软件简称", styles["cell"]), p("符咒学院", styles["cell"])],
         [p("版本号", styles["cell"]), p(VERSION, styles["cell"])],
         [p("软件类型", styles["cell"]), p("游戏软件、微信小游戏、小程序", styles["cell"])],
         [p("编程语言", styles["cell"]), p("JavaScript", styles["cell"])],
         [p("开发工具", styles["cell"]), p("微信开发者工具、VS Code、Node.js", styles["cell"])],
         [p("支持软件", styles["cell"]), p("微信客户端、微信小游戏基础库", styles["cell"])],
-        [p("源程序量", styles["cell"]), p("约 5005 行", styles["cell"])],
     ]
     story.append(table(metadata, [32 * mm, 122 * mm]))
     story.append(Spacer(1, 6))
@@ -874,7 +850,7 @@ def add_appendix(story: list, styles: dict[str, ParagraphStyle]) -> None:
     story.append(p("十三、结语", styles["h1"]))
     story.append(
         p(
-            "本说明书依据当前项目文件、配置、资源和核心代码整理，用于描述《符咒学院游戏软件》"
+            "本说明书依据当前项目文件、配置、资源和核心代码整理，用于描述《猫咪的符咒学院游戏软件》"
             "的开发目的、运行环境、软件结构、主要功能、操作流程和技术特点。文档内容与当前项目"
             "实现保持一致，可作为软件著作权登记的文档鉴别材料使用。",
             styles["body"],
@@ -1111,7 +1087,6 @@ def add_reference_appendices(story: list, styles: dict[str, ParagraphStyle]) -> 
             [
                 "软件运行支撑环境 / 支持软件：微信客户端、微信小游戏基础库。",
                 "编程语言：JavaScript。",
-                "源程序量：约 5005 行。",
                 "开发目的：提供原创手势符咒闯关休闲小游戏体验。",
                 "面向领域 / 行业：文化娱乐、休闲游戏、移动互联网应用。",
                 "技术特点分类：小程序；如支持多选，可同时选择游戏软件。",

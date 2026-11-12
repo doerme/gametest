@@ -7,4 +7,6 @@ project.private.config.json
 # Generated and system files
 node_modules/
 coverage/
+dist/
+output/three-qa/
 .DS_Store

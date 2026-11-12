@@ -364,6 +364,9 @@ assert.strictEqual(mixedScore.combo, 3);
 assert.strictEqual(mixedScore.score, 150);
 assert.strictEqual(mixedScore.feedback.text, '消除 +150');
 mixedScore.handleGesture([{ x: 120, y: 30 }, { x: 30, y: 30 }]);
+assert.strictEqual(mixedScore.combo, 3);
+assert.strictEqual(mixedScore.feedback.protected, true);
+mixedScore.handleGesture([{ x: 120, y: 30 }, { x: 30, y: 30 }]);
 assert.strictEqual(mixedScore.combo, 0);
 
 const eventSound = {

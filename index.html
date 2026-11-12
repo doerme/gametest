@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#101a30">
+  <title>符咒学院 · 3D</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #101a30; }
+    body { display: flex; justify-content: center; align-items: center; font-family: system-ui, sans-serif; }
+    canvas { display: block; touch-action: none; width: min(100vw, 56.25vh); height: 100dvh; max-width: 540px; }
+    #boot-error { color: #fff1c2; padding: 32px; white-space: pre-wrap; max-width: 480px; }
+  </style>
+</head>
+<body><canvas id="game" aria-label="符咒学院，滑动画符施法"></canvas><script src="dist/web/game.js"></script></body>
+</html>

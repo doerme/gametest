@@ -1,72 +1,70 @@
-# 符咒学院 MVP
+# 符咒学院 · Three.js 3D
 
-一个原创微信小游戏 MVP：玩家通过触摸画符，帮助不断前进的小法师猫穿过幽光古堡、深海飞船长廊、极光企鹅酒店、恐龙乐园、天空之城与海上列车，消除靠近的怪物。六套主题每局会以不重复的随机顺序出现；玩法参考“敌人带符号、玩家画符施法”的经典结构，但角色、视觉和命名均为原创。
+原创竖屏微信小游戏。玩家在屏幕上画符，帮助小法师猫消除不断靠近的怪物。微信端和浏览器使用同一套 Three.js 渲染与输入逻辑。
 
-## 运行
+## 开发和运行
 
-### 微信小游戏
-
-首次拉取或 Phaser 依赖变化后：
+需要 Node.js 18 或更新版本。
 
 ```bash
-npm install
+npm ci
+npm run dev
 ```
 
-1. 打开微信开发者工具。
-2. 选择“小游戏”并导入本目录：`/Users/liangxiaoming/Documents/game`。
-3. AppID 可先使用测试号或保留 `touristappid`。
-4. 在菜单中执行“工具 -> 构建 npm”，生成微信小游戏可用的 npm 依赖。
-5. 点击编译后，在模拟器中点击开始游戏。
-6. 真机预览时，修改代码、贴图或 npm 依赖后请重新编译并重新生成预览二维码。
+浏览器打开 http://127.0.0.1:4173/ 。支持鼠标与触摸，桌面端以竖屏画面预览。开发构建通过 `window.__spellGame` 提供状态、暂停、渲染统计和销毁接口，微信正式构建不包含该调试入口。
 
-当前版本底层使用 Phaser 3 接管画布、主循环、资源加载、动画和指针输入；玩法规则仍由 `src/core/GameState.js` 等原有逻辑模块维护。
+微信开发者工具：
 
-## 核心操作
+```bash
+npm ci
+npm run build
+```
 
-- 每一关开始前选择 `普通难度` 或 `+1 难度`；`+1` 会让本关敌人移动、出怪与场景滚动速度提高 `50%`。
-- 启动后先显示健康游戏忠告，点击屏幕进入带有“符咒学院”名称的主界面。
-- 每局六关会随机安排六套场景、音乐和敌人外观主题，同一局不会重复；关卡编号仍决定难度进度和符咒解锁。
-- 右上角 `声音 开 / 声音 关` 可以随时切换背景音乐与消灭音效，首次启动默认为开启。
-- 看到 `↑ / ↓ / ← / →` 时，按箭头方向划线；看到 `V / L` 时，照形状画。
-- 进入第三关后新增 `○` 圆形符咒，沿着圆环绘制即可。
-- 进入第四关后新增实战符咒 `Z`，沿三段折线轨迹绘制即可。
-- 进入第五关后新增 `M` 双谷折线符咒，可从任一端起笔完成四段折线。
-- 进入第六关后新增 `S` 曲线符咒，第六关 Boss 会混合考察全部符咒。
-- 敌人符号队列清空后消失并加分。
-- 一次施法会命中所有“队列首符号”匹配的敌人；多符号敌人需要连续画完队列才会消失。
-- 连续有效施法会积累 `COMBO`；消灭怪物时，`Combo x3 / x5 / x10 / x20 / x50 / x100` 起分别获得 `1.2x / 1.5x / 2.0x / 2.5x / 3.0x / 4.0x` 基础消灭分倍率，徽章随档位强化并放大，Miss、掉心或换关会清零。
-- 每达到 `Combo x10` 的倍数会获得 `1` 个紫色连锁闪电道具；每达到 `Combo x15` 的倍数会获得 `1` 个血瓶道具。获得时道具会从连击徽章飞入屏幕左侧中部库存，便于点击使用；爱心固定在左下角。点击紫色闪电会攻击当前敌人，点击血瓶会恢复 `1` 颗爱心；无目标或爱心已满时不会消耗。
-- 前五关结束后会进入下一关难度选择页；重新选择后继续闯关，得分、剩余生命和未使用道具会延续。
-- 第二关起敌人只展示当前需要绘制的符号，圆点表示尚未揭示的后续符号数量。
-- 第三关起新增 `○` 并沿用隐藏队列机制，长 Boss 队列会显示当前符号和剩余数量。
-- 第四关首次携带 `Z`，第五关首次携带 `M`，第六关首次携带 `S`；第六关 Boss 会混合考察全部符咒，这些规则不受随机主题影响。
-- 六关 Boss 的符咒数量依次为 `4 / 5 / 6 / 7 / 8 / 9`，后续关卡出怪更密且移动更快。
-- 通关或失败后点击重开会回到第一关难度选择页。
-- 敌人碰到主角会扣 1 点生命并触发短震动反馈，生命归零失败。
-- 猫猫位置固定在屏幕下方，滚动背景会呈现持续向屏幕上方行走的效果。
+1. 以“小游戏”导入当前仓库目录，保留项目已有 AppID 配置。
+2. 点击编译；入口 `game.js` 加载 `dist/wechat/game.js`。
+3. 修改代码后重新执行 `npm run build`，再编译或生成真机预览。
+4. **不再需要微信“构建 npm”**。Three.js 已由 esbuild 打入运行文件。不要手动修改 `dist/`。
 
-## 角色资源
+`npm run dev` 会监听浏览器源码；微信包通过 `npm run build` 更新。
 
-- 主角贴图：`assets/images/cat-walk-v2-sheet.png`、`assets/images/cat-cast-v2-sheet.png`、`assets/images/cat-hurt-v2-sheet.png`，分别对应行走、施法、受击动画；每张均为 12 帧横向透明精灵图，每帧 `128 x 128`。
-- 手势提示图标：`assets/images/symbol-up.png`、`symbol-down.png`、`symbol-left.png`、`symbol-right.png`、`symbol-v.png`、`symbol-l.png`、`symbol-circle.png`、`symbol-z.png` 与 `symbol-m.png`，用于敌人上方的九种符咒；可用 `node scripts/generate-symbol-icons.js` 重新生成高清透明图标。
-- 主角动画轨道在 `src/render/Renderer.js` 的 `HERO_SPRITE.animations` 中独立配置：`walk`、`cast`、`hurt` 均可分别调整使用的帧序列和 `fps`，施法与受击会从各自首帧开始播放。
-- 十二帧动画当前节奏为：行走 `12 fps`、施法 `16 fps`、受击 `14 fps`；施法与受击的角色动作窗口独立于短促特效，保证动作能完整舒展播放。
-- 古堡主题背景：`assets/images/castle-corridor-loop.jpg`，原创斜俯视古堡长廊无缝地图；整张地图与火把光晕会持续向下循环滚动。
-- 深海主题背景：`assets/images/ocean-spaceship-corridor-loop.jpg`，原创俯视深海飞船酒店风格长廊，以舷窗、水光和蓝青灯带构成滚动场景。
-- 第一关幽灵为 Canvas 三帧形变循环；其余怪物均使用 `6 fps` 的三帧透明精灵图循环。
-- 深海主题怪物：`assets/images/enemy-jellyfish-sheet.png`、`assets/images/enemy-pufferfish-sheet.png`、`assets/images/enemy-shark-sheet.png` 与 `assets/images/boss-megalodon-sheet.png`。
-- 企鹅酒店主题背景：`assets/images/penguin-hotel-corridor-loop.jpg`，企鹅酒店主题启发的原创极地冰川长廊，以冰蓝材质和极光灯带构成滚动场景。
-- 企鹅酒店主题怪物：`assets/images/enemy-penguin-bellhop-sheet.png`、`assets/images/enemy-penguin-chef-sheet.png` 与 `assets/images/boss-emperor-penguin-sheet.png`。
-- 恐龙主题背景：`assets/images/dinosaur-park-corridor-loop.jpg`，植被覆盖的史前乐园遗迹长廊。
-- 恐龙主题怪物：`assets/images/enemy-pterosaur-sheet.png`、`assets/images/enemy-triceratops-sheet.png`、`assets/images/enemy-brachiosaurus-sheet.png` 与 `assets/images/boss-tyrannosaurus-sheet.png`。
-- 天空之城主题当前以 Canvas 程序化预览呈现云海浮岛神殿、风灵、翼卫与圣殿狮鹫，正式位图资源将在概念稿确认后接入。
-- 关卡音乐：`assets/audio/bgm-castle.wav`、`assets/audio/bgm-ocean.wav`、`assets/audio/bgm-penguin-hotel.wav`、`assets/audio/bgm-dinosaur-park.wav`、`assets/audio/bgm-sky-city.wav` 与 `assets/audio/bgm-sea-train.wav`，分别对应六套主题的原创循环背景音乐。
-- 消灭音效：`assets/audio/sfx-vanish.wav`，用于怪物被成功消灭时的短促反馈音。
-- 角色为使用 `imagegen` 生成并本地去背处理的原创奶油橘色小法师猫，不使用参考游戏角色素材。
-- 若贴图加载失败，游戏会自动回退到内置 Canvas 主角绘制。
+## 玩法
 
-## 本地检查
+- 每局随机排列六套主题且不重复：幽光古堡、深海飞船长廊、极光企鹅酒店、恐龙乐园、天空之城、海上列车。
+- 每关选择普通难度或 `+1`；后者的出怪、敌人移动及场景滚动速度提高 50%。画符时保持正常移动节奏。
+- 按箭头方向划线；`V / L` 照形状画。第三关解锁 `○`，第四关解锁 `Z`，第五关解锁 `M`，第六关解锁 `S`。
+- 一次施法命中所有当前首符号匹配的敌人；多符号敌人需要依次消除。从第二关起仅显示当前符号及后续数量。
+- 猫咪固定在画面下方；三维通道循环推进，敌人接近后扣除爱心。共五颗爱心，六关结束后通关。
+- 连击达到 `3 / 5 / 10 / 20 / 50 / 100` 时，消灭得分倍率分别为 `1.2 / 1.5 / 2 / 2.5 / 3 / 4`。
+- 每十次连击获得紫色闪电，每十五次获得血瓶。点击左侧库存使用；没有目标或爱心已满时不消耗。
+- 音乐、声音开关、道具库存和关卡间的得分及生命继承沿用原规则。
+
+## 宽容手势
+
+- 以实际位移区分点击和笔画，快速两点划线也能施法；界面拖动、多指干扰、系统取消及切后台不触发误施法。
+- 去重、平滑并按弧长重采样到 64 点，使用几何特征与多模板距离共同评分。允许适度倾斜、抖动、不等长笔画、圆角和圆形缺口。
+- 形状符咒允许从任一端起笔；圆形允许任意起点及顺逆时针。四个箭头仍按划动方向区分。
+- 只有接近的候选才参考当前屏幕上怪物的首符号；明确的识别结果不会改成另一个目标，隐藏队列不会参与辅助。
+- 首次有效失误保留连击；连续第二次失误清空。成功施法后恢复一次保护。轻点、过短轨迹和无敌人时的输入不消耗保护。
+- 失误显示两秒的重试提示与符号示范；受伤、换关仍清空连击。
+
+兼容接口 `recognize(points)` 返回符号。`recognizeDetailed(points, { expectedSymbols })` 额外返回置信度、候选、辅助标记和是否忽略；`GameState.handleGesture(points, context)` 返回符号。
+
+## 三维实现
+
+- 固定 Three.js **0.162.0**，优先创建 WebGL 2，设备不支持时使用 WebGL 1。微信不依赖浏览器 DOM 或 Phaser 适配器。
+- 斜俯视透视镜头、圆润卡通模型、纯色顶点材质、柔和光照、距离雾和几何接触阴影。
+- 法师猫及十八种怪物为真实几何模型，四肢、翅膀、触手、尾巴及法杖分别运动；场景由循环模块构成。
+- 静止部件合并网格；模型实例共享几何体，离场敌人与特效复用，主题切换释放旧场景几何。DPR 上限为 1.5。
+- 场景及角色没有图片贴图。运行时仅使用两个 Canvas 纹理：界面和符号图集；手势轨迹及世界特效使用几何体。
+- 旧 `assets/images`、旧二维/Phaser 源码仅供历史材料及工具使用，不进入微信包。既有软著材料未改写。
+
+## 检查
 
 ```bash
 npm test
+npm run test:browser
 ```
+
+第二项使用本机 Google Chrome，通过 Playwright 检查六套主题、真实输入、完整关卡流程、运行资源释放，以及微信 CJS 包在无 DOM / WebGL 1 环境下的启动和命中。输出截图和统计到 `output/three-qa/`。
+
+渲染预算为常规峰值不超过 200 次绘制调用、10 万三角形。目标 60 FPS，真机验收底线为稳定 30 FPS；浏览器或兼容测试不能代替微信模拟器与真机帧率验收。测试范围与限制见 `docs/3d-verification.md`。

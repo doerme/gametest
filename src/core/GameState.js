@@ -3,7 +3,7 @@
 const LevelDirector = require('../levels/LevelDirector');
 const { THEME_IDS, createThemeOrder } = require('../levels/Themes');
 const Enemy = require('../entities/Enemy');
-const { recognize, SYMBOLS } = require('../input/GestureRecognizer');
+const { recognizeDetailed, SYMBOLS } = require('../input/GestureRecognizer');
 const { DIFFICULTY_MODES, getDifficulty, findDifficultyAtPoint } = require('../ui/DifficultySelector');
 const { isAudioToggleHit } = require('../ui/AudioToggle');
 const { ITEM_TYPES, getItemSlots, findItemAtPoint } = require('../ui/ItemBar');
@@ -84,6 +84,9 @@ class GameState {
   }
 
   resize(width, height) {
+    const scaleX = width / this.width;
+    const scaleY = height / this.height;
+    (this.enemies || []).forEach((enemy) => { enemy.x *= scaleX; enemy.y *= scaleY; });
     this.width = width;
     this.height = height;
     this.hero = this.createHero(width, height);
@@ -100,6 +103,8 @@ class GameState {
     this.elapsed = 0;
     this.transitionRemaining = 0;
     this.combo = 0;
+    this.gestureFailures = 0;
+    this.lastGestureResult = null;
     this.items = {
       comboChain: 0,
       healthPotion: 0
@@ -159,6 +164,7 @@ class GameState {
       if (enemy.reachedHero) {
         this.lives -= 1;
         this.combo = 0;
+        this.gestureFailures = 0;
         damageTaken += 1;
       }
     }
@@ -207,6 +213,7 @@ class GameState {
     this.screen = SCREENS.LEVEL_TRANSITION;
     this.transitionRemaining = 0;
     this.combo = 0;
+    this.gestureFailures = 0;
     this.feedback = null;
     this.enemies = [];
     if (this.sound && this.sound.playMusic) {
@@ -225,6 +232,7 @@ class GameState {
     this.level += 1;
     this.elapsed = 0;
     this.combo = 0;
+    this.gestureFailures = 0;
     this.feedback = null;
     this.enemies = [];
     this.effects = [];
@@ -251,7 +259,7 @@ class GameState {
 
     if (this.feedback) {
       this.feedback.age += dt;
-      if (this.feedback.age > 0.7) {
+      if (this.feedback.age > (this.feedback.type === 'retry' ? 2 : 0.7)) {
         this.feedback = null;
       }
     }
@@ -450,18 +458,29 @@ class GameState {
     return false;
   }
 
-  handleGesture(points) {
+  handleGesture(points, context = {}) {
     if (this.screen !== SCREENS.PLAYING) {
       return SYMBOLS.UNKNOWN;
     }
 
-    const symbol = recognize(points);
+    const currentSymbols = new Set(this.enemies.filter((enemy) => !enemy.dead).map((enemy) => enemy.symbols[0]));
+    const expectedSymbols = (context.expectedSymbols || []).filter((symbol) => currentSymbols.has(symbol));
+    const result = recognizeDetailed(points, { expectedSymbols });
+    const symbol = result.symbol;
+    this.lastGestureResult = result;
+    if (result.ignored || currentSymbols.size === 0) return symbol;
     this.triggerCast(symbol);
     const targets = this.findMatchingEnemies(symbol);
     if (targets.length === 0) {
-      this.combo = 0;
-      this.feedback = { text: 'Miss', age: 0, type: 'miss' };
-      if (this.sound) {
+      this.gestureFailures += 1;
+      const protectedRetry = this.gestureFailures === 1;
+      if (!protectedRetry) this.combo = 0;
+      this.feedback = {
+        text: protectedRetry ? '再画一次，连击已保护' : '跟着符号再试一次',
+        age: 0, type: 'retry', protected: protectedRetry,
+        guideSymbol: expectedSymbols[0] || this.enemies.find((enemy) => !enemy.dead).symbols[0]
+      };
+      if (this.sound && !protectedRetry) {
         this.sound.play('miss');
       }
       return symbol;
@@ -482,6 +501,7 @@ class GameState {
       }
     }
 
+    this.gestureFailures = 0;
     this.combo += 1;
     const multiplier = getComboMultiplier(this.combo);
     const earned = Math.round(vanishedScore * multiplier) + partialHits * 30;
@@ -508,6 +528,7 @@ class GameState {
       text: feedbackText,
       age: 0,
       type: 'hit',
+      assisted: result.assisted,
       combo: this.combo,
       multiplier: vanished > 0 ? multiplier : null
     };

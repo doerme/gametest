@@ -15,6 +15,17 @@ const EFFECT_TRACKS = {
   vanish: 'assets/audio/sfx-vanish.wav'
 };
 
+function createBrowserAudio() {
+  const audio = new Audio();
+  audio.stop = () => { audio.pause(); audio.currentTime = 0; };
+  const play = audio.play.bind(audio);
+  audio.play = () => {
+    const result = play();
+    if (result && result.catch) result.catch(() => {});
+  };
+  return audio;
+}
+
 class SoundManager {
   constructor(wxApi) {
     this.wx = wxApi;
@@ -23,11 +34,14 @@ class SoundManager {
     this.music = null;
     this.effect = null;
 
-    if (wxApi && wxApi.createInnerAudioContext) {
-      this.music = wxApi.createInnerAudioContext();
+    const createAudio = wxApi && wxApi.createInnerAudioContext
+      ? () => wxApi.createInnerAudioContext()
+      : (typeof Audio !== 'undefined' ? createBrowserAudio : null);
+    if (createAudio) {
+      this.music = createAudio();
       this.music.loop = true;
       this.music.volume = 0.38;
-      this.effect = wxApi.createInnerAudioContext();
+      this.effect = createAudio();
       this.effect.loop = false;
       this.effect.volume = 0.72;
     }
@@ -88,6 +102,18 @@ class SoundManager {
     if (this.wx && this.wx.vibrateShort) {
       this.wx.vibrateShort();
     }
+  }
+
+  pause() {
+    if (this.music && this.music.pause) this.music.pause();
+    if (this.effect && this.effect.pause) this.effect.pause();
+  }
+
+  resume() { if (this.music && this.currentTrack && this.soundEnabled) this.music.play(); }
+
+  destroy() {
+    this.pause();
+    [this.music, this.effect].forEach((audio) => { if (audio && audio.destroy) audio.destroy(); });
   }
 }
 

@@ -7,6 +7,9 @@
     "test": "test"
   },
   "scripts": {
+    "build": "node scripts/build.js",
+    "dev": "node scripts/build.js --serve",
+    "test:browser": "node scripts/check-browser.js",
     "test": "for f in test/*.test.js; do node \"$f\" || exit 1; done"
   },
   "repository": {
@@ -21,6 +24,10 @@
   },
   "homepage": "https://github.com/doerme/gametest#readme",
   "dependencies": {
-    "phaser": "^3.90.0"
+    "three": "0.162.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "playwright": "1.56.1"
   }
 }

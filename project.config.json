@@ -78,63 +78,43 @@
         "type": "file"
       },
       {
-        "value": "assets/images/.DS_Store",
-        "type": "file"
-      },
-      {
         "value": "assets/audio/bgm-*.wav",
         "type": "glob"
       },
       {
-        "value": "assets/images/castle-hall-bg.jpg",
+        "value": "assets/images",
+        "type": "folder"
+      },
+      {
+        "value": "src",
+        "type": "folder"
+      },
+      {
+        "value": "node_modules",
+        "type": "folder"
+      },
+      {
+        "value": "miniprogram_npm",
+        "type": "folder"
+      },
+      {
+        "value": "dist/web",
+        "type": "folder"
+      },
+      {
+        "value": "index.html",
         "type": "file"
       },
       {
-        "value": "assets/images/boss-emperor-penguin.png",
+        "value": "package.json",
         "type": "file"
       },
       {
-        "value": "assets/images/boss-megalodon.png",
-        "type": "file"
+        "value": "docs",
+        "type": "folder"
       },
       {
-        "value": "assets/images/boss-tyrannosaurus.png",
-        "type": "file"
-      },
-      {
-        "value": "assets/images/cat-walk-sheet.png",
-        "type": "file"
-      },
-      {
-        "value": "assets/images/enemy-brachiosaurus.png",
-        "type": "file"
-      },
-      {
-        "value": "assets/images/enemy-jellyfish.png",
-        "type": "file"
-      },
-      {
-        "value": "assets/images/enemy-penguin-bellhop.png",
-        "type": "file"
-      },
-      {
-        "value": "assets/images/enemy-penguin-chef.png",
-        "type": "file"
-      },
-      {
-        "value": "assets/images/enemy-pterosaur.png",
-        "type": "file"
-      },
-      {
-        "value": "assets/images/enemy-pufferfish.png",
-        "type": "file"
-      },
-      {
-        "value": "assets/images/enemy-shark.png",
-        "type": "file"
-      },
-      {
-        "value": "assets/images/enemy-triceratops.png",
+        "value": "project.private.config.json",
         "type": "file"
       }
     ],

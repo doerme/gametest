@@ -141,20 +141,30 @@ async function main() {
     const dimensions = await page.evaluate(() => ({ state: window.__spellGame.state.width, hud: window.__spellGame.renderer.hud.width, css: document.getElementById('game').clientWidth }));
     assert.strictEqual(dimensions.state, dimensions.css); assert.strictEqual(dimensions.hud, dimensions.css);
     // Execute the actual shipping bundle with no document/window, forcing WebGL 1.
-    const wxPage = await browser.newPage({ viewport: { width: 375, height: 667 } }); await wxPage.goto(url);
+    const wxPage = await browser.newPage({ viewport: { width: 375, height: 667 } });
+    const nativeErrors = [];
+    wxPage.on('pageerror', (e) => nativeErrors.push(e.message));
+    wxPage.on('console', (m) => { if (m.type() === 'error' || /sRGBToLinear|INVALID_OPERATION/.test(m.text())) nativeErrors.push(m.text()); });
+    await wxPage.goto(url);
     const bundle = fs.readFileSync(path.join(root, 'dist/wechat/game.js'), 'utf8');
     assert.ok(!bundle.includes('assets/images/')); assert.ok(!bundle.includes('phaser/dist'));
     assert.ok(!bundle.includes('__spellGame'), 'the shipping build strips the development API');
     const native = await wxPage.evaluate((code) => {
       window.__spellGame.destroy(); document.body.innerHTML = '';
       const canvas = document.createElement('canvas'); document.body.appendChild(canvas);
-      const callbacks = {}; const audioEvents = []; const modals = []; let queued; let time = Date.now(); let count = 0; let contextName;
+      const callbacks = {}; const audioEvents = []; const modals = []; const shaders = new Set(); let queued; let time = Date.now(); let count = 0; let contextName;
       const RealDate = Date; class Clock extends RealDate { static now() { return time; } }
       const api = {
         getSystemInfoSync: () => ({ windowWidth: 375, windowHeight: 667, pixelRatio: 2 }),
         createCanvas() {
           const value = count++ === 0 ? canvas : document.createElement('canvas');
-          if (value === canvas) { const get = value.getContext.bind(value); value.getContext = (name, attributes) => { if (name === 'webgl2') throw new Error('unsupported context'); contextName = name; return get(name, attributes); }; }
+          if (value === canvas) { const get = value.getContext.bind(value); value.getContext = (name, attributes) => {
+            if (name === 'webgl2') throw new Error('unsupported context'); contextName = name;
+            const gl = get(name, attributes), extension = gl.getExtension.bind(gl), source = gl.shaderSource.bind(gl);
+            gl.getExtension = (key) => ['OES_standard_derivatives', 'EXT_sRGB'].includes(key) ? null : extension(key);
+            gl.shaderSource = (shader, code) => { if (code.includes('#define LAMBERT')) shaders.add('lambert'); if (code.includes('#define STANDARD')) shaders.add('standard'); source(shader, code); };
+            return gl;
+          }; }
           return value;
         },
         createInnerAudioContext: () => ({ play() { audioEvents.push(this.src); }, stop() {}, pause() {} }),
@@ -170,17 +180,70 @@ async function main() {
       tap(180, 450); tick(1); tap(180, 667 * 0.53 + 29); tick(65);
       callbacks.start({ touches: [{ identifier: 1, clientX: 80, clientY: 400 }] }); callbacks.end({ changedTouches: [{ identifier: 1, clientX: 230, clientY: 400 }] }); tick(2);
       callbacks.hide(); callbacks.show(); tick(2);
-      return { modals, contextName, castHit: audioEvents.includes('assets/audio/sfx-vanish.wav'), offscreenCanvases: count - 1, canvasWidth: canvas.width };
+      return { modals, contextName, castHit: audioEvents.includes('assets/audio/sfx-vanish.wav'), offscreenCanvases: count - 1, canvasWidth: canvas.width, solidShaders: [...shaders] };
     }, bundle);
     assert.deepStrictEqual(native.modals, []); assert.strictEqual(native.contextName, 'webgl'); assert.strictEqual(native.castHit, true); assert.strictEqual(native.offscreenCanvases, 2); assert.strictEqual(native.canvasWidth, 562);
+    assert.deepStrictEqual(native.solidShaders, ['lambert'], 'shipping wx bundle supports devices without derivatives or sRGB extensions');
+    assert.deepStrictEqual(nativeErrors, [], 'wx native canvas needs no DOM color conversion or invalid shader programs');
     await wxPage.screenshot({ path: path.join(output, 'wechat-webgl1-harness.png') });
+    // Reproduce the simulator's missing-derivatives capability, then a driver that
+    // advertises support but actually fails the PBR fragment shader compilation.
+    const compatibility = [];
+    for (const failure of ['missing-derivatives', 'compiler-rejection']) {
+      const restricted = await browser.newPage({ viewport: { width: 390, height: 844 } });
+      const failures = [];
+      restricted.on('pageerror', (e) => failures.push(e.message));
+      restricted.on('console', (m) => { if (m.type() === 'error') failures.push(m.text()); });
+      await restricted.addInitScript((mode) => {
+        const get = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function (name, options) {
+          if (name === 'webgl2') return null;
+          const gl = get.call(this, name, options);
+          if (!gl || !name.includes('webgl') || gl.__restricted) return gl;
+          gl.__restricted = true;
+          if (mode === 'missing-derivatives') {
+            const extension = gl.getExtension.bind(gl);
+            gl.getExtension = (key) => key === 'OES_standard_derivatives' ? null : extension(key);
+          } else {
+            const source = gl.shaderSource.bind(gl);
+            gl.shaderSource = (shader, code) => source(shader, code.includes('#define STANDARD') ? code.replace(/dFdx\(/g, 'unsupportedDerivative(') : code);
+          }
+          return gl;
+        };
+      }, failure);
+      await restricted.goto(url); await restricted.waitForFunction(() => !!window.__spellGame);
+      const restored = await restricted.evaluate((themeIds) => {
+        const g = window.__spellGame; g.pause();
+        const s = g.state; s.healthNoticeVisible = false; s.screen = 'playing'; s.level = 6;
+        const samples = [];
+        for (const theme of themeIds) {
+          s.themeOrder[5] = theme; s.director.startLevel(6, theme); s.enemies = [];
+          [...new Set(s.director.theme.species)].forEach((name, i) => {
+            const index = s.director.theme.species.indexOf(name), enemy = s.director.createEnemy(s.director.config.timeline[index], index);
+            enemy.x = s.width * (0.25 + i % 2 * 0.48); enemy.y = s.height * (0.32 + Math.floor(i / 2) * 0.20); s.enemies.push(enemy);
+          });
+          g.renderer.render(s, g.input, 0.1); samples.push(g.getStats());
+        }
+        const allSolid = [];
+        g.renderer.scene.traverse((n) => { if (n.isMesh && n.material.name.startsWith('SpellSolid')) allSolid.push(n.material.type); });
+        g.renderer.models.prefabs.forEach((root) => root.traverse((n) => { if (n.isMesh && n.material.name.startsWith('SpellSolid')) allSolid.push(n.material.type); }));
+        return { stats: g.getStats(), samples, allSolid, facing: g.renderer.heroRoot.rotation.y };
+      }, themes);
+      assert.strictEqual(restored.stats.materialMode, 'lambert');
+      assert.strictEqual(restored.stats.webgl2, false);
+      assert.ok(restored.allSolid.length > 20 && restored.allSolid.every((type) => type === 'MeshLambertMaterial'), 'scene and all cached prefabs use compatible lighting');
+      assert.strictEqual(restored.facing, Math.PI);
+      assert.deepStrictEqual(failures, [], 'shader failures recover without invalid draw calls');
+      await restricted.screenshot({ path: path.join(output, failure + '.png') });
+      compatibility.push({ failure, ...restored.stats }); await restricted.close();
+    }
     const failurePage = await browser.newPage();
     await failurePage.addInitScript(() => { const get = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (name, options) { return name.includes('webgl') ? null : get.call(this, name, options); }; });
     await failurePage.goto(url); await failurePage.waitForSelector('#boot-error');
     assert.ok((await failurePage.locator('#boot-error').textContent()).includes('无法创建 3D 画布'));
-    const report = { browser: 'Google Chrome headless / macOS', shippingBundleBytes: Buffer.byteLength(bundle), metrics, peak, livePerformance, resourcePlateau: resources, wechatHarness: native, actualWechatSimulator: 'unverified: IDE service disabled; native launch timed out', physicalDevice: 'unverified' };
+    const report = { browser: 'Google Chrome headless / macOS', shippingBundleBytes: Buffer.byteLength(bundle), metrics, peak, livePerformance, resourcePlateau: resources, wechatHarness: native, compatibility, actualWechatSimulator: 'manual verification recorded separately in docs/3d-verification.md', physicalDevice: 'unverified' };
     fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2));
-    console.log(JSON.stringify({ browser: report.browser, shippingBundleBytes: report.shippingBundleBytes, peakScenarios: peak.length, maximumCalls: Math.max(...peak.map((p) => p.calls)), maximumTriangles: Math.max(...peak.map((p) => p.triangles)), livePerformance, resourcePlateau: resources, wechatHarness: native, actualWechatSimulator: report.actualWechatSimulator, physicalDevice: report.physicalDevice }, null, 2));
+    console.log(JSON.stringify({ browser: report.browser, shippingBundleBytes: report.shippingBundleBytes, peakScenarios: peak.length, maximumCalls: Math.max(...peak.map((p) => p.calls)), maximumTriangles: Math.max(...peak.map((p) => p.triangles)), livePerformance, resourcePlateau: resources, wechatHarness: native, compatibility, actualWechatSimulator: report.actualWechatSimulator, physicalDevice: report.physicalDevice }, null, 2));
   } finally { if (browser) await browser.close(); await new Promise((resolve) => server.close(resolve)); }
 }
 main().catch((error) => { console.error(error); process.exitCode = 1; });

@@ -20,6 +20,7 @@ class GeometryKit {
     this.geometries.wing = new THREE.ExtrudeGeometry(wing, { depth: 0.10, bevelEnabled: true, bevelSize: 0.05, bevelThickness: 0.04, bevelSegments: 2, steps: 1, curveSegments: 8 });
     Object.values(this.geometries).forEach((g) => { g.userData.pooled = true; });
     this.solid = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0.02 });
+    this.solid.name = 'SpellSolid';
     this.glow = new THREE.MeshBasicMaterial({ vertexColors: true });
     this.shadow = new THREE.MeshBasicMaterial({ color: 0x071323, transparent: true, opacity: 0.18, depthWrite: false });
     this.partMaterials = new Map();
@@ -32,6 +33,59 @@ class GeometryKit {
     return group;
   }
 
+  geometry(key, create) {
+    if (!this.geometries[key]) {
+      this.geometries[key] = create();
+      this.geometries[key].userData.pooled = true;
+    }
+    return this.geometries[key];
+  }
+
+  // Closed, tapered volumes, rather than overlapping spheres, define silhouettes.
+  lathe(key, profile) {
+    return this.geometry(key, () => new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), 16));
+  }
+
+  tube(key, points, radius = 0.04) {
+    return this.geometry(key, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3(...p))), 12, radius, 5, false));
+  }
+
+  outline(key, points, depth = 0.12) {
+    return this.geometry(key, () => {
+      const shape = new THREE.Shape();
+      points.forEach(([x, y], i) => i ? shape.lineTo(x, y) : shape.moveTo(x, y));
+      shape.closePath();
+      const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelSize: 0.035, bevelThickness: 0.025, bevelSegments: 1, steps: 1, curveSegments: 6 });
+      geometry.translate(0, 0, -depth / 2);
+      return geometry;
+    });
+  }
+
+  bentCone(key, rings) {
+    return this.geometry(key, () => {
+      const vertices = [], indices = [], sides = 16;
+      rings.forEach(([x, y, z, radius], j) => {
+        const before = rings[Math.max(0, j - 1)], after = rings[Math.min(rings.length - 1, j + 1)];
+        const tangent = new THREE.Vector3(after[0] - before[0], after[1] - before[1], after[2] - before[2]).normalize();
+        const u = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 0, 1)).normalize();
+        const v = new THREE.Vector3().crossVectors(u, tangent);
+        for (let i = 0; i <= sides; i += 1) {
+          const angle = i / sides * Math.PI * 2;
+          const p = new THREE.Vector3(x, y, z).addScaledVector(u, Math.cos(angle) * radius).addScaledVector(v, Math.sin(angle) * radius);
+          vertices.push(p.x, p.y, p.z);
+        }
+      });
+      for (let j = 0; j < rings.length - 1; j += 1) for (let i = 0; i < sides; i += 1) {
+        const a = j * (sides + 1) + i, b = a + sides + 1;
+        indices.push(a, b, a + 1, b, b + 1, a + 1);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geometry.setIndex(indices); geometry.computeVertexNormals();
+      return geometry;
+    });
+  }
+
   part(parent, shape, color, position = [0, 0, 0], scale = [1, 1, 1], rotation = [0, 0, 0], glow = false) {
     const key = color + ':' + glow;
     if (!this.partMaterials.has(key)) {
@@ -39,7 +93,7 @@ class GeometryKit {
       material.userData.glow = glow;
       this.partMaterials.set(key, material);
     }
-    const mesh = new THREE.Mesh(this.geometries[shape], this.partMaterials.get(key));
+    const mesh = new THREE.Mesh(typeof shape === 'string' ? this.geometries[shape] : shape, this.partMaterials.get(key));
     mesh.position.set(...position); mesh.scale.set(...scale); mesh.rotation.set(...rotation);
     parent.add(mesh);
     return mesh;
@@ -56,6 +110,17 @@ class GeometryKit {
         mesh.updateMatrix();
         let geometry = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
         geometry.applyMatrix4(mesh.matrix);
+        // Mirrored ears and other baked parts need their triangle winding reversed.
+        // Object3D's negative-scale culling correction disappears after baking.
+        if (mesh.matrix.determinant() < 0) {
+          for (const name of Object.keys(geometry.attributes)) {
+            const attribute = geometry.attributes[name];
+            for (let i = 0; i < attribute.count; i += 3) for (let c = 0; c < attribute.itemSize; c += 1) {
+              const a = (i + 1) * attribute.itemSize + c, b = (i + 2) * attribute.itemSize + c;
+              const value = attribute.array[a]; attribute.array[a] = attribute.array[b]; attribute.array[b] = value;
+            }
+          }
+        }
         const p = geometry.getAttribute('position');
         const n = geometry.getAttribute('normal');
         const c = mesh.material.color;
@@ -80,6 +145,14 @@ class GeometryKit {
     shadow.position.y = 0.025; shadow.scale.set(radius, 0.018, radius * 0.64);
     parent.add(shadow);
     return shadow;
+  }
+
+  useCompatibleMaterial() {
+    const previous = this.solid;
+    // Lambert has no PBR derivatives or texture-LOD dependency on WebGL 1.
+    this.solid = new THREE.MeshLambertMaterial({ vertexColors: true });
+    this.solid.name = 'SpellSolidCompatible';
+    return previous;
   }
 
   disposeOwned(root) {

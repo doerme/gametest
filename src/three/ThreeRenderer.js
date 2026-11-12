@@ -17,16 +17,38 @@ class ThreeRenderer {
     this.renderer.autoClear = false; this.renderer.info.autoReset = false;
     this.scene = new THREE.Scene(); this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
     this.kit = new GeometryKit(); this.models = new ModelFactory(this.kit); this.themes = new ThemeFactory(this.kit);
+    this.materialMode = 'standard'; this.shaderDiagnostics = [];
+    if (!this.renderer.capabilities.isWebGL2 && !this.renderer.extensions.has('OES_standard_derivatives')) {
+      this.useCompatibleMaterial('WebGL 1 does not support OES_standard_derivatives');
+    }
+    this.renderer.debug.onShaderError = (gl, program, vertex, fragment) => {
+      const detail = { program: gl.getProgramInfoLog(program), vertex: gl.getShaderInfoLog(vertex), fragment: gl.getShaderInfoLog(fragment) };
+      const error = new Error('3D 着色器编译失败: ' + detail.fragment);
+      // Some wx drivers advertise the extension but reject it in the compiler.
+      error.code = /#define STANDARD/.test(gl.getShaderSource(fragment)) ? 'SPELL_PBR_SHADER' : 'SPELL_SHADER';
+      error.detail = detail;
+      throw error; // Stop before useProgram/drawArrays can flood the console.
+    };
     this.scene.add(new THREE.HemisphereLight(0xfff0d3, 0x526d83, 2.0));
     this.sun = new THREE.DirectionalLight(0xffe6bd, 2.8); this.sun.position.set(-5, 10, 6); this.scene.add(this.sun);
     const fill = new THREE.DirectionalLight(0xb6e7e4, 1.0); fill.position.set(6, 4, -5); this.scene.add(fill);
-    this.hero = this.models.create('cat'); this.heroRoot = new THREE.Group(); this.heroRoot.add(this.hero); this.heroRoot.scale.setScalar(0.93); this.heroRoot.rotation.y = -0.20; this.scene.add(this.heroRoot);
+    this.hero = this.models.create('cat'); this.heroRoot = new THREE.Group(); this.heroRoot.add(this.hero); this.heroRoot.scale.setScalar(0.93); this.heroRoot.rotation.y = Math.PI; this.scene.add(this.heroRoot);
     this.enemies = new Map(); this.pool = new Map(); this.retiring = []; this.anchors = []; this.visualTime = 0;
-    this.effects = new WorldEffects(this.kit, this.scene, this.toWorld.bind(this), () => this.hero.getObjectByName('staff').localToWorld(new THREE.Vector3(0.24, 0.96, 0.09)));
-    this.hud = new HudLayer(platform, width, height); this.resize(width, height);
+    this.effects = new WorldEffects(this.kit, this.scene, this.toWorld.bind(this), () => this.hero.getObjectByName('castTip').getWorldPosition(new THREE.Vector3()));
+    this.hud = new HudLayer(platform, width, height, !this.renderer.capabilities.isWebGL2 && !this.renderer.extensions.has('EXT_sRGB')); this.resize(width, height);
   }
 
   toWorld(x, y, height = 0) { return new THREE.Vector3((x / this.width - 0.5) * 6.1, height, (y / this.height - 0.74) * 21); }
+
+  useCompatibleMaterial(reason, detail) {
+    const previous = this.kit.useCompatibleMaterial();
+    const replace = (root) => root.traverse((node) => { if (node.material === previous) node.material = this.kit.solid; });
+    replace(this.scene);
+    this.models.prefabs.forEach(replace);
+    if (this.pool) this.pool.forEach((list) => list.forEach((entry) => replace(entry.root)));
+    previous.dispose();
+    this.materialMode = 'lambert'; this.shaderDiagnostics.push({ reason, ...detail });
+  }
 
   resize(width, height) {
     this.width = width; this.height = height; this.renderer.setSize(width, height, false);
@@ -84,10 +106,19 @@ class ThreeRenderer {
       entry.root.position.copy(this.toWorld(enemy.x, enemy.y, bob));
       this.models.animate(entry.model, this.visualTime + enemy.phase, { hurt: enemy.hitFlash });
       entry.model.rotation.y = Math.sin(enemy.phase * 0.3) * 0.12;
-      const anchor = entry.root.position.clone(); anchor.y += entry.model.userData.height * entry.scale + 0.14;
+      entry.root.updateWorldMatrix(true, true);
+      const anchor = entry.model.localToWorld(new THREE.Vector3(0, entry.model.userData.height, 0));
       const projected = anchor.project(this.camera);
+      // Far-side wings, tails and crests can project above the Y-highest point.
+      // Project the modeled volume, including the current animated root scale.
+      const bounds = entry.model.userData.bounds;
+      let top = projected.y;
+      for (const x of [bounds.min[0], bounds.max[0]]) for (const y of [bounds.min[1], bounds.max[1]]) for (const z of [bounds.min[2], bounds.max[2]]) {
+        const corner = entry.model.localToWorld(new THREE.Vector3(x, y, z)).project(this.camera);
+        top = Math.max(top, corner.y);
+      }
       const foot = entry.root.position.clone().project(this.camera);
-      anchors.push({ enemy, x: (projected.x + 1) / 2 * this.width, y: (1 - projected.y) / 2 * this.height,
+      anchors.push({ enemy, x: (projected.x + 1) / 2 * this.width, y: (1 - top) / 2 * this.height,
         // A tall head can cross the top edge while the body is already on-screen.
         visible: projected.z > -1 && projected.z < 1 && projected.x > -1.12 && projected.x < 1.12 && foot.y < 0.84 && projected.y > -0.82 });
     });
@@ -109,13 +140,19 @@ class ThreeRenderer {
     this.heroRoot.position.y = Math.sin(this.visualTime * 10) * 0.025;
     this.models.animate(this.hero, this.visualTime, state.heroAnimation, input.isDrawing);
     this.syncEnemies(state, dt); this.effects.update(state.effects, this.visualTime); this.hud.update(state, input, this.anchors);
-    this.renderer.info.reset(); this.renderer.clear(); this.renderer.render(this.scene, this.camera);
+    this.renderer.info.reset(); this.renderer.clear();
+    try { this.renderer.render(this.scene, this.camera); }
+    catch (error) {
+      if (error.code !== 'SPELL_PBR_SHADER' || this.materialMode !== 'standard') throw error;
+      this.useCompatibleMaterial('Standard material shader failed to compile', error.detail);
+      this.renderer.info.reset(); this.renderer.clear(); this.renderer.render(this.scene, this.camera);
+    }
     this.renderer.clearDepth(); this.renderer.render(this.hud.scene, this.hud.camera);
   }
 
   getStats() {
     const info = this.renderer.info;
-    return { calls: info.render.calls, triangles: info.render.triangles, geometries: info.memory.geometries, textures: info.memory.textures, webgl2: this.renderer.capabilities.isWebGL2, modelPrefabs: this.models.prefabs.size, activeEnemies: this.enemies.size };
+    return { calls: info.render.calls, triangles: info.render.triangles, geometries: info.memory.geometries, textures: info.memory.textures, webgl2: this.renderer.capabilities.isWebGL2, materialMode: this.materialMode, shaderDiagnostics: this.shaderDiagnostics, modelPrefabs: this.models.prefabs.size, activeEnemies: this.enemies.size };
   }
 
   dispose() {

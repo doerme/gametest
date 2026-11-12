@@ -9,8 +9,8 @@ const kit = new GeometryKit(); const models = new ModelFactory(kit); const theme
 const species = new Set(Object.values(THEMES).flatMap((theme) => theme.species));
 assert.strictEqual(species.size, 18);
 let totalVertices = 0;
-for (const name of ['cat', ...species]) {
-  const model = models.create(name, name === 'ghost');
+for (const { name, boss } of [{ name: 'cat' }, ...[...species].map((name) => ({ name })), { name: 'ghost', boss: true }]) {
+  const model = models.create(name, !!boss);
   const box = new THREE.Box3().setFromObject(model);
   assert.ok(box.max.y > 1 && box.max.y < 4, name + ' has a finite three-dimensional silhouette');
   assert.ok(box.max.z - box.min.z > 0.1, name + ' is a volume, not a flat image');
@@ -20,13 +20,34 @@ for (const name of ['cat', ...species]) {
     calls += 1; totalVertices += node.geometry.attributes.position.count;
     assert.strictEqual(node.material.map, null, name + ' has no image texture');
     assert.ok(Array.from(node.geometry.attributes.position.array).every(Number.isFinite));
+    assert.ok(Array.from(node.geometry.attributes.normal.array).every(Number.isFinite), 'finite normals after sculpting and baking');
+    if (node.material.vertexColors) {
+      assert.strictEqual(node.geometry.attributes.color.count, node.geometry.attributes.position.count, 'complete vertex colors');
+    }
   });
   assert.ok(calls <= 12, name + ' merges static parts');
   models.animate(model, 1.1, { cast: 0.4 });
-  const clone = models.create(name, name === 'ghost');
+  const clone = models.create(name, !!boss);
   assert.notStrictEqual(clone, model);
   assert.strictEqual(clone.children[clone.children.length - 1].geometry, model.children[model.children.length - 1].geometry, 'instances share geometry');
 }
+// Negative scales are used by symmetrical modeled parts. Baking must retain front faces.
+const mirror = new THREE.Group(); kit.part(mirror, 'box', 0xffffff, undefined, [-1, 1, 1]); kit.bake(mirror);
+const p = mirror.children[0].geometry.attributes.position, n = mirror.children[0].geometry.attributes.normal;
+for (let i = 0; i < p.count; i += 3) {
+  const a = new THREE.Vector3().fromBufferAttribute(p, i), b = new THREE.Vector3().fromBufferAttribute(p, i + 1), c = new THREE.Vector3().fromBufferAttribute(p, i + 2);
+  const faceNormal = b.sub(a).cross(c.sub(a)).normalize();
+  assert.ok(faceNormal.dot(new THREE.Vector3().fromBufferAttribute(n, i)) > 0.99, 'mirrored triangles point outward');
+}
+kit.disposeOwned(mirror);
+const cat = models.create('cat'); cat.rotation.y = Math.PI;
+assert.ok(new THREE.Vector3(0, 0, 1).applyQuaternion(cat.quaternion).z < -0.99, 'cat faces the enemies');
+models.animate(cat, 0.41, {}); cat.updateMatrixWorld(true);
+const walkTip = cat.getObjectByName('castTip').getWorldPosition(new THREE.Vector3());
+models.animate(cat, 0.41, { cast: 1 }); cat.updateMatrixWorld(true);
+assert.ok(walkTip.distanceTo(cat.getObjectByName('castTip').getWorldPosition(new THREE.Vector3())) > 0.2, 'spell origin follows animated hand');
+assert.ok(cat.getObjectByName('castTip').getWorldPosition(new THREE.Vector3()).z < walkTip.z, 'cat points the staff forward toward enemies when casting');
+assert.ok(cat.getObjectByName('cape') && cat.getObjectByName('tail'), 'cape and tail animate independently');
 for (const name of Object.keys(THEMES)) {
   const root = themes.create(name);
   const geometry = new Set(); let disposed = 0;

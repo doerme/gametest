@@ -35,15 +35,16 @@ function spell(ctx, symbol, x, y, size, color = '#253749') {
 }
 
 class HudLayer {
-  constructor(platform, width, height) {
+  constructor(platform, width, height, decodeCanvasSRGB = false) {
     this.platform = platform;
+    this.decodeCanvasSRGB = decodeCanvasSRGB;
     this.scene = new THREE.Scene();
     this.camera = new THREE.OrthographicCamera(0, width, 0, height, 0.1, 100);
     this.camera.position.z = 10;
     this.canvas = platform.createOffscreenCanvas();
     this.ctx = this.canvas.getContext('2d');
     this.texture = this.createTexture();
-    this.material = new THREE.MeshBasicMaterial({ map: this.texture, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+    this.material = this.canvasMaterial(this.texture);
     this.plane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.material);
     this.plane.position.z = 3; this.scene.add(this.plane);
     this.badges = new Map(); this.glyphs = new Map();
@@ -73,9 +74,17 @@ class HudLayer {
       for (let j = 0; j < uv.count; j += 1) uv.setXY(j, (x + uv.getX(j) * 100) / 1024, 1 - (y + (1 - uv.getY(j)) * 100) / 256);
       this.glyphs.set(key, geometry);
     });
-    this.atlas = new THREE.CanvasTexture(atlas); this.atlas.colorSpace = THREE.SRGBColorSpace;
+    this.atlas = new THREE.CanvasTexture(atlas); this.atlas.colorSpace = this.decodeCanvasSRGB ? THREE.NoColorSpace : THREE.SRGBColorSpace;
     this.atlas.generateMipmaps = false; this.atlas.minFilter = THREE.LinearFilter;
-    this.badgeMaterial = new THREE.MeshBasicMaterial({ map: this.atlas, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+    this.badgeMaterial = this.canvasMaterial(this.atlas);
+  }
+
+  canvasMaterial(texture) {
+    const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+    // Three's WebGL 1 CPU sRGB conversion needs DOM canvas constructors absent
+    // in wx. Reuse the shader's inline sRGB decode; alpha stays unchanged.
+    if (this.decodeCanvasSRGB) material.defines = { DECODE_VIDEO_TEXTURE: '' };
+    return material;
   }
 
   resize(width, height) {
@@ -94,7 +103,7 @@ class HudLayer {
 
   createTexture() {
     const texture = new THREE.CanvasTexture(this.canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.colorSpace = this.decodeCanvasSRGB ? THREE.NoColorSpace : THREE.SRGBColorSpace;
     texture.generateMipmaps = false;
     texture.minFilter = THREE.LinearFilter;
     return texture;
@@ -220,7 +229,7 @@ class HudLayer {
       const width = indicators.length * gap;
       const initialX = Math.max(width / 2 + 6, Math.min(this.width - width / 2 - 6, anchor.x));
       let x = initialX;
-      const initialY = Math.max(110, Math.min(this.height - 165, anchor.y - 17));
+      const initialY = Math.max(110, Math.min(this.height - 165, anchor.y - size / 2 - 6));
       let y = initialY;
       let placed = false;
       for (let i = 0; i < 12 && !placed; i += 1) {

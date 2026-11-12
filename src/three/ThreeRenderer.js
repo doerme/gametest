@@ -34,11 +34,18 @@ class ThreeRenderer {
     const fill = new THREE.DirectionalLight(0xb6e7e4, 1.0); fill.position.set(6, 4, -5); this.scene.add(fill);
     this.hero = this.models.create('cat'); this.heroRoot = new THREE.Group(); this.heroRoot.add(this.hero); this.heroRoot.scale.setScalar(0.93); this.heroRoot.rotation.y = Math.PI; this.scene.add(this.heroRoot);
     this.enemies = new Map(); this.pool = new Map(); this.retiring = []; this.anchors = []; this.visualTime = 0;
-    this.effects = new WorldEffects(this.kit, this.scene, this.toWorld.bind(this), () => this.hero.getObjectByName('castTip').getWorldPosition(new THREE.Vector3()));
+    this.effects = new WorldEffects(this.kit, this.scene, this.toWorld.bind(this), () => this.hero.getObjectByName('castTip').getWorldPosition(new THREE.Vector3()), this.getAttackPosition.bind(this), this.camera);
     this.hud = new HudLayer(platform, width, height, !this.renderer.capabilities.isWebGL2 && !this.renderer.extensions.has('EXT_sRGB')); this.resize(width, height);
   }
 
   toWorld(x, y, height = 0) { return new THREE.Vector3((x / this.width - 0.5) * 6.1, height, (y / this.height - 0.74) * 21); }
+
+  getAttackPosition(enemy) {
+    const entry = this.enemies.get(enemy);
+    if (!entry || enemy.dead || enemy.reachedHero) return null;
+    const bounds = entry.model.userData.bounds;
+    return entry.model.localToWorld(new THREE.Vector3((bounds.min[0] + bounds.max[0]) / 2, (bounds.min[1] + bounds.max[1]) / 2, (bounds.min[2] + bounds.max[2]) / 2));
+  }
 
   useCompatibleMaterial(reason, detail) {
     const previous = this.kit.useCompatibleMaterial();
@@ -51,6 +58,7 @@ class ThreeRenderer {
   }
 
   resize(width, height) {
+    if (this.effects) this.effects.attacks.clear();
     this.width = width; this.height = height; this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     const distance = 16 * Math.max(1, 0.47 / this.camera.aspect);
@@ -62,6 +70,7 @@ class ThreeRenderer {
 
   setTheme(themeId) {
     if (this.themeId === themeId) return;
+    this.effects.attacks.clear();
     this.enemies.forEach((entry) => this.release(entry)); this.enemies.clear();
     this.retiring.forEach((item) => this.release(item.entry)); this.retiring = [];
     if (this.theme) { this.scene.remove(this.theme); this.kit.disposeOwned(this.theme); }

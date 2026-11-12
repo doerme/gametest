@@ -7,6 +7,7 @@ const { recognizeDetailed, SYMBOLS } = require('../input/GestureRecognizer');
 const { DIFFICULTY_MODES, getDifficulty, findDifficultyAtPoint } = require('../ui/DifficultySelector');
 const { isAudioToggleHit } = require('../ui/AudioToggle');
 const { ITEM_TYPES, getItemSlots, findItemAtPoint } = require('../ui/ItemBar');
+const ATTACK = require('./AttackEffect');
 
 const SCREENS = {
   TITLE: 'title',
@@ -17,6 +18,7 @@ const SCREENS = {
 };
 
 const ANIMATION_DURATIONS = {
+  attack: ATTACK.flightDuration + ATTACK.impactDuration,
   cast: 0.38,
   impact: 0.52,
   vanish: 0.62,
@@ -84,6 +86,7 @@ class GameState {
   }
 
   resize(width, height) {
+    this.clearAttackEffects();
     const scaleX = width / this.width;
     const scaleY = height / this.height;
     (this.enemies || []).forEach((enemy) => { enemy.x *= scaleX; enemy.y *= scaleY; });
@@ -182,9 +185,11 @@ class GameState {
     }
 
     this.enemies = this.enemies.filter((enemy) => !enemy.dead);
+    this.pruneAttackEffects();
 
     if (this.lives <= 0) {
       this.screen = SCREENS.LOSE;
+      this.clearAttackEffects();
       if (this.sound) {
         if (this.sound.stopMusic) {
           this.sound.stopMusic();
@@ -210,6 +215,7 @@ class GameState {
   }
 
   beginLevelTransition() {
+    this.clearAttackEffects();
     this.screen = SCREENS.LEVEL_TRANSITION;
     this.transitionRemaining = 0;
     this.combo = 0;
@@ -256,6 +262,7 @@ class GameState {
       this.effects[i].age += dt;
     }
     this.effects = this.effects.filter((effect) => effect.age < effect.duration);
+    this.pruneAttackEffects();
 
     if (this.feedback) {
       this.feedback.age += dt;
@@ -271,6 +278,24 @@ class GameState {
       age: 0,
       duration: ANIMATION_DURATIONS[type]
     }, properties));
+  }
+
+  clearAttackEffects() {
+    this.effects = (this.effects || []).filter((effect) => effect.type !== 'attack');
+  }
+
+  pruneAttackEffects() {
+    const live = new Set(this.enemies);
+    this.effects = this.effects.filter((effect) => effect.type !== 'attack'
+      || (this.screen === SCREENS.PLAYING && live.has(effect.target) && !effect.target.dead && !effect.target.reachedHero));
+  }
+
+  triggerAttack(enemy) {
+    // Keep the newest shots under rapid input, without dropping other effects.
+    if (this.effects.filter((effect) => effect.type === 'attack').length >= ATTACK.maxActive) {
+      this.effects.splice(this.effects.findIndex((effect) => effect.type === 'attack'), 1);
+    }
+    this.addEffect('attack', { target: enemy, radius: enemy.radius });
   }
 
   triggerCast(symbol) {
@@ -369,6 +394,7 @@ class GameState {
       }
     }
     this.enemies = this.enemies.filter((enemy) => !enemy.dead);
+    this.pruneAttackEffects();
   }
 
   toggleSound() {
@@ -498,6 +524,7 @@ class GameState {
         this.triggerVanish(target);
       } else {
         partialHits += 1;
+        this.triggerAttack(target);
       }
     }
 
@@ -533,6 +560,7 @@ class GameState {
       multiplier: vanished > 0 ? multiplier : null
     };
     this.enemies = this.enemies.filter((enemy) => !enemy.dead);
+    this.pruneAttackEffects();
     if (this.sound) {
       this.sound.play(vanished > 0 ? 'vanish' : 'hit');
     }

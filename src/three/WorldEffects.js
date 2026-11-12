@@ -1,10 +1,12 @@
 'use strict';
 const THREE = require('three');
+const AttackEffects = require('./AttackEffects');
 
 class WorldEffects {
-  constructor(kit, scene, toWorld, castOrigin) {
+  constructor(kit, scene, toWorld, castOrigin, targetPosition, camera) {
     this.kit = kit; this.scene = scene; this.toWorld = toWorld; this.castOrigin = castOrigin;
     this.slots = []; this.active = new Map();
+    this.attacks = new AttackEffects(scene, castOrigin, targetPosition, camera);
     this.ribbonGeometry = new THREE.BufferGeometry();
     this.ribbonGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(4096 * 3), 3).setUsage(THREE.DynamicDrawUsage));
     this.ribbonMaterial = new THREE.MeshBasicMaterial({ color: 0xd1b8ff, side: THREE.DoubleSide, transparent: true, opacity: 0.9, depthWrite: false });
@@ -27,6 +29,7 @@ class WorldEffects {
   }
 
   update(effects, time) {
+    this.attacks.update(effects);
     const live = new Set(effects);
     this.active.forEach((slot, effect) => { if (!live.has(effect)) { slot.group.visible = false; slot.effect = null; this.active.delete(effect); } });
     let vertices = 0;
@@ -64,6 +67,7 @@ class WorldEffects {
   }
 
   dispose() {
+    this.attacks.dispose();
     this.slots.forEach((slot) => { this.kit.disposeOwned(slot.fragments); slot.material.dispose(); this.scene.remove(slot.group); });
     this.scene.remove(this.ribbon); this.ribbonGeometry.dispose(); this.ribbonMaterial.dispose(); this.slots = []; this.active.clear();
   }

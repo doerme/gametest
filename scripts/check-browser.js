@@ -6,6 +6,7 @@ const path = require('path');
 const http = require('http');
 const { execFileSync } = require('child_process');
 const { chromium } = require('playwright');
+const checkAttackEffects = require('./check-attack-effects');
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'output/three-qa');
 const themes = ['castle', 'ocean', 'penguinHotel', 'dinosaurPark', 'skyCity', 'seaTrain'];
@@ -66,6 +67,7 @@ async function main() {
       assert.strictEqual(stats.textures, 2, 'only the HUD and symbol atlas use textures');
       await page.screenshot({ path: path.join(output, theme + '.png') }); metrics.push({ theme, ...stats });
     }
+    const attackFeedback = await checkAttackEffects(page, output, themes);
     // Repeat a complete theme cycle: GPU resource counts must plateau after prefab warmup.
     const resources = [];
     for (let pass = 0; pass < 3; pass += 1) {
@@ -119,11 +121,14 @@ async function main() {
             }
           }
           for (const snapshot of snapshots) {
-            s.enemies = snapshot.enemies; s.elapsed = snapshot.elapsed; g.renderer.render(s, g.input, 0.5);
+            s.enemies = snapshot.enemies; s.elapsed = snapshot.elapsed; s.effects = [];
+            if (s.enemies.length) for (let i = 0; i < 24; i++) s.triggerAttack(s.enemies[i % s.enemies.length]);
+            s.effects.forEach((effect) => { effect.age = 0.09; });
+            g.renderer.render(s, g.input, 0.5);
             const stats = g.getStats(); maximum.calls = Math.max(maximum.calls, stats.calls); maximum.triangles = Math.max(maximum.triangles, stats.triangles);
           }
           // Conservative all-in-view bound also covers intermediate camera positions.
-          maximum.triangleUpperBound = heaviest.triangles + complexity(g.renderer.theme).triangles + complexity(g.renderer.hero).triangles + 1000;
+          maximum.triangleUpperBound = heaviest.triangles + complexity(g.renderer.theme).triangles + complexity(g.renderer.hero).triangles + 1000 + g.renderer.effects.attacks.positions.count / 3;
           result.push({ level, theme, ...maximum });
         }
       }
@@ -235,13 +240,15 @@ async function main() {
       assert.strictEqual(restored.facing, Math.PI);
       assert.deepStrictEqual(failures, [], 'shader failures recover without invalid draw calls');
       await restricted.screenshot({ path: path.join(output, failure + '.png') });
-      compatibility.push({ failure, ...restored.stats }); await restricted.close();
+      const attacks = await checkAttackEffects(restricted, output, themes, failure + '-');
+      assert.deepStrictEqual(failures, [], 'projectiles and vertex alpha compile under WebGL 1');
+      compatibility.push({ failure, ...restored.stats, attackFrames: attacks.frames.length, attackPool: attacks.reuse }); await restricted.close();
     }
     const failurePage = await browser.newPage();
     await failurePage.addInitScript(() => { const get = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (name, options) { return name.includes('webgl') ? null : get.call(this, name, options); }; });
     await failurePage.goto(url); await failurePage.waitForSelector('#boot-error');
     assert.ok((await failurePage.locator('#boot-error').textContent()).includes('无法创建 3D 画布'));
-    const report = { browser: 'Google Chrome headless / macOS', shippingBundleBytes: Buffer.byteLength(bundle), metrics, peak, livePerformance, resourcePlateau: resources, wechatHarness: native, compatibility, actualWechatSimulator: 'manual verification recorded separately in docs/3d-verification.md', physicalDevice: 'unverified' };
+    const report = { browser: 'Google Chrome headless / macOS', shippingBundleBytes: Buffer.byteLength(bundle), metrics, peak, livePerformance, resourcePlateau: resources, wechatHarness: native, attackFeedback, compatibility, actualWechatSimulator: 'manual verification recorded separately in docs/3d-verification.md', physicalDevice: 'unverified' };
     fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2));
     console.log(JSON.stringify({ browser: report.browser, shippingBundleBytes: report.shippingBundleBytes, peakScenarios: peak.length, maximumCalls: Math.max(...peak.map((p) => p.calls)), maximumTriangles: Math.max(...peak.map((p) => p.triangles)), livePerformance, resourcePlateau: resources, wechatHarness: native, compatibility, actualWechatSimulator: report.actualWechatSimulator, physicalDevice: report.physicalDevice }, null, 2));
   } finally { if (browser) await browser.close(); await new Promise((resolve) => server.close(resolve)); }

@@ -157,8 +157,13 @@ class GeometryKit {
 
   disposeOwned(root) {
     const geometries = new Set();
-    root.traverse((node) => { if (node.geometry && !node.geometry.userData.pooled) geometries.add(node.geometry); });
+    const materials = new Set();
+    root.traverse((node) => {
+      if (node.geometry && !node.geometry.userData.pooled) geometries.add(node.geometry);
+      if (node.material && node.material.userData.themeOwned) materials.add(node.material);
+    });
     geometries.forEach((geometry) => geometry.dispose());
+    materials.forEach((material) => material.dispose());
   }
 
   dispose() {

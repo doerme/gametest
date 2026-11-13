@@ -7,6 +7,7 @@ const http = require('http');
 const { execFileSync } = require('child_process');
 const { chromium } = require('playwright');
 const checkAttackEffects = require('./check-attack-effects');
+const checkThemeScenes = require('./check-theme-scenes');
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'output/three-qa');
 const themes = ['castle', 'ocean', 'penguinHotel', 'dinosaurPark', 'skyCity', 'seaTrain'];
@@ -21,7 +22,7 @@ async function main() {
     if (!file.startsWith(root + path.sep)) { response.writeHead(403); response.end(); return; }
     fs.readFile(file, (error, data) => {
       if (error) { response.writeHead(404); response.end(); return; }
-      const types = { '.html': 'text/html', '.js': 'text/javascript', '.m4a': 'audio/mp4', '.wav': 'audio/wav' };
+      const types = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.m4a': 'audio/mp4', '.wav': 'audio/wav' };
       response.setHeader('Content-Type', types[path.extname(file)] || 'application/octet-stream'); response.end(data);
     });
   });
@@ -67,6 +68,7 @@ async function main() {
       assert.strictEqual(stats.textures, 2, 'only the HUD and symbol atlas use textures');
       await page.screenshot({ path: path.join(output, theme + '.png') }); metrics.push({ theme, ...stats });
     }
+    const themeScenes = await checkThemeScenes(page, output, themes);
     const attackFeedback = await checkAttackEffects(page, output, themes);
     // Repeat a complete theme cycle: GPU resource counts must plateau after prefab warmup.
     const resources = [];
@@ -248,7 +250,7 @@ async function main() {
     await failurePage.addInitScript(() => { const get = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (name, options) { return name.includes('webgl') ? null : get.call(this, name, options); }; });
     await failurePage.goto(url); await failurePage.waitForSelector('#boot-error');
     assert.ok((await failurePage.locator('#boot-error').textContent()).includes('无法创建 3D 画布'));
-    const report = { browser: 'Google Chrome headless / macOS', shippingBundleBytes: Buffer.byteLength(bundle), metrics, peak, livePerformance, resourcePlateau: resources, wechatHarness: native, attackFeedback, compatibility, actualWechatSimulator: 'manual verification recorded separately in docs/3d-verification.md', physicalDevice: 'unverified' };
+    const report = { browser: 'Google Chrome headless / macOS', shippingBundleBytes: Buffer.byteLength(bundle), metrics, themeScenes, peak, livePerformance, resourcePlateau: resources, wechatHarness: native, attackFeedback, compatibility, actualWechatSimulator: 'manual verification recorded separately in docs/3d-verification.md', physicalDevice: 'unverified' };
     fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2));
     console.log(JSON.stringify({ browser: report.browser, shippingBundleBytes: report.shippingBundleBytes, peakScenarios: peak.length, maximumCalls: Math.max(...peak.map((p) => p.calls)), maximumTriangles: Math.max(...peak.map((p) => p.triangles)), livePerformance, resourcePlateau: resources, wechatHarness: native, compatibility, actualWechatSimulator: report.actualWechatSimulator, physicalDevice: report.physicalDevice }, null, 2));
   } finally { if (browser) await browser.close(); await new Promise((resolve) => server.close(resolve)); }

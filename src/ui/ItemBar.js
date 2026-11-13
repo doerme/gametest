@@ -1,4 +1,6 @@
 'use strict';
+const GAME_MODES = require('../core/GameMode');
+const { getHanziLayout } = require('./HanziLayout');
 
 const ITEM_TYPES = {
   HEALTH_POTION: 'healthPotion',
@@ -24,7 +26,7 @@ function getHeartSlotPosition(width, height, heartIndex) {
   };
 }
 
-function getItemSlots(width, height, items) {
+function getItemSlots(width, height, items, gameMode) {
   const inventory = items || {};
   const visibleItems = ITEM_ORDER.filter((type) => (inventory[type] || 0) > 0);
   const barHeight = visibleItems.length * ITEM_SLOT_SIZE + Math.max(0, visibleItems.length - 1) * ITEM_SLOT_GAP;
@@ -39,7 +41,7 @@ function getItemSlots(width, height, items) {
       type,
       count,
       x: ITEM_SLOT_LEFT,
-      y: bottomSlotY - slots.length * (ITEM_SLOT_SIZE + ITEM_SLOT_GAP),
+      y: gameMode === GAME_MODES.HANZI ? getHanziLayout(width, height).board.y + 8 + slots.length * (ITEM_SLOT_SIZE + ITEM_SLOT_GAP) : bottomSlotY - slots.length * (ITEM_SLOT_SIZE + ITEM_SLOT_GAP),
       width: ITEM_SLOT_SIZE,
       height: ITEM_SLOT_SIZE
     });
@@ -48,12 +50,12 @@ function getItemSlots(width, height, items) {
   return slots;
 }
 
-function findItemAtPoint(width, height, items, point) {
+function findItemAtPoint(width, height, items, point, gameMode) {
   if (!point) {
     return null;
   }
 
-  const slots = getItemSlots(width, height, items);
+  const slots = getItemSlots(width, height, items, gameMode);
   for (let i = 0; i < slots.length; i += 1) {
     const slot = slots[i];
     if (

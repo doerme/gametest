@@ -48,4 +48,22 @@ pointerHandlers.pointerdown(event(70, 110)); pointerHandlers.pointermove(event(2
 assert.strictEqual(events.length, 5, 'dragging from a UI control never casts');
 pointerHandlers.pointerdown(event(70, 200)); pointerHandlers.pointercancel(event(230, 200)); assert.strictEqual(events.length, 5);
 pointer.destroy(); assert.deepStrictEqual(pointerHandlers, {});
+
+// A short dot has its own threshold and retains the context from pointer down.
+const captured = [];
+let strokeIndex = 0;
+const paper = new InputManager(null, canvas, {
+  getSize: () => ({ width: 375, height: 625 }),
+  captureGestureContext: () => ({ strokeIndex }),
+  getGestureThreshold: () => 3
+});
+paper.onGesture = (points, context) => captured.push({ points, context }); paper.bind();
+pointerHandlers.pointerdown(event(100, 250));
+strokeIndex = 1;
+pointerHandlers.pointerup(event(104, 254));
+assert.strictEqual(captured.length, 1, 'a small dot is a stroke rather than a tap');
+assert.strictEqual(captured[0].context.strokeIndex, 0, 'target context is captured at pointer down');
+pointerHandlers.pointerdown(event(100, 250)); pointerHandlers.pointercancel(event(110, 260)); pointerHandlers.pointerup(event(120, 270));
+assert.strictEqual(captured.length, 1, 'cancel cannot commit a pending stroke');
+paper.destroy();
 console.log('input-manager.test.js passed');

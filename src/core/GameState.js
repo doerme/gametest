@@ -4,10 +4,16 @@ const LevelDirector = require('../levels/LevelDirector');
 const { THEME_IDS, createThemeOrder } = require('../levels/Themes');
 const Enemy = require('../entities/Enemy');
 const { recognizeDetailed, SYMBOLS } = require('../input/GestureRecognizer');
-const { DIFFICULTY_MODES, getDifficulty, findDifficultyAtPoint } = require('../ui/DifficultySelector');
+const { DIFFICULTY_MODES, getDifficulty, findStartAtPoint, getContinueButton } = require('../ui/DifficultySelector');
 const { isAudioToggleHit } = require('../ui/AudioToggle');
 const { ITEM_TYPES, getItemSlots, findItemAtPoint } = require('../ui/ItemBar');
 const ATTACK = require('./AttackEffect');
+const GAME_MODES = require('./GameMode');
+const { getHanziLayout, contains } = require('../ui/HanziLayout');
+const { getStrokeMedian } = require('../hanzi/Characters');
+const { recognizeStroke } = require('../input/HanziStrokeRecognizer');
+const { sceneScale, FREEZE_DURATION } = require('../hanzi/Pacing');
+const { MIN_SPEED, MAX_SPEED, SPEED_STEP, DEFAULT_SPEED, findSpeedDirectionAtPoint } = require('../ui/SpeedControl');
 
 const SCREENS = {
   TITLE: 'title',
@@ -64,11 +70,12 @@ class GameState {
     this.height = height;
     this.sound = sound;
     this.random = random || Math.random;
+    this.gameMode = GAME_MODES.HANZI;
     this.themeOrder = createThemeOrder(this.random);
     this.hero = this.createHero(width, height);
     this.director = new LevelDirector(width, height);
     this.difficulty = null;
-    this.timeScale = 1;
+    this.timeScale = DEFAULT_SPEED;
     this.soundEnabled = true;
     if (this.sound && this.sound.setSoundEnabled) {
       this.sound.setSoundEnabled(true);
@@ -80,16 +87,20 @@ class GameState {
   createHero(width, height) {
     return {
       x: width * 0.5,
-      y: height * 0.74,
+      y: this.gameMode === GAME_MODES.HANZI ? getHanziLayout(width, height).heroY * height : height * 0.74,
       radius: Math.max(28, Math.min(width, height) * 0.07)
     };
   }
 
   resize(width, height) {
     this.clearAttackEffects();
+    this.hanziRevision += 1;
     const scaleX = width / this.width;
     const scaleY = height / this.height;
-    (this.enemies || []).forEach((enemy) => { enemy.x *= scaleX; enemy.y *= scaleY; });
+    (this.enemies || []).forEach((enemy) => {
+      enemy.x *= scaleX; enemy.y *= scaleY;
+      if (enemy.hanzi) enemy.speed *= Math.min(scaleX, scaleY);
+    });
     this.width = width;
     this.height = height;
     this.hero = this.createHero(width, height);
@@ -98,6 +109,13 @@ class GameState {
   }
 
   resetRun() {
+    this.hero = this.createHero(this.width, this.height);
+    this.hanziTarget = null;
+    this.hanziVisibleEnemies = [];
+    this.hanziRevision = (this.hanziRevision || 0) + 1;
+    this.freezeRemaining = 0;
+    this.sceneElapsed = 0;
+    this.hanziGuideTime = 0;
     this.score = 0;
     this.maxLives = MAX_LIVES;
     this.lives = this.maxLives;
@@ -121,7 +139,7 @@ class GameState {
       hurt: 0,
       hurtAge: 0
     };
-    this.director.reset(this.width, this.height, this.level, this.getThemeId(this.level));
+    this.director.reset(this.width, this.height, this.level, this.getThemeId(this.level), this.gameMode, this.random);
   }
 
   getThemeId(level) {
@@ -132,7 +150,8 @@ class GameState {
     this.themeOrder = createThemeOrder(this.random);
   }
 
-  start(difficultyMode) {
+  start(difficultyMode, gameMode = GAME_MODES.HANZI) {
+    this.gameMode = gameMode === GAME_MODES.HANZI ? GAME_MODES.HANZI : GAME_MODES.SYMBOL;
     this.selectDifficulty(difficultyMode);
     this.resetRun();
     this.screen = SCREENS.PLAYING;
@@ -144,7 +163,7 @@ class GameState {
     }
   }
 
-  update(dt) {
+  update(dt, context = {}) {
     this.updateAnimations(dt);
 
     if (this.screen === SCREENS.LEVEL_TRANSITION) {
@@ -155,15 +174,24 @@ class GameState {
       return;
     }
 
-    const playDt = dt * this.timeScale;
+    if (this.gameMode === GAME_MODES.HANZI) this.hanziGuideTime += dt;
+    const frozenDt = this.gameMode === GAME_MODES.HANZI ? Math.min(dt, this.freezeRemaining) : 0;
+    this.freezeRemaining = Math.max(0, this.freezeRemaining - frozenDt);
+    const activeDt = dt - frozenDt;
+    const playDt = activeDt * this.timeScale;
     this.elapsed += playDt;
     this.director.update(this.elapsed, this.enemies);
+    if (this.gameMode === GAME_MODES.HANZI) {
+      const next = this.director.config.timeline[this.director.index];
+      const strokes = this.hanziTarget ? this.hanziTarget.hanzi.strokeCount : (next ? next.strokeCount : 1);
+      this.sceneElapsed += playDt * sceneScale(strokes);
+    }
 
     const livesBeforeDamage = this.lives;
     let damageTaken = 0;
     for (let i = 0; i < this.enemies.length; i += 1) {
       const enemy = this.enemies[i];
-      enemy.update(dt, this.hero, this.timeScale);
+      enemy.update(dt, this.hero, this.timeScale * (dt > 0 ? activeDt / dt : 1));
       if (enemy.reachedHero) {
         this.lives -= 1;
         this.combo = 0;
@@ -186,9 +214,11 @@ class GameState {
 
     this.enemies = this.enemies.filter((enemy) => !enemy.dead);
     this.pruneAttackEffects();
+    this.syncHanziTarget(context.visibleEnemies || this.hanziVisibleEnemies);
 
     if (this.lives <= 0) {
       this.screen = SCREENS.LOSE;
+      this.clearHanziTarget();
       this.clearAttackEffects();
       if (this.sound) {
         if (this.sound.stopMusic) {
@@ -204,6 +234,7 @@ class GameState {
         this.beginLevelTransition();
       } else {
         this.screen = SCREENS.WIN;
+        this.clearHanziTarget();
         if (this.sound) {
           if (this.sound.stopMusic) {
             this.sound.stopMusic();
@@ -216,6 +247,8 @@ class GameState {
 
   beginLevelTransition() {
     this.clearAttackEffects();
+    this.clearHanziTarget();
+    this.freezeRemaining = 0;
     this.screen = SCREENS.LEVEL_TRANSITION;
     this.transitionRemaining = 0;
     this.combo = 0;
@@ -228,21 +261,33 @@ class GameState {
   }
 
   selectDifficulty(difficultyMode) {
-    const difficulty = getDifficulty(difficultyMode || DIFFICULTY_MODES.NORMAL);
+    const difficulty = getDifficulty(difficultyMode) || getDifficulty(DIFFICULTY_MODES.NORMAL);
     this.difficulty = difficulty.id;
     this.timeScale = difficulty.timeScale;
   }
 
-  startNextLevel(difficultyMode) {
-    this.selectDifficulty(difficultyMode);
+  adjustSpeed(direction) {
+    if (this.screen !== SCREENS.PLAYING || (direction !== -1 && direction !== 1)) return false;
+    const speed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, this.timeScale + direction * SPEED_STEP));
+    if (speed === this.timeScale) return false;
+    this.timeScale = speed;
+    this.difficulty = speed === 1 ? DIFFICULTY_MODES.NORMAL : speed === 1.5 ? DIFFICULTY_MODES.PLUS_ONE : null;
+    return true;
+  }
+
+  startNextLevel() {
     this.level += 1;
     this.elapsed = 0;
+    this.sceneElapsed = 0;
+    this.freezeRemaining = 0;
+    this.clearHanziTarget();
+    this.hanziVisibleEnemies = [];
     this.combo = 0;
     this.gestureFailures = 0;
     this.feedback = null;
     this.enemies = [];
     this.effects = [];
-    this.director.startLevel(this.level, this.getThemeId(this.level));
+    this.director.startLevel(this.level, this.getThemeId(this.level), this.gameMode, this.random);
     this.screen = SCREENS.PLAYING;
     if (this.sound) {
       this.sound.play('start');
@@ -340,7 +385,7 @@ class GameState {
   }
 
   triggerItemEarn(itemType) {
-    const slot = getItemSlots(this.width, this.height, this.items).find((entry) => entry.type === itemType);
+    const slot = getItemSlots(this.width, this.height, this.items, this.gameMode).find((entry) => entry.type === itemType);
     if (!slot) {
       return;
     }
@@ -411,23 +456,25 @@ class GameState {
     }
 
     if (this.screen === SCREENS.TITLE) {
-      const selectedDifficulty = findDifficultyAtPoint(this.width, this.height, point);
-      if (selectedDifficulty) {
-        this.start(selectedDifficulty);
+      const button = findStartAtPoint(this.width, this.height, point);
+      if (button) {
+        this.start(DIFFICULTY_MODES.NORMAL, button.gameMode);
       }
       return;
     }
 
     if (this.screen === SCREENS.LEVEL_TRANSITION) {
-      const selectedDifficulty = findDifficultyAtPoint(this.width, this.height, point);
-      if (selectedDifficulty) {
-        this.startNextLevel(selectedDifficulty);
-      }
+      if (contains(getContinueButton(this.width, this.height, this.gameMode, this.timeScale), point)) this.startNextLevel();
       return;
     }
 
     if (this.screen === SCREENS.PLAYING) {
-      const itemType = findItemAtPoint(this.width, this.height, this.items, point);
+      const speedDirection = findSpeedDirectionAtPoint(this.width, point);
+      if (speedDirection !== null) {
+        this.adjustSpeed(speedDirection);
+        return;
+      }
+      const itemType = findItemAtPoint(this.width, this.height, this.items, point, this.gameMode);
       if (itemType) {
         this.useItem(itemType);
       }
@@ -436,7 +483,8 @@ class GameState {
 
     if (this.screen === SCREENS.WIN || this.screen === SCREENS.LOSE) {
       this.difficulty = null;
-      this.timeScale = 1;
+      this.timeScale = DEFAULT_SPEED;
+      this.gameMode = GAME_MODES.HANZI;
       this.createNewThemeOrder();
       this.resetRun();
       this.screen = SCREENS.TITLE;
@@ -456,6 +504,12 @@ class GameState {
       }
 
       this.items.comboChain -= 1;
+      if (this.gameMode === GAME_MODES.HANZI) {
+        this.freezeRemaining = FREEZE_DURATION;
+        this.feedback = { text: '定身 3 秒，继续写吧', age: 0, type: 'hit' };
+        if (this.sound) this.sound.play('hit');
+        return true;
+      }
       this.triggerComboChain(targets);
       this.feedback = { text: '紫色闪电释放', age: 0, type: 'hit' };
       return true;
@@ -467,7 +521,7 @@ class GameState {
         return false;
       }
 
-      const slots = getItemSlots(this.width, this.height, this.items);
+      const slots = getItemSlots(this.width, this.height, this.items, this.gameMode);
       const slot = slots.find((entry) => entry.type === ITEM_TYPES.HEALTH_POTION);
       this.items.healthPotion -= 1;
       const recoveredHeartIndex = this.lives;
@@ -486,6 +540,11 @@ class GameState {
 
   handleGesture(points, context = {}) {
     if (this.screen !== SCREENS.PLAYING) {
+      return SYMBOLS.UNKNOWN;
+    }
+
+    if (this.gameMode === GAME_MODES.HANZI) {
+      this.handleHanziStroke(points, context);
       return SYMBOLS.UNKNOWN;
     }
 
@@ -568,6 +627,83 @@ class GameState {
     return symbol;
   }
 
+  clearHanziTarget() {
+    this.hanziTarget = null;
+    this.hanziRevision += 1;
+  }
+
+  syncHanziTarget(visibleEnemies = []) {
+    if (this.gameMode !== GAME_MODES.HANZI || this.screen !== SCREENS.PLAYING) return;
+    this.hanziVisibleEnemies = visibleEnemies;
+    if (this.hanziTarget && !this.hanziTarget.dead && this.enemies.includes(this.hanziTarget)) return;
+    const candidates = visibleEnemies.filter((enemy) => enemy.hanzi && !enemy.dead && this.enemies.includes(enemy));
+    candidates.sort((a, b) => Math.hypot(a.x - this.hero.x, a.y - this.hero.y) - Math.hypot(b.x - this.hero.x, b.y - this.hero.y));
+    const target = candidates[0] || null;
+    if (target !== this.hanziTarget) {
+      this.hanziTarget = target;
+      this.hanziRevision += 1;
+    }
+  }
+
+  captureHanziStroke(point, context = {}) {
+    this.syncHanziTarget(context.visibleEnemies || this.hanziVisibleEnemies);
+    const board = getHanziLayout(this.width, this.height).board;
+    if (this.screen !== SCREENS.PLAYING || this.gameMode !== GAME_MODES.HANZI || !this.hanziTarget || !contains(board, point)) return null;
+    return { gameMode: GAME_MODES.HANZI, target: this.hanziTarget, strokeIndex: this.hanziTarget.hanzi.strokeIndex, revision: this.hanziRevision, board };
+  }
+
+  handleHanziStroke(points, context = {}) {
+    const target = this.hanziTarget;
+    if (this.screen !== SCREENS.PLAYING || this.gameMode !== GAME_MODES.HANZI
+      || !target || target.dead || !this.enemies.includes(target) || context.target !== target
+      || context.revision !== this.hanziRevision || context.strokeIndex !== target.hanzi.strokeIndex) {
+      return { accepted: false, ignored: true };
+    }
+    const result = recognizeStroke(points, getStrokeMedian(target.hanzi.character, target.hanzi.strokeIndex), context.board);
+    this.lastGestureResult = result;
+    if (result.ignored) return result;
+    if (!result.accepted) {
+      this.gestureFailures += 1;
+      const protectedRetry = this.gestureFailures === 1;
+      if (!protectedRetry) this.combo = 0;
+      this.feedback = { text: protectedRetry ? '跟着下一笔写，连击已保护' : '从圆点起笔，沿箭头再试一次', age: 0, type: 'retry', protected: protectedRetry };
+      if (this.sound && !protectedRetry) this.sound.play('miss');
+      return result;
+    }
+    target.applyStroke(context.strokeIndex);
+    this.gestureFailures = 0;
+    this.triggerCast(SYMBOLS.UNKNOWN);
+    if (!target.dead) {
+      this.triggerAttack(target);
+      this.feedback = { text: '写对了！第 ' + target.hanzi.strokeIndex + ' / ' + target.hanzi.strokeCount + ' 笔', age: 0, type: 'hit' };
+      if (this.sound) this.sound.play('hit');
+      return result;
+    }
+    this.combo += 1;
+    const multiplier = getComboMultiplier(this.combo);
+    const earned = Math.round(target.score * multiplier);
+    this.score += earned;
+    let text = '写对「' + target.hanzi.character + '」 +' + earned;
+    if (this.combo % 10 === 0) {
+      this.items.comboChain += 1;
+      this.triggerItemEarn(ITEM_TYPES.COMBO_CHAIN);
+      text += '  获得定身闪电';
+    }
+    if (this.combo % 15 === 0) {
+      this.items.healthPotion += 1;
+      this.triggerItemEarn(ITEM_TYPES.HEALTH_POTION);
+      text += '  获得血瓶';
+    }
+    this.feedback = { text, age: 0, type: 'hit', combo: this.combo, multiplier };
+    this.triggerVanish(target);
+    this.enemies = this.enemies.filter((enemy) => !enemy.dead);
+    this.pruneAttackEffects();
+    this.clearHanziTarget();
+    this.syncHanziTarget(this.hanziVisibleEnemies);
+    if (this.sound) this.sound.play('vanish');
+    return result;
+  }
+
   findMatchingEnemies(symbol) {
     if (symbol === SYMBOLS.UNKNOWN) {
       return [];
@@ -587,5 +723,6 @@ class GameState {
 module.exports = {
   GameState,
   SCREENS,
+  GAME_MODES,
   getComboMultiplier
 };

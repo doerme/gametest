@@ -16,7 +16,7 @@ async function checkThemeScenes(page, output, themes) {
     for (const theme of themes) {
       const result = await page.evaluate((id) => {
         const g = window.__spellGame, s = g.state; g.pause();
-        s.healthNoticeVisible = false; s.start('normal'); s.level = 1; s.themeOrder[0] = id; s.screen = 'playing';
+        s.healthNoticeVisible = false; s.start('normal', 'symbol'); s.level = 1; s.themeOrder[0] = id; s.screen = 'playing';
         s.director.startLevel(1, id); s.director.index = s.director.total; s.enemies = []; s.effects = []; s.elapsed = 4; s.feedback = null;
         g.input.lastCompletedPath = null; g.renderer.visualTime = 2;
         for (let i = 0; i < 2; i += 1) {

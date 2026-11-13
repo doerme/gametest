@@ -8,7 +8,7 @@ const ATTACK = require('../src/core/AttackEffect');
 const right = [{ x: 30, y: 300 }, { x: 140, y: 300 }];
 const up = [{ x: 50, y: 300 }, { x: 50, y: 190 }];
 const makeEnemy = (symbols = ['right', 'up']) => new Enemy({ x: 90, y: 180, symbols, speed: 1 });
-const run = () => { const state = new GameState(390, 844); state.start(); state.director.index = state.director.total; return state; };
+const run = () => { const state = new GameState(390, 844); state.start('normal', 'symbol'); state.director.index = state.director.total; return state; };
 let state = run();
 const survivor = makeEnemy(), killed = makeEnemy(['right']), other = makeEnemy(['left']);
 state.enemies = [survivor, killed, other];
@@ -41,7 +41,7 @@ for (const action of ['resize', 'transition', 'restart', 'contact', 'comboItem']
   const s = run(), enemy = makeEnemy(); s.enemies = [enemy]; s.handleGesture(right);
   if (action === 'resize') s.resize(320, 568);
   if (action === 'transition') s.beginLevelTransition();
-  if (action === 'restart') s.start();
+  if (action === 'restart') s.start('normal', 'symbol');
   if (action === 'contact') { enemy.x = s.hero.x; enemy.y = s.hero.y; s.update(0.016); assert.strictEqual(s.lives, 4); }
   if (action === 'comboItem') s.triggerComboChain([enemy]);
   assert.ok(!s.effects.some((e) => e.type === 'attack'), action + ' cancels projectiles');

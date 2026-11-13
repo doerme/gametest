@@ -5,7 +5,8 @@ const { GameState, SCREENS, getComboMultiplier } = require('../src/core/GameStat
 const Enemy = require('../src/entities/Enemy');
 const { SYMBOLS } = require('../src/input/GestureRecognizer');
 const { THEME_IDS, THEME_ORDER, createThemeOrder } = require('../src/levels/Themes');
-const { DIFFICULTY_MODES, getDifficultyButtons } = require('../src/ui/DifficultySelector');
+const { DIFFICULTY_MODES, getStartButtons, getContinueButton } = require('../src/ui/DifficultySelector');
+const { getSpeedControl } = require('../src/ui/SpeedControl');
 const { getAudioToggleBounds } = require('../src/ui/AudioToggle');
 const { ITEM_TYPES, getItemSlots } = require('../src/ui/ItemBar');
 
@@ -46,7 +47,9 @@ const shuffledThemes = createThemeOrder(fixedRandom(0));
 assert.strictEqual(new Set(shuffledThemes).size, THEME_ORDER.length);
 assert.notDeepStrictEqual(shuffledThemes, THEME_ORDER);
 
-const buttons = getDifficultyButtons(375, 667);
+const buttons = getStartButtons(375, 667);
+const continueButton = getContinueButton(375, 667);
+const speedControl = getSpeedControl(375);
 const audioButton = getAudioToggleBounds(375);
 const soundCalls = {
   enabled: [],
@@ -79,11 +82,13 @@ assert.strictEqual(audioControls.soundEnabled, false);
 audioControls.handleTap(centerOf(audioButton));
 assert.strictEqual(audioControls.soundEnabled, true);
 assert.deepStrictEqual(soundCalls.enabled, [true, false, true]);
-audioControls.handleTap(centerOf(buttons[0]));
+audioControls.handleTap(centerOf(buttons[1]));
+audioControls.handleTap(centerOf(speedControl.plus));
+audioControls.handleTap(centerOf(speedControl.plus));
 assert.deepStrictEqual(soundCalls.tracks, [THEME_IDS.CASTLE]);
 audioControls.beginLevelTransition();
 assert.deepStrictEqual(soundCalls.tracks, [THEME_IDS.CASTLE, THEME_IDS.OCEAN]);
-audioControls.handleTap(centerOf(buttons[1]));
+audioControls.handleTap(centerOf(continueButton));
 assert.strictEqual(audioControls.level, 2);
 assert.strictEqual(audioControls.difficulty, DIFFICULTY_MODES.PLUS_ONE);
 audioControls.screen = SCREENS.PLAYING;
@@ -100,49 +105,54 @@ selection.handleGesture([centerOf(buttons[1]), { x: 190, y: 430 }, { x: 210, y: 
 assert.strictEqual(selection.screen, SCREENS.TITLE);
 selection.handleTap(centerOf(buttons[1]));
 assert.strictEqual(selection.screen, SCREENS.PLAYING);
+assert.strictEqual(selection.gameMode, 'symbol');
+assert.strictEqual(selection.timeScale, 1);
+selection.handleTap(centerOf(speedControl.plus));
+selection.handleTap(centerOf(speedControl.plus));
 assert.strictEqual(selection.difficulty, DIFFICULTY_MODES.PLUS_ONE);
 assert.strictEqual(selection.timeScale, 1.5);
 
 const normalSelection = new GameState(375, 667, null);
 normalSelection.handleTap(centerOf(buttons[0]));
 assert.strictEqual(normalSelection.screen, SCREENS.PLAYING);
+assert.strictEqual(normalSelection.gameMode, 'hanzi');
 assert.strictEqual(normalSelection.difficulty, DIFFICULTY_MODES.NORMAL);
 assert.strictEqual(normalSelection.timeScale, 1);
 
 const normalPace = new GameState(375, 667, null);
-normalPace.start(DIFFICULTY_MODES.NORMAL);
+normalPace.start(DIFFICULTY_MODES.NORMAL, 'symbol');
 normalPace.update(0.84);
 assertClose(normalPace.elapsed, 0.84);
 assert.strictEqual(normalPace.enemies.length, 0);
 
 const fastPace = new GameState(375, 667, null);
-fastPace.start(DIFFICULTY_MODES.PLUS_ONE);
+fastPace.start(DIFFICULTY_MODES.PLUS_ONE, 'symbol');
 fastPace.update(0.84);
 assertClose(fastPace.elapsed, 1.26);
 assert.strictEqual(fastPace.enemies.length, 1);
 
 const normalMovement = new GameState(375, 667, null);
-normalMovement.start(DIFFICULTY_MODES.NORMAL);
+normalMovement.start(DIFFICULTY_MODES.NORMAL, 'symbol');
 normalMovement.enemies = [new Enemy({ x: 50, y: 50, symbols: [SYMBOLS.RIGHT], speed: 40 })];
 normalMovement.update(0.5);
 const normalTravel = Math.hypot(normalMovement.enemies[0].x - 50, normalMovement.enemies[0].y - 50);
 
 const fastMovement = new GameState(375, 667, null);
-fastMovement.start(DIFFICULTY_MODES.PLUS_ONE);
+fastMovement.start(DIFFICULTY_MODES.PLUS_ONE, 'symbol');
 fastMovement.enemies = [new Enemy({ x: 50, y: 50, symbols: [SYMBOLS.RIGHT], speed: 40 })];
 fastMovement.update(0.5);
 const fastTravel = Math.hypot(fastMovement.enemies[0].x - 50, fastMovement.enemies[0].y - 50);
 assertClose(fastTravel, normalTravel * 1.5);
 
 const feedbackTiming = new GameState(375, 667, null);
-feedbackTiming.start(DIFFICULTY_MODES.PLUS_ONE);
+feedbackTiming.start(DIFFICULTY_MODES.PLUS_ONE, 'symbol');
 feedbackTiming.enemies = [new Enemy({ x: 50, y: 50, symbols: [SYMBOLS.RIGHT], speed: 40 })];
 feedbackTiming.enemies[0].hitFlash = 0.18;
 feedbackTiming.update(0.1);
 assertClose(feedbackTiming.enemies[0].hitFlash, 0.08);
 
 const replay = new GameState(375, 667, null);
-replay.start(DIFFICULTY_MODES.PLUS_ONE);
+replay.start(DIFFICULTY_MODES.PLUS_ONE, 'symbol');
 replay.screen = SCREENS.WIN;
 replay.handleTap();
 assert.strictEqual(replay.screen, SCREENS.TITLE);
@@ -156,8 +166,9 @@ replay.screen = SCREENS.LOSE;
 replay.handleTap();
 assert.strictEqual(replay.screen, SCREENS.TITLE);
 replay.handleTap(centerOf(buttons[1]));
-assert.strictEqual(replay.difficulty, DIFFICULTY_MODES.PLUS_ONE);
-assert.strictEqual(replay.timeScale, 1.5);
+assert.strictEqual(replay.gameMode, 'symbol');
+assert.strictEqual(replay.difficulty, DIFFICULTY_MODES.NORMAL);
+assert.strictEqual(replay.timeScale, 1);
 
 const themeLifecycle = new GameState(375, 667, null, sequenceRandom([
   0.999999, 0.999999, 0.999999, 0.999999, 0.999999,
@@ -165,7 +176,7 @@ const themeLifecycle = new GameState(375, 667, null, sequenceRandom([
 ]));
 const previewOrder = themeLifecycle.themeOrder.slice();
 assert.deepStrictEqual(previewOrder, THEME_ORDER);
-themeLifecycle.start(DIFFICULTY_MODES.NORMAL);
+themeLifecycle.start(DIFFICULTY_MODES.NORMAL, 'symbol');
 assert.deepStrictEqual(themeLifecycle.themeOrder, previewOrder);
 assert.strictEqual(themeLifecycle.director.themeId, previewOrder[0]);
 themeLifecycle.screen = SCREENS.WIN;
@@ -175,18 +186,18 @@ assert.strictEqual(new Set(themeLifecycle.themeOrder).size, THEME_ORDER.length);
 assert.strictEqual(themeLifecycle.director.themeId, themeLifecycle.themeOrder[0]);
 
 const fastTransition = new GameState(375, 667, null);
-fastTransition.start(DIFFICULTY_MODES.PLUS_ONE);
+fastTransition.start(DIFFICULTY_MODES.PLUS_ONE, 'symbol');
 fastTransition.beginLevelTransition();
 fastTransition.update(1);
 assert.strictEqual(fastTransition.screen, SCREENS.LEVEL_TRANSITION);
 assert.strictEqual(fastTransition.level, 1);
 fastTransition.update(20);
 assert.strictEqual(fastTransition.screen, SCREENS.LEVEL_TRANSITION);
-fastTransition.handleTap(centerOf(buttons[0]));
+fastTransition.handleTap(centerOf(continueButton));
 assert.strictEqual(fastTransition.screen, SCREENS.PLAYING);
 assert.strictEqual(fastTransition.level, 2);
-assert.strictEqual(fastTransition.difficulty, DIFFICULTY_MODES.NORMAL);
-assert.strictEqual(fastTransition.timeScale, 1);
+assert.strictEqual(fastTransition.difficulty, DIFFICULTY_MODES.PLUS_ONE);
+assert.strictEqual(fastTransition.timeScale, 1.5);
 
 assert.strictEqual(getComboMultiplier(2), 1);
 assert.strictEqual(getComboMultiplier(3), 1.2);
@@ -201,7 +212,7 @@ const upGesture = [{ x: 100, y: 140 }, { x: 100, y: 40 }];
 
 function eliminationScoreAfterCombo(priorCombo) {
   const scoreRun = new GameState(375, 667, null);
-  scoreRun.start();
+  scoreRun.start('normal', 'symbol');
   scoreRun.combo = priorCombo;
   scoreRun.enemies = [new Enemy({
     x: 40,
@@ -222,7 +233,7 @@ assert.strictEqual(eliminationScoreAfterCombo(49), 300);
 assert.strictEqual(eliminationScoreAfterCombo(99), 400);
 
 const combo10Run = new GameState(375, 667, null);
-combo10Run.start();
+combo10Run.start('normal', 'symbol');
 combo10Run.combo = 9;
 combo10Run.enemies = [
   new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT, SYMBOLS.UP], speed: 0, score: 100 })
@@ -242,7 +253,7 @@ assert.ok(combo10Run.effects.some((effect) => (
 )));
 
 const combo15Run = new GameState(375, 667, null);
-combo15Run.start();
+combo15Run.start('normal', 'symbol');
 combo15Run.combo = 14;
 combo15Run.enemies = [
   new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 })
@@ -260,7 +271,7 @@ assert.ok(combo15Run.effects.some((effect) => (
 )));
 
 const combo30Run = new GameState(375, 667, null);
-combo30Run.start();
+combo30Run.start('normal', 'symbol');
 combo30Run.combo = 29;
 combo30Run.items.comboChain = 2;
 combo30Run.items.healthPotion = 3;
@@ -292,7 +303,7 @@ combo30Run.updateAnimations(1);
 assert.strictEqual(combo30Run.effects.some((effect) => effect.type === 'itemEarn'), false);
 
 const chainUse = new GameState(375, 667, null);
-chainUse.start();
+chainUse.start('normal', 'symbol');
 chainUse.combo = 8;
 chainUse.score = 450;
 chainUse.items.comboChain = 2;
@@ -310,14 +321,14 @@ assert.strictEqual(chainUse.feedback.text, '紫色闪电释放');
 assert.ok(chainUse.effects.some((effect) => effect.type === 'comboChain'));
 
 const emptyChainUse = new GameState(375, 667, null);
-emptyChainUse.start();
+emptyChainUse.start('normal', 'symbol');
 emptyChainUse.items.comboChain = 1;
 emptyChainUse.handleTap(itemCenterOf(emptyChainUse, ITEM_TYPES.COMBO_CHAIN));
 assert.strictEqual(emptyChainUse.items.comboChain, 1);
 assert.strictEqual(emptyChainUse.feedback.text, '没有可攻击目标');
 
 const potionUse = new GameState(375, 667, null);
-potionUse.start(DIFFICULTY_MODES.PLUS_ONE);
+potionUse.start(DIFFICULTY_MODES.PLUS_ONE, 'symbol');
 potionUse.lives = 3;
 potionUse.items.healthPotion = 2;
 const potionOrigin = itemCenterOf(potionUse, ITEM_TYPES.HEALTH_POTION);
@@ -333,7 +344,7 @@ assert.ok(potionUse.effects.some((effect) => (
 )));
 
 const fullPotionRun = new GameState(375, 667, null);
-fullPotionRun.start(DIFFICULTY_MODES.NORMAL);
+fullPotionRun.start(DIFFICULTY_MODES.NORMAL, 'symbol');
 fullPotionRun.items.healthPotion = 1;
 fullPotionRun.handleTap(itemCenterOf(fullPotionRun, ITEM_TYPES.HEALTH_POTION));
 assert.strictEqual(fullPotionRun.lives, fullPotionRun.maxLives);
@@ -342,18 +353,18 @@ assert.strictEqual(fullPotionRun.feedback.text, '爱心已满');
 assert.strictEqual(fullPotionRun.effects.some((effect) => effect.type === 'potionToHeart'), false);
 
 const itemLifecycle = new GameState(375, 667, null);
-itemLifecycle.start(DIFFICULTY_MODES.NORMAL);
+itemLifecycle.start(DIFFICULTY_MODES.NORMAL, 'symbol');
 itemLifecycle.items.comboChain = 2;
 itemLifecycle.items.healthPotion = 3;
 itemLifecycle.beginLevelTransition();
-itemLifecycle.startNextLevel(DIFFICULTY_MODES.PLUS_ONE);
+itemLifecycle.startNextLevel();
 assert.deepStrictEqual(itemLifecycle.items, { comboChain: 2, healthPotion: 3 });
 itemLifecycle.screen = SCREENS.WIN;
 itemLifecycle.handleTap({ x: 0, y: 0 });
 assert.deepStrictEqual(itemLifecycle.items, { comboChain: 0, healthPotion: 0 });
 
 const mixedScore = new GameState(375, 667, null);
-mixedScore.start();
+mixedScore.start('normal', 'symbol');
 mixedScore.combo = 2;
 mixedScore.enemies = [
   new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 }),
@@ -382,7 +393,7 @@ const eventSound = {
   }
 };
 const eventRun = new GameState(375, 667, eventSound);
-eventRun.start();
+eventRun.start('normal', 'symbol');
 eventSound.played = [];
 eventRun.enemies = [
   new Enemy({ x: 40, y: 40, symbols: [SYMBOLS.RIGHT], speed: 0, score: 100 }),
@@ -392,7 +403,7 @@ eventRun.handleGesture(rightGesture);
 assert.deepStrictEqual(eventSound.played, ['vanish']);
 
 const state = new GameState(375, 667, null);
-state.start();
+state.start('normal', 'symbol');
 assert.strictEqual(state.screen, SCREENS.PLAYING);
 assert.strictEqual(state.lives, 5);
 
@@ -458,7 +469,7 @@ assert.ok(state.effects.some((effect) => (
 )));
 
 const damageRun = new GameState(375, 667, eventSound);
-damageRun.start();
+damageRun.start('normal', 'symbol');
 eventSound.played = [];
 eventSound.vibrated = 0;
 damageRun.combo = 4;
@@ -487,71 +498,26 @@ assert.ok(state.heroAnimation.hurtAge > 0);
 assert.strictEqual(state.effects.length, 0);
 
 const run = new GameState(375, 667, null);
-run.start();
+run.start('normal', 'symbol');
 run.score = 900;
 run.lives = 3;
 run.combo = 4;
-run.director.index = run.director.total;
-run.update(0);
-assert.strictEqual(run.screen, SCREENS.LEVEL_TRANSITION);
-assert.strictEqual(run.score, 900);
-assert.strictEqual(run.lives, 3);
-assert.strictEqual(run.combo, 0);
-
-run.handleTap(centerOf(buttons[1]));
-assert.strictEqual(run.screen, SCREENS.PLAYING);
-assert.strictEqual(run.level, 2);
-assert.strictEqual(run.elapsed, 0);
-assert.strictEqual(run.director.level, 2);
-assert.strictEqual(run.difficulty, DIFFICULTY_MODES.PLUS_ONE);
-
-run.director.index = run.director.total;
-run.update(0);
-assert.strictEqual(run.screen, SCREENS.LEVEL_TRANSITION);
-
-run.handleTap(centerOf(buttons[0]));
-assert.strictEqual(run.screen, SCREENS.PLAYING);
-assert.strictEqual(run.level, 3);
-assert.strictEqual(run.director.level, 3);
-assert.strictEqual(run.score, 900);
-assert.strictEqual(run.lives, 3);
-assert.strictEqual(run.difficulty, DIFFICULTY_MODES.NORMAL);
-
-run.director.index = run.director.total;
-run.update(0);
-assert.strictEqual(run.screen, SCREENS.LEVEL_TRANSITION);
-
-run.handleTap(centerOf(buttons[1]));
-assert.strictEqual(run.screen, SCREENS.PLAYING);
-assert.strictEqual(run.level, 4);
-assert.strictEqual(run.director.level, 4);
-assert.strictEqual(run.score, 900);
-assert.strictEqual(run.lives, 3);
-assert.strictEqual(run.difficulty, DIFFICULTY_MODES.PLUS_ONE);
-
-run.director.index = run.director.total;
-run.update(0);
-assert.strictEqual(run.screen, SCREENS.LEVEL_TRANSITION);
-
-run.handleTap(centerOf(buttons[0]));
-assert.strictEqual(run.screen, SCREENS.PLAYING);
-assert.strictEqual(run.level, 5);
-assert.strictEqual(run.director.level, 5);
-assert.strictEqual(run.score, 900);
-assert.strictEqual(run.lives, 3);
-assert.strictEqual(run.difficulty, DIFFICULTY_MODES.NORMAL);
-
-run.director.index = run.director.total;
-run.update(0);
-assert.strictEqual(run.screen, SCREENS.LEVEL_TRANSITION);
-
-run.handleTap(centerOf(buttons[1]));
-assert.strictEqual(run.screen, SCREENS.PLAYING);
-assert.strictEqual(run.level, 6);
-assert.strictEqual(run.director.level, 6);
-assert.strictEqual(run.score, 900);
-assert.strictEqual(run.lives, 3);
-assert.strictEqual(run.difficulty, DIFFICULTY_MODES.PLUS_ONE);
+for (let nextLevel = 2; nextLevel <= 6; nextLevel += 1) {
+  const speed = nextLevel % 2 ? 1 : 1.5;
+  while (run.timeScale !== speed) run.handleTap(centerOf(run.timeScale < speed ? speedControl.plus : speedControl.minus));
+  run.director.index = run.director.total;
+  run.update(0);
+  assert.strictEqual(run.screen, SCREENS.LEVEL_TRANSITION);
+  assert.strictEqual(run.combo, 0);
+  run.handleTap(centerOf(continueButton));
+  assert.strictEqual(run.screen, SCREENS.PLAYING);
+  assert.strictEqual(run.level, nextLevel);
+  assert.strictEqual(run.director.level, nextLevel);
+  assert.strictEqual(run.elapsed, 0);
+  assert.strictEqual(run.score, 900);
+  assert.strictEqual(run.lives, 3);
+  assert.strictEqual(run.timeScale, speed);
+}
 
 run.director.index = run.director.total;
 run.update(0);

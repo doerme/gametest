@@ -8,6 +8,8 @@ const { execFileSync } = require('child_process');
 const { chromium } = require('playwright');
 const checkAttackEffects = require('./check-attack-effects');
 const checkThemeScenes = require('./check-theme-scenes');
+const { checkHanziMode, checkWechatHanzi } = require('./check-hanzi-mode');
+const checkSpeedControls = require('./check-speed-controls');
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'output/three-qa');
 const themes = ['castle', 'ocean', 'penguinHotel', 'dinosaurPark', 'skyCity', 'seaTrain'];
@@ -38,7 +40,7 @@ async function main() {
     await page.goto(url); await page.waitForFunction(() => !!window.__spellGame);
     await page.mouse.click(195, 650); await page.screenshot({ path: path.join(output, 'title.png') });
     // Start via UI, then exercise a true two-event swipe through browser pointer input.
-    await page.mouse.click(195, 844 * 0.53 + 29);
+    await page.mouse.click(195, 844 * 0.53 + 72 + 29);
     await page.evaluate(() => { const g = window.__spellGame; g.pause(); g.state.enemies = [g.state.director.createEnemy(g.state.director.config.timeline[0], 0)]; g.state.director.index = g.state.director.total; g.renderer.render(g.state, g.input, 0); });
     await page.mouse.move(90, 420); await page.mouse.down(); await page.mouse.move(220, 420); await page.mouse.up();
     assert.strictEqual(await page.evaluate(() => window.__spellGame.state.score), 100);
@@ -138,7 +140,7 @@ async function main() {
     }, themes);
     peak.forEach((entry) => { assert.ok(entry.calls <= 200, 'level peak draw calls'); assert.ok(entry.triangleUpperBound <= 100000, 'level triangle bound: ' + JSON.stringify(entry)); });
     // All six transitions and win preserve the existing run lifecycle.
-    await page.evaluate(() => { const g = window.__spellGame; const s = g.state; s.start(); for (let i = 0; i < 5; i += 1) { s.enemies = []; s.director.index = s.director.total; s.update(0); if (s.screen !== 'level-transition') throw new Error('missing transition'); s.startNextLevel(i % 2 ? 'normal' : 'plus-one'); } s.enemies = []; s.director.index = s.director.total; s.update(0); if (s.screen !== 'win') throw new Error('missing win'); });
+    await page.evaluate(() => { const g = window.__spellGame; const s = g.state; s.start('normal', 'symbol'); for (let i = 0; i < 5; i += 1) { s.enemies = []; s.director.index = s.director.total; s.update(0); if (s.screen !== 'level-transition') throw new Error('missing transition'); s.startNextLevel(); } s.enemies = []; s.director.index = s.director.total; s.update(0); if (s.screen !== 'win') throw new Error('missing win'); });
     assert.strictEqual(requests.some((request) => /assets\/images\//.test(request)), false);
     assert.deepStrictEqual(errors, []);
     // Small-screen UI and resizes keep pointer coordinates and projected badges aligned.
@@ -147,6 +149,8 @@ async function main() {
     await page.screenshot({ path: path.join(output, 'small-screen-retry.png') });
     const dimensions = await page.evaluate(() => ({ state: window.__spellGame.state.width, hud: window.__spellGame.renderer.hud.width, css: document.getElementById('game').clientWidth }));
     assert.strictEqual(dimensions.state, dimensions.css); assert.strictEqual(dimensions.hud, dimensions.css);
+    const hanzi = await checkHanziMode(page, output);
+    const speedControls = await checkSpeedControls(page, output);
     // Execute the actual shipping bundle with no document/window, forcing WebGL 1.
     const wxPage = await browser.newPage({ viewport: { width: 375, height: 667 } });
     const nativeErrors = [];
@@ -184,7 +188,7 @@ async function main() {
       const tick = (frames) => { for (let i = 0; i < frames; i += 1) { time += 1000 / 60; const next = queued; if (next) next(); } };
       const tap = (x, y) => { callbacks.start({ touches: [{ identifier: 1, clientX: x, clientY: y }] }); callbacks.end({ changedTouches: [{ identifier: 1, clientX: x, clientY: y }] }); };
       if (modals.length) return { modals, contextName };
-      tap(180, 450); tick(1); tap(180, 667 * 0.53 + 29); tick(65);
+      tap(180, 450); tick(1); tap(180, 667 * 0.53 + 72 + 29); tick(65);
       callbacks.start({ touches: [{ identifier: 1, clientX: 80, clientY: 400 }] }); callbacks.end({ changedTouches: [{ identifier: 1, clientX: 230, clientY: 400 }] }); tick(2);
       callbacks.hide(); callbacks.show(); tick(2);
       return { modals, contextName, castHit: audioEvents.includes('assets/audio/sfx-vanish.wav'), offscreenCanvases: count - 1, canvasWidth: canvas.width, solidShaders: [...shaders] };
@@ -193,6 +197,7 @@ async function main() {
     assert.deepStrictEqual(native.solidShaders, ['lambert'], 'shipping wx bundle supports devices without derivatives or sRGB extensions');
     assert.deepStrictEqual(nativeErrors, [], 'wx native canvas needs no DOM color conversion or invalid shader programs');
     await wxPage.screenshot({ path: path.join(output, 'wechat-webgl1-harness.png') });
+    const hanziWechat = await checkWechatHanzi(browser, url, bundle, output);
     // Reproduce the simulator's missing-derivatives capability, then a driver that
     // advertises support but actually fails the PBR fragment shader compilation.
     const compatibility = [];
@@ -221,7 +226,7 @@ async function main() {
       await restricted.goto(url); await restricted.waitForFunction(() => !!window.__spellGame);
       const restored = await restricted.evaluate((themeIds) => {
         const g = window.__spellGame; g.pause();
-        const s = g.state; s.healthNoticeVisible = false; s.screen = 'playing'; s.level = 6;
+        const s = g.state; s.start('normal', 'symbol'); s.healthNoticeVisible = false; s.screen = 'playing'; s.level = 6;
         const samples = [];
         for (const theme of themeIds) {
           s.themeOrder[5] = theme; s.director.startLevel(6, theme); s.enemies = [];
@@ -250,7 +255,7 @@ async function main() {
     await failurePage.addInitScript(() => { const get = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (name, options) { return name.includes('webgl') ? null : get.call(this, name, options); }; });
     await failurePage.goto(url); await failurePage.waitForSelector('#boot-error');
     assert.ok((await failurePage.locator('#boot-error').textContent()).includes('无法创建 3D 画布'));
-    const report = { browser: 'Google Chrome headless / macOS', shippingBundleBytes: Buffer.byteLength(bundle), metrics, themeScenes, peak, livePerformance, resourcePlateau: resources, wechatHarness: native, attackFeedback, compatibility, actualWechatSimulator: 'manual verification recorded separately in docs/3d-verification.md', physicalDevice: 'unverified' };
+    const report = { browser: 'Google Chrome headless / macOS', shippingBundleBytes: Buffer.byteLength(bundle), metrics, themeScenes, peak, livePerformance, resourcePlateau: resources, wechatHarness: native, hanzi, hanziWechat, speedControls, attackFeedback, compatibility, actualWechatSimulator: 'manual verification recorded separately in docs/3d-verification.md', physicalDevice: 'unverified' };
     fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2));
     console.log(JSON.stringify({ browser: report.browser, shippingBundleBytes: report.shippingBundleBytes, peakScenarios: peak.length, maximumCalls: Math.max(...peak.map((p) => p.calls)), maximumTriangles: Math.max(...peak.map((p) => p.triangles)), livePerformance, resourcePlateau: resources, wechatHarness: native, compatibility, actualWechatSimulator: report.actualWechatSimulator, physicalDevice: report.physicalDevice }, null, 2));
   } finally { if (browser) await browser.close(); await new Promise((resolve) => server.close(resolve)); }

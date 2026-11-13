@@ -3,6 +3,10 @@
 const { SYMBOLS } = require('../input/GestureRecognizer');
 const Enemy = require('../entities/Enemy');
 const { THEME_ORDER, getTheme } = require('./Themes');
+const GAME_MODES = require('../core/GameMode');
+const { createCharacterSequence, getStrokeCount } = require('../hanzi/Characters');
+const { spawnInterval, movementSpeed, MAX_ENEMIES } = require('../hanzi/Pacing');
+const { getHanziLayout } = require('../ui/HanziLayout');
 
 const LANES = [
   { x: 0.12, y: 0.2 },
@@ -212,24 +216,49 @@ class LevelDirector {
     this.startLevel(1);
   }
 
-  reset(width, height, level, themeId) {
+  reset(width, height, level, themeId, gameMode = GAME_MODES.SYMBOL, random = Math.random) {
     this.width = width || this.width;
     this.height = height || this.height;
-    this.startLevel(level || 1, themeId);
+    this.startLevel(level || 1, themeId, gameMode, random);
   }
 
-  startLevel(level, themeId) {
+  startLevel(level, themeId, gameMode = GAME_MODES.SYMBOL, random = Math.random) {
     const selectedLevel = Math.max(1, Math.min(this.levelCount, level || 1));
     this.level = selectedLevel;
     this.config = LEVELS[selectedLevel - 1];
+    this.gameMode = gameMode;
+    if (gameMode === GAME_MODES.HANZI) {
+      const base = this.config.timeline;
+      const sequence = createCharacterSequence(selectedLevel, base.length, random);
+      let time = 0;
+      this.config = { symbolDisplay: 'hanzi', timeline: base.map((spawn, index) => {
+        const delay = index === 0 ? Math.max(2, spawn.time * 2) : spawnInterval(spawn.time - base[index - 1].time, getStrokeCount(sequence[index - 1]));
+        time += delay;
+        return { ...spawn, symbols: [], character: sequence[index], strokeCount: getStrokeCount(sequence[index]), delay, time };
+      }) };
+    }
     this.theme = getTheme(themeId || THEME_ORDER[selectedLevel - 1]);
     this.themeId = this.theme.id;
     this.index = 0;
     this.total = this.config.timeline.length;
+    this.spawnClock = 0;
+    this.lastElapsed = 0;
   }
 
   update(elapsed, enemies) {
     const timeline = this.config.timeline;
+    if (this.gameMode === GAME_MODES.HANZI) {
+      const dt = Math.max(0, elapsed - this.lastElapsed);
+      this.lastElapsed = elapsed;
+      if (this.index >= timeline.length || enemies.filter((enemy) => !enemy.dead).length >= MAX_ENEMIES) return;
+      this.spawnClock += dt;
+      if (this.spawnClock >= timeline[this.index].delay) {
+        enemies.push(this.createEnemy(timeline[this.index], this.index));
+        this.index += 1;
+        this.spawnClock = 0; // A blocked queue never accumulates a catch-up burst.
+      }
+      return;
+    }
     while (this.index < timeline.length && elapsed >= timeline[this.index].time) {
       enemies.push(this.createEnemy(timeline[this.index], this.index));
       this.index += 1;
@@ -238,11 +267,17 @@ class LevelDirector {
 
   createEnemy(spawn, spawnIndex) {
     const lane = LANES[spawn.lane % LANES.length];
+    const x = lane.x * this.width;
+    const y = lane.y * this.height;
+    const heroRadius = Math.max(28, Math.min(this.width, this.height) * 0.07);
+    const heroY = getHanziLayout(this.width, this.height).heroY * this.height;
+    const travel = Math.hypot(this.width / 2 - x, heroY - y) - (spawn.radius || 24) - heroRadius * 0.72;
     return new Enemy({
-      x: lane.x * this.width,
-      y: lane.y * this.height,
-      speed: spawn.speed,
+      x,
+      y,
+      speed: spawn.character ? movementSpeed(spawn.speed, travel, spawn.strokeCount) : spawn.speed,
       symbols: spawn.symbols,
+      hanzi: spawn.character ? { character: spawn.character, strokeCount: spawn.strokeCount } : null,
       radius: spawn.radius,
       score: spawn.score,
       kind: spawn.kind,

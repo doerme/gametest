@@ -6,6 +6,7 @@ const ThemeFactory = require('./ThemeFactory');
 const HudLayer = require('./HudLayer');
 const WorldEffects = require('./WorldEffects');
 const { SCREENS } = require('../core/GameState');
+const GAME_MODES = require('../core/GameMode');
 
 class ThreeRenderer {
   constructor(platform, width, height) {
@@ -141,14 +142,15 @@ class ThreeRenderer {
   getGestureContext(state) {
     // Last rendered visibility, intersected with live queues at input time.
     const visible = new Set(this.anchors.filter((a) => a.visible).map((a) => a.enemy));
-    return { expectedSymbols: [...new Set(state.enemies.filter((enemy) => visible.has(enemy) && !enemy.dead).map((enemy) => enemy.symbols[0]))] };
+    const visibleEnemies = state.enemies.filter((enemy) => visible.has(enemy) && !enemy.dead);
+    return { visibleEnemies, expectedSymbols: [...new Set(visibleEnemies.filter((enemy) => !enemy.hanzi).map((enemy) => enemy.symbols[0]))] };
   }
 
   render(state, input, dt = 1 / 60) {
     this.visualTime += dt;
     const level = state.screen === SCREENS.LEVEL_TRANSITION ? Math.min(6, state.level + 1) : state.level;
     this.setTheme(state.getThemeId(level));
-    this.themes.update(this.theme, state.elapsed * 1.35, this.visualTime);
+    this.themes.update(this.theme, (state.gameMode === GAME_MODES.HANZI ? state.sceneElapsed : state.elapsed) * 1.35, this.visualTime);
     this.heroRoot.position.copy(this.toWorld(state.hero.x, state.hero.y));
     this.heroRoot.position.y = Math.sin(this.visualTime * 10) * 0.025;
     this.models.animate(this.hero, this.visualTime, state.heroAnimation, input.isDrawing);

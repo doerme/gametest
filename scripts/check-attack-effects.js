@@ -6,7 +6,7 @@ module.exports = async function checkAttackEffects(page, output, themes, prefix 
   const frames = [];
   for (const theme of themes) {
     await page.evaluate((themeId) => {
-      const g = window.__spellGame, s = g.state; g.pause();
+      const g = window.__spellGame, s = g.state; g.pause(); s.start('normal', 'symbol');
       s.healthNoticeVisible = false; s.level = 6; s.themeOrder[5] = themeId; s.screen = 'playing'; s.effects = []; s.enemies = []; s.feedback = null; s.score = 0; s.combo = 0; s.heroAnimation.cast = 0;
       s.director.startLevel(6, themeId); s.director.index = s.director.total; s.elapsed = 0;
       const species = [...new Set(s.director.theme.species)];

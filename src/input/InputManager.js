@@ -11,6 +11,8 @@ class InputManager {
     this.isDrawing = false;
     this.activeId = null;
     this.uiCaptured = false;
+    this.gestureContext = null;
+    this.gestureThreshold = 10;
     this.onGesture = null;
     this.onTap = null;
     this.bindings = [];
@@ -63,6 +65,8 @@ class InputManager {
     if (!point) return;
     this.activeId = this.id(source);
     this.uiCaptured = !!(this.options.isUiPoint && this.options.isUiPoint(point));
+    this.gestureContext = !this.uiCaptured && this.options.captureGestureContext ? this.options.captureGestureContext(point) : null;
+    this.gestureThreshold = this.options.getGestureThreshold ? this.options.getGestureThreshold(this.gestureContext) : 10;
     this.isDrawing = !this.uiCaptured;
     this.currentPath = [point];
     this.lastCompletedPath = null;
@@ -91,13 +95,15 @@ class InputManager {
     const first = completed[0];
     const displacement = Math.max(...completed.map((p) => Math.hypot(p.x - first.x, p.y - first.y)));
     const wasUi = this.uiCaptured;
-    this.lastCompletedPath = completed;
+    const context = this.gestureContext;
+    const threshold = this.gestureThreshold;
+    this.lastCompletedPath = wasUi ? null : completed;
     this.completedAt = Date.now();
     this.cancel();
-    if (displacement <= 10) {
+    if (displacement <= threshold) {
       if (this.onTap && (!wasUi || !this.options.isUiPoint || this.options.isUiPoint(completed[completed.length - 1]))) this.onTap(first);
     } else if (!wasUi && this.onGesture) {
-      this.onGesture(completed);
+      this.onGesture(completed, context);
     }
   }
 
@@ -110,6 +116,7 @@ class InputManager {
     this.currentPath = [];
     this.isDrawing = false;
     this.uiCaptured = false;
+    this.gestureContext = null;
     this.activeId = null;
   }
 

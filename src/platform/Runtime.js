@@ -8,7 +8,10 @@ function createRuntime() {
   function safe(key, value) { if (canvas[key] === undefined) { try { canvas[key] = value; } catch (_error) {} } }
   safe('style', {});
   safe('addEventListener', function () {}); safe('removeEventListener', function () {});
-  const size = () => wxApi ? { width: info.windowWidth, height: info.windowHeight } : { width: canvas.clientWidth || 375, height: canvas.clientHeight || 667 };
+  const size = () => {
+    const current = wxApi ? wxApi.getSystemInfoSync() : null;
+    return current ? { width: current.windowWidth, height: current.windowHeight } : { width: canvas.clientWidth || 375, height: canvas.clientHeight || 667 };
+  };
   return {
     wx: wxApi, canvas, pixelRatio: Math.min(info.pixelRatio || (typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1), 1.5),
     getSize: size,

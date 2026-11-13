@@ -50,7 +50,7 @@ for (let i = 0; i < 300; i += 1) {
 }
 assert.ok(accidentalMatches <= 15, 'random paths cannot become an always-successful spell');
 
-const game = new GameState(375, 667, null); game.start(); game.combo = 9;
+const game = new GameState(375, 667, null); game.start('normal', 'symbol'); game.combo = 9;
 game.enemies = [new Enemy({ x: 90, y: 100, symbols: ['right', 'down'] }), new Enemy({ x: 160, y: 100, symbols: ['right'] })];
 const wrong = [{ x: 100, y: 0 }, { x: 0, y: 0 }];
 game.handleGesture(wrong); assert.strictEqual(game.combo, 9); assert.strictEqual(game.gestureFailures, 1);

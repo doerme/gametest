@@ -13,6 +13,7 @@ const { getHanziLayout, contains } = require('../ui/HanziLayout');
 const { getStrokeMedian } = require('../hanzi/Characters');
 const { recognizeStroke } = require('../input/HanziStrokeRecognizer');
 const { sceneScale, FREEZE_DURATION } = require('../hanzi/Pacing');
+const HANZI_RECOGNITION = require('../hanzi/RecognitionPolicy');
 const { MIN_SPEED, MAX_SPEED, SPEED_STEP, DEFAULT_SPEED, findSpeedDirectionAtPoint } = require('../ui/SpeedControl');
 
 const SCREENS = {
@@ -311,7 +312,9 @@ class GameState {
 
     if (this.feedback) {
       this.feedback.age += dt;
-      if (this.feedback.age > (this.feedback.type === 'retry' ? 2 : 0.7)) {
+      const duration = this.feedback.type === 'retry' ? 2
+        : this.gameMode === GAME_MODES.HANZI && this.feedback.type === 'hit' ? HANZI_RECOGNITION.successFeedbackDuration : 0.7;
+      if (this.feedback.age > duration) {
         this.feedback = null;
       }
     }
@@ -664,9 +667,11 @@ class GameState {
     if (result.ignored) return result;
     if (!result.accepted) {
       this.gestureFailures += 1;
-      const protectedRetry = this.gestureFailures === 1;
+      const protectedRetry = this.gestureFailures <= HANZI_RECOGNITION.retryProtection;
       if (!protectedRetry) this.combo = 0;
-      this.feedback = { text: protectedRetry ? '跟着下一笔写，连击已保护' : '从圆点起笔，沿箭头再试一次', age: 0, type: 'retry', protected: protectedRetry };
+      const retriesRemaining = Math.max(0, HANZI_RECOGNITION.retryProtection - this.gestureFailures);
+      this.hanziGuideTime = 0;
+      this.feedback = { text: protectedRetry ? '沿箭头再试试，连击已保护 · 剩余' + retriesRemaining + '次' : '慢慢写，已完成的笔画都保留', age: 0, type: 'retry', protected: protectedRetry, retriesRemaining };
       if (this.sound && !protectedRetry) this.sound.play('miss');
       return result;
     }
@@ -675,7 +680,7 @@ class GameState {
     this.triggerCast(SYMBOLS.UNKNOWN);
     if (!target.dead) {
       this.triggerAttack(target);
-      this.feedback = { text: '写对了！第 ' + target.hanzi.strokeIndex + ' / ' + target.hanzi.strokeCount + ' 笔', age: 0, type: 'hit' };
+      this.feedback = { text: '真棒！完成第 ' + target.hanzi.strokeIndex + ' / ' + target.hanzi.strokeCount + ' 笔', age: 0, type: 'hit' };
       if (this.sound) this.sound.play('hit');
       return result;
     }

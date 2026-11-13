@@ -14,6 +14,7 @@ const { drawCharacter } = require('../hanzi/CanvasCharacter');
 const { drawHanziBoard } = require('../ui/HanziBoard');
 const { getHanziLayout } = require('../ui/HanziLayout');
 const { getSpeedControl, MIN_SPEED, MAX_SPEED } = require('../ui/SpeedControl');
+const { retryProtection } = require('../hanzi/RecognitionPolicy');
 
 function rounded(ctx, x, y, w, h, r, fill, stroke) {
   ctx.beginPath();
@@ -169,7 +170,10 @@ class HudLayer {
         symbols.forEach((s, i) => spell(c, s, 21 + i * Math.min(29, (w - 44) / symbols.length), h - 69, 17, '#e7d7ae'));
       }
       for (let i = 0; i < state.maxLives; i += 1) { const p = getHeartSlotPosition(w, h, i); this.heart(p.x, p.y, i < state.lives); }
-      this.text(state.gestureFailures === 0 ? '✧ 容错保护就绪' : '慢慢画，也可以', w - 18, h - 27, 11, '#afcec5', 'right');
+      const retriesRemaining = Math.max(0, retryProtection - state.gestureFailures);
+      const retryHint = hanzi ? retriesRemaining > 0 ? '✧ 连击保护剩余 ' + retriesRemaining + ' 次' : '慢慢写，笔画进度保留'
+        : state.gestureFailures === 0 ? '✧ 容错保护就绪' : '慢慢画，也可以';
+      this.text(retryHint, w - 18, h - 27, 11, '#afcec5', 'right');
       getItemSlots(w, h, state.items, state.gameMode).forEach((slot) => {
         rounded(c, slot.x, slot.y, slot.width, slot.height, 16, 'rgba(22,43,58,0.9)', '#9bb7b1');
         this.text(slot.type === 'healthPotion' ? '♥' : 'ϟ', slot.x + 22, slot.y + 23, 27, slot.type === 'healthPotion' ? '#f7a1a3' : '#c2a7f0', 'center', 'bold');
@@ -199,7 +203,7 @@ class HudLayer {
       this.text(state.screen === SCREENS.TITLE ? '指尖有魔法，勇气会发光' : theme.name, w / 2, h * 0.345, 15, '#c6ded1', 'center');
       const hint = hanzi ? '田字格描红 · 写完整个字消灭怪物' : level === 3 ? '新符咒 ○ · 留一点缺口也没关系' : level === 4 ? '新符咒 Z · 顺着折线画' : level === 5 ? '新符咒 M · 两边都能起笔' : level === 6 ? '新符咒 S · 跟着曲线画' : '按方向划箭头，V 和 L 照形状画';
       this.text(hint, w / 2, h * 0.425, Math.min(13, w / 29), '#e8d7b4', 'center');
-      this.text(hanzi ? '一年级上册 · 笔画越多，时间越充足' : '手势不必完美 · 首次失误保护连击', w / 2, h * 0.469, 11, '#a6c9bf', 'center');
+      this.text(hanzi ? '宽松描红 · 连续前三次失误保护连击' : '手势不必完美 · 首次失误保护连击', w / 2, h * 0.469, 11, '#a6c9bf', 'center');
       buttons.forEach((button, i) => {
         rounded(c, button.x, button.y, button.width, button.height, 17, i ? '#284657' : '#f2d6a1', i ? '#819f9c' : '#fff0c9');
         this.text(button.label, button.x + 20, button.y + button.height / 2, 18, i ? '#e7e9d6' : '#293f4b', 'left', 'bold');

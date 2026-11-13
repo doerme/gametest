@@ -7,6 +7,7 @@ const { getHanziLayout } = require('../src/ui/HanziLayout');
 const { getStartButtons, getContinueButton } = require('../src/ui/DifficultySelector');
 const { getStrokeMedian, getStrokeCount } = require('../src/hanzi/Characters');
 const { getSpeedControl } = require('../src/ui/SpeedControl');
+const { offset, shortened, wobbly } = require('../test/fixtures/hanzi-traces');
 
 async function dimensions(page) {
   await page.waitForFunction(() => {
@@ -48,10 +49,49 @@ async function fixture(page, character, options = {}) {
   }, { character, strokeCount: getStrokeCount(character), count: options.count || 1, strokeIndex: options.strokeIndex || 0, showcase: !!options.showcase });
 }
 
+async function checkLenientTracing(page, size, directory, width) {
+  await fixture(page, '水');
+  await page.evaluate(() => { window.__spellGame.state.combo = 8; });
+  await pointerStroke(page, getStrokeMedian('水', 0).slice(0, 5), size);
+  assert.strictEqual(await page.evaluate(() => window.__spellGame.input.lastCompletedPath), null, 'success immediately snaps to the standard green stroke');
+  assert.deepStrictEqual(await page.evaluate(() => { const s = window.__spellGame.state; return [s.hanziTarget.hanzi.strokeIndex, s.combo, s.score]; }), [1, 8, 0]);
+  const wrong = getStrokeMedian('水', 1).slice().reverse();
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    await pointerStroke(page, wrong, size);
+    assert.deepStrictEqual(await page.evaluate(() => {
+      const s = window.__spellGame.state;
+      return [s.hanziTarget.hanzi.strokeIndex, s.combo, s.feedback.protected, s.feedback.retriesRemaining, s.hanziGuideTime];
+    }), [1, 8, true, 3 - attempt, 0]);
+  }
+  await page.screenshot({ path: path.join(directory, 'retry-protection-' + width + '.png') });
+  const b = getHanziLayout(size.width, size.height).board;
+  await page.mouse.click(size.left + (b.x + b.width / 2) * size.scaleX, size.top + (b.y + b.height / 2) * size.scaleY);
+  assert.strictEqual(await page.evaluate(() => window.__spellGame.state.gestureFailures), 3);
+  await page.evaluate(() => window.__spellGame.resume());
+  const p = getStrokeMedian('水', 1)[0];
+  await page.mouse.move(size.left + (b.x + p.x * b.width) * size.scaleX, size.top + (b.y + p.y * b.height) * size.scaleY); await page.mouse.down();
+  await page.mouse.move(size.left + (b.x + b.width / 2) * size.scaleX, size.top + (b.y + b.height / 2) * size.scaleY);
+  await page.evaluate(() => window.__spellGame.pause()); await page.mouse.up();
+  assert.deepStrictEqual(await page.evaluate(() => { const s = window.__spellGame.state; return [s.gestureFailures, s.hanziTarget.hanzi.strokeIndex, s.combo]; }), [3, 1, 8]);
+  await pointerStroke(page, wrong, size);
+  assert.deepStrictEqual(await page.evaluate(() => { const s = window.__spellGame.state; return [s.combo, s.feedback.protected, s.hanziTarget.hanzi.strokeIndex]; }), [0, false, 1]);
+  await pointerStroke(page, wobbly(getStrokeMedian('水', 1)), size);
+  assert.strictEqual(await page.evaluate(() => window.__spellGame.input.lastCompletedPath), null);
+  assert.deepStrictEqual(await page.evaluate(() => { const s = window.__spellGame.state; return [s.gestureFailures, s.hanziTarget.hanzi.strokeIndex, s.score]; }), [0, 2, 0]);
+  await page.evaluate(() => { const g = window.__spellGame; g.state.updateAnimations(1.1); g.renderer.render(g.state, g.input, 0); });
+  assert.ok(await page.evaluate(() => window.__spellGame.state.feedback && window.__spellGame.state.feedback.text.includes('真棒')));
+  await page.screenshot({ path: path.join(directory, 'lenient-success-' + width + '.png') });
+  await pointerStroke(page, offset(getStrokeMedian('水', 2)), size);
+  await pointerStroke(page, shortened(getStrokeMedian('水', 3)), size);
+  assert.deepStrictEqual(await page.evaluate(() => { const s = window.__spellGame.state; return [s.enemies.length, s.combo, s.score]; }), [0, 1, 100]);
+  return { width, omittedHook: true, wobblyStroke: true, offsetStroke: true, shortenedStroke: true, threeProtectedRetries: true, fourthResetsCombo: true, canceledInputPreservesProtection: true, successFeedbackAt1_1Seconds: true };
+}
+
 async function checkHanziMode(page, output) {
   const directory = path.join(output, 'hanzi'); fs.mkdirSync(directory, { recursive: true });
   const originalViewport = page.viewportSize();
   const screenshots = [];
+  const lenientTracing = [];
   for (const viewport of [{ width: 390, height: 844 }, { width: 375, height: 667 }, { width: 320, height: 568 }]) {
     await page.setViewportSize(viewport);
     // Resize events may arrive on the next animation frame even while paused.
@@ -71,6 +111,7 @@ async function checkHanziMode(page, output) {
     const name = 'playing-' + viewport.width + '.png';
     await page.screenshot({ path: path.join(directory, name) });
     screenshots.push({ ...viewport, ...scene.stats, screenshot: 'hanzi/' + name });
+    lenientTracing.push(await checkLenientTracing(page, size, directory, viewport.width));
   }
 
   let size = await dimensions(page);
@@ -127,7 +168,7 @@ async function checkHanziMode(page, output) {
   assert.strictEqual(await page.evaluate(() => window.__spellGame.state.gameMode), 'hanzi');
   await page.evaluate(() => window.__spellGame.state.start('normal', 'symbol'));
   await page.setViewportSize(originalViewport);
-  return { screenshots, pointerStrokeOrder: true, completeCharacterRequired: true, lifecycleRetainsProgress: true, freeze, sixTransitions: true };
+  return { screenshots, lenientTracing, pointerStrokeOrder: true, completeCharacterRequired: true, lifecycleRetainsProgress: true, freeze, sixTransitions: true };
 }
 
 async function checkWechatHanzi(browser, url, bundle, output) {
@@ -137,13 +178,13 @@ async function checkWechatHanzi(browser, url, bundle, output) {
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto(url); await page.waitForFunction(() => !!window.__spellGame);
   const board = getHanziLayout(375, 667).board;
-  const pixels = (character, stroke) => getStrokeMedian(character, stroke).map((p) => ({ x: board.x + p.x * board.width, y: board.y + p.y * board.height }));
+  const pixels = (points) => points.map((p) => ({ x: board.x + p.x * board.width, y: board.y + p.y * board.height }));
   const button = getStartButtons(375, 667)[0];
   const speed = getSpeedControl(375);
   const result = await page.evaluate(({ code, button, one, two, speed }) => {
     window.__spellGame.destroy(); document.body.innerHTML = '';
     const canvas = document.createElement('canvas'); canvas.style.width = '375px'; canvas.style.height = '667px'; document.body.appendChild(canvas);
-    const callbacks = {}; const sounds = []; const modals = []; const speedLabels = []; let queued; let time = Date.now(); let count = 0;
+    const callbacks = {}; const sounds = []; const modals = []; const speedLabels = []; const retryHints = new Set(); let queued; let time = Date.now(); let count = 0;
     const RealDate = Date; class Clock extends RealDate { static now() { return time; } }
     const api = {
       getSystemInfoSync: () => ({ windowWidth: 375, windowHeight: 667, pixelRatio: 1.5 }),
@@ -165,7 +206,9 @@ async function checkWechatHanzi(browser, url, bundle, output) {
               context.__trackedSpeed = true;
               const fillText = context.fillText.bind(context);
               context.fillText = (text, ...args) => {
-                if (/^\d\.\d{2}×$/.test(text)) speedLabels.push(text);
+                const label = String(text);
+                if (/^\d\.\d{2}×$/.test(label)) speedLabels.push(label);
+                if (label.includes('连击已保护') || label.includes('已完成的笔画') || label.includes('真棒')) retryHints.add(label);
                 return fillText(text, ...args);
               };
             }
@@ -188,7 +231,8 @@ async function checkWechatHanzi(browser, url, bundle, output) {
     const vanished = () => sounds.filter((name) => name.endsWith('/sfx-vanish.wav')).length;
     if (modals.length) return { modals };
     tap(180, 450); tick(1); tap(button.x + button.width / 2, button.y + button.height / 2); tick(135);
-    stroke(one.slice().reverse()); const reversed = vanished();
+    for (let attempt = 0; attempt < 4; attempt += 1) stroke(one.slice().reverse());
+    const reversed = vanished();
     stroke(one); const completedOne = vanished();
     const tapSpeed = (rect) => { tap(rect.x + rect.width / 2, rect.y + rect.height / 2); tick(1); };
     for (let i = 0; i < 5; i += 1) tapSpeed(speed.plus);
@@ -199,8 +243,8 @@ async function checkWechatHanzi(browser, url, bundle, output) {
     callbacks.hide(); callbacks.show(); tick(2);
     callbacks.end({ changedTouches: [touch(two[1][two[1].length - 1])] }); tick(1);
     const canceled = vanished(); stroke(two[1]);
-    return { modals, reversed, completedOne, incompleteTwo, canceled, completedTwo: vanished(), offscreenCanvases: count - 1, speeds: [...new Set(speedLabels)], resumedSpeed: speedLabels[speedLabels.length - 1] };
-  }, { code: bundle, button, one: pixels('一', 0), two: [pixels('二', 0), pixels('二', 1)], speed });
+    return { modals, reversed, completedOne, incompleteTwo, canceled, completedTwo: vanished(), offscreenCanvases: count - 1, speeds: [...new Set(speedLabels)], resumedSpeed: speedLabels[speedLabels.length - 1], retryHints: [...retryHints] };
+  }, { code: bundle, button, one: pixels(wobbly(getStrokeMedian('一', 0))), two: [pixels(offset(getStrokeMedian('二', 0))), pixels(shortened(getStrokeMedian('二', 1)))], speed });
   assert.deepStrictEqual(result.modals, []);
   assert.strictEqual(result.reversed, 0);
   assert.strictEqual(result.completedOne, 1);
@@ -210,6 +254,9 @@ async function checkWechatHanzi(browser, url, bundle, output) {
   assert.strictEqual(result.offscreenCanvases, 2);
   assert.deepStrictEqual(result.speeds.slice().sort(), ['0.50×', '0.75×', '1.00×', '1.25×', '1.50×', '1.75×', '2.00×']);
   assert.strictEqual(result.resumedSpeed, '1.25×');
+  for (const remaining of [2, 1, 0]) assert.ok(result.retryHints.some((text) => text.includes('连击已保护') && text.includes('剩余' + remaining + '次')));
+  assert.ok(result.retryHints.some((text) => text.includes('已完成的笔画都保留')));
+  assert.ok(result.retryHints.some((text) => text.includes('真棒')));
   assert.deepStrictEqual(errors, []);
   await page.screenshot({ path: path.join(output, 'hanzi/wechat-webgl1.png') });
   await page.close();

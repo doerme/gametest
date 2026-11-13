@@ -31,7 +31,11 @@ function bootstrap() {
         || (state.gameMode === GAME_MODES.HANZI && !contains(getHanziLayout(size.width, size.height).board, point))
     });
     input.onGesture = (points, context) => {
-      if (!state.healthNoticeVisible) state.handleGesture(points, context || renderer.getGestureContext(state));
+      if (state.healthNoticeVisible) return;
+      if (state.gameMode === GAME_MODES.HANZI) {
+        const result = state.handleHanziStroke(points, context || {});
+        if (result.accepted) input.lastCompletedPath = null;
+      } else state.handleGesture(points, renderer.getGestureContext(state));
     };
     input.onTap = (point) => {
       if (state.healthNoticeVisible) state.healthNoticeVisible = false;

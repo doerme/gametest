@@ -58,7 +58,7 @@ function drawHanziBoard(hud, state, input) {
     c.strokeStyle = '#1c7974'; c.lineWidth = 5; c.lineCap = 'round'; c.lineJoin = 'round';
     c.beginPath(); path.forEach((point, index) => index ? c.lineTo(point.x, point.y) : c.moveTo(point.x, point.y)); c.stroke(); c.restore();
   }
-  hud.text(state.freezeRemaining > 0 ? 'ϟ 定身中 · ' + state.freezeRemaining.toFixed(1) + ' 秒' : '从圆点起笔 · 沿箭头写完这一笔', w / 2, b.y + b.height + 19, 11, state.freezeRemaining > 0 ? '#d7c0ff' : '#c6d9ce', 'center');
+  hud.text(state.freezeRemaining > 0 ? 'ϟ 定身中 · ' + state.freezeRemaining.toFixed(1) + ' 秒' : '沿着箭头写，大致像就可以', w / 2, b.y + b.height + 19, 11, state.freezeRemaining > 0 ? '#d7c0ff' : '#c6d9ce', 'center');
 }
 
 module.exports = { drawHanziBoard };

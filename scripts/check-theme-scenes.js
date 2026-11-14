@@ -3,6 +3,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const { THEMES } = require('../src/levels/Themes');
+const { getAudioToggleBounds } = require('../src/ui/AudioToggle');
 
 // Called by the GPU browser suite. Screenshots use the same composition as the
 // saved pre-upgrade baseline and do not depend on the run's shuffled theme order.
@@ -37,7 +38,8 @@ async function checkThemeScenes(page, output, themes) {
       assert.ok(result.anchors.every((a) => a.visible), theme + ' visible character anchors');
       assert.strictEqual(result.badges.length, 2);
       assert.ok(result.badges.every((b) => b.x >= 22 && b.x <= result.width - 22 && b.y >= 106 && b.y <= result.height - 165), theme + ' readable final badge placement');
-      assert.ok(result.badges.every((b) => b.x + 16 < result.width - 91 || b.x - 16 > result.width - 16 || b.y + 16 < 128 || b.y - 16 > 162), theme + ' badges avoid the audio button');
+      const audio = getAudioToggleBounds(result.width);
+      assert.ok(result.badges.every((b) => b.x + 16 < audio.x || b.x - 16 > audio.x + audio.width || b.y + 16 < audio.y || b.y - 16 > audio.y + audio.height), theme + ' badges avoid the audio button');
       const folder = viewport.width === 390 ? 'after' : viewport.width + 'x' + viewport.height;
       await page.screenshot({ path: path.join(directory, folder, theme + '.png') });
       samples.push({ theme, viewport, ...result });

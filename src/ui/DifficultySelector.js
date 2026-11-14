@@ -76,6 +76,15 @@ function getStartButtons(width, height) {
   ];
 }
 
+function getSelectionLayout(width, height, buttons = getStartButtons(width, height)) {
+  const last = buttons[buttons.length - 1];
+  const bottom = Math.max(height * 0.78, last.y + last.height + 18);
+  return {
+    buttons,
+    panel: { x: 16, y: height * 0.18, width: width - 32, height: bottom - height * 0.18 }
+  };
+}
+
 function findStartAtPoint(width, height, point) {
   return getStartButtons(width, height).find((button) => contains(button, point)) || null;
 }
@@ -90,6 +99,7 @@ module.exports = {
   getDifficultyButtons,
   findDifficultyAtPoint,
   getStartButtons,
+  getSelectionLayout,
   findStartAtPoint,
   getContinueButton
 };

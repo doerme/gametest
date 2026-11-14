@@ -2646,11 +2646,11 @@ class Renderer {
     ctx.strokeStyle = enabled ? '#ffdc6f' : 'rgba(216, 230, 255, 0.64)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(button.x, button.y, button.width, button.height, [17]);
+    ctx.roundRect(button.x, button.y, button.width, button.height, [10]);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = enabled ? '#ffdc6f' : '#d8e6ff';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = 'bold 11px sans-serif';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
     ctx.fillText(getSoundToggleLabel(enabled), button.x + button.width * 0.5, button.y + button.height * 0.5);

@@ -6,6 +6,47 @@ const { getSpeedControl } = require('../src/ui/SpeedControl');
 const { getContinueButton } = require('../src/ui/DifficultySelector');
 const { getAudioToggleBounds } = require('../src/ui/AudioToggle');
 
+async function checkBadgeStability(page, controls) {
+  return page.evaluate((controls) => {
+    const g = window.__spellGame; const s = g.state; const hud = g.renderer.hud;
+    const first = s.enemies[0]; const second = s.director.createEnemy(s.director.config.timeline[0], 1);
+    second.hanzi = first.hanzi ? { ...first.hanzi } : null; second.symbols = first.symbols.slice();
+    const size = first.hanzi ? 42 : 32;
+    const snapshot = () => [first, second].map((enemy) => { const p = hud.badges.get(enemy).position; return { x: p.x, y: p.y }; });
+    s.enemies = [first, second]; hud.badgeLayout.clear();
+    let previous; let maximumStep = 0; let overlap = false;
+    for (let frame = 0; frame < 240; frame += 1) {
+      const jitter = Math.sin(frame * 0.4) * 0.2;
+      const anchors = [{ enemy: first, x: s.width * 0.4, y: 181 + size / 2 + 6 + jitter, visible: true },
+        { enemy: second, x: s.width * 0.4 + 1, y: 181 + size / 2 + 6 - jitter, visible: true }];
+      hud.syncBadges(s, frame % 2 ? anchors.reverse() : anchors, 1 / 60);
+      const points = snapshot();
+      if (previous) points.forEach((p, i) => { maximumStep = Math.max(maximumStep, Math.hypot(p.x - previous[i].x, p.y - previous[i].y)); });
+      // The real meshes include the green selection frame; inspect every pair.
+      const boxes = (enemy) => { const group = hud.badges.get(enemy); return group.children.filter((mesh) => mesh.visible).map((mesh) => ({ x: group.position.x + mesh.position.x, y: group.position.y, w: mesh.scale.x, h: Math.abs(mesh.scale.y) })); };
+      for (const left of boxes(first)) for (const right of boxes(second)) {
+        if (Math.abs(left.x - right.x) < (left.w + right.w) / 2 && Math.abs(left.y - right.y) < (left.h + right.h) / 2) overlap = true;
+      }
+      previous = points;
+    }
+    // A head crosses the controls' lower boundary in half-pixel increments.
+    s.enemies = [first]; hud.badgeLayout.clear(); previous = null;
+    let boundaryStep = 0; let controlOverlap = false;
+    for (let frame = 0; frame < 240; frame += 1) {
+      hud.syncBadges(s, [{ enemy: first, x: s.width * 0.6, y: 110 + frame * 0.5 + size / 2 + 6, visible: true }], 1 / 60);
+      const group = hud.badges.get(first); const point = { x: group.position.x, y: group.position.y };
+      if (previous) boundaryStep = Math.max(boundaryStep, Math.hypot(point.x - previous.x, point.y - previous.y));
+      for (const mesh of group.children.filter((child) => child.visible)) {
+        const x = point.x + mesh.position.x - mesh.scale.x / 2; const y = point.y - Math.abs(mesh.scale.y) / 2;
+        for (const rect of controls) if (x < rect.x + rect.width && x + mesh.scale.x > rect.x && y < rect.y + rect.height && y + Math.abs(mesh.scale.y) > rect.y) controlOverlap = true;
+      }
+      previous = point;
+    }
+    hud.badgeLayout.clear(); g.renderer.render(s, g.input, 0);
+    return { frames: 480, maximumStep, boundaryStep, overlap, controlOverlap };
+  }, controls);
+}
+
 module.exports = async function checkSpeedControls(page, output) {
   const directory = path.join(output, 'speed'); fs.mkdirSync(directory, { recursive: true });
   const originalViewport = page.viewportSize();
@@ -58,6 +99,10 @@ module.exports = async function checkSpeedControls(page, output) {
         assert.strictEqual(await current(), 1.25);
         assert.strictEqual(await page.evaluate(() => window.__spellGame.state.hanziTarget.hanzi.strokeIndex), 1);
       }
+      const stability = await checkBadgeStability(page, [control.bounds, getAudioToggleBounds(size.width)]);
+      assert.ok(stability.maximumStep < 1 && stability.boundaryStep <= 0.501, 'moving badges slide without discrete row jumps');
+      assert.strictEqual(stability.overlap, false, 'neighboring badge meshes, including selection frames, do not overlap');
+      assert.strictEqual(stability.controlOverlap, false, 'badges stay below compact controls throughout movement');
       const layout = await page.evaluate(() => {
         const g = window.__spellGame;
         const badges = [];
@@ -67,14 +112,13 @@ module.exports = async function checkSpeedControls(page, output) {
         return { badges, stats: g.getStats() };
       });
       for (const badge of layout.badges) {
-        const b = control.bounds;
-        assert.ok(badge.x + badge.width <= b.x || badge.x >= b.x + b.width || badge.y + badge.height <= b.y || badge.y >= b.y + b.height, 'badges avoid speed controls');
+        for (const b of [control.bounds, getAudioToggleBounds(size.width)]) assert.ok(badge.x + badge.width <= b.x || badge.x >= b.x + b.width || badge.y + badge.height <= b.y || badge.y >= b.y + b.height, 'badges avoid compact speed and audio controls');
       }
       assert.strictEqual(layout.stats.textures, 2);
       assert.ok(layout.stats.calls <= 200 && layout.stats.triangles <= 100000);
       const name = (mode === 'hanzi' ? 'hanzi' : 'classic') + '-' + viewport.width + '.png';
       await page.screenshot({ path: path.join(directory, name) });
-      samples.push({ ...viewport, mode, speed: 1.25, screenshot: 'speed/' + name, ...layout.stats });
+      samples.push({ ...viewport, mode, speed: 1.25, screenshot: 'speed/' + name, stability, ...layout.stats });
 
       await page.evaluate(() => {
         const g = window.__spellGame; const s = g.state; s.enemies = []; s.director.index = s.director.total; s.update(0); g.renderer.render(s, g.input, 0.3);

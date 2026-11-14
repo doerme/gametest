@@ -348,7 +348,7 @@ assert.strictEqual(Renderer.getHeroSpriteFrame(99, { cast: 0.2, castAge: 0.18 },
 assert.strictEqual(Renderer.getHeroSpriteFrame(99, { cast: 0.2, castAge: 0.18, hurt: 0.52, hurtAge: 0 }, true), 0);
 
 const audioToggle = getAudioToggleBounds(375);
-assert.strictEqual(audioToggle.y, 128);
+assert.strictEqual(audioToggle.y, 98);
 assert.strictEqual(isAudioToggleHit(375, {
   x: audioToggle.x + audioToggle.width / 2,
   y: audioToggle.y + audioToggle.height / 2
@@ -517,6 +517,6 @@ sequenceOnlyRenderer.drawEffects([
     heartIndex: 3
   }
 ]);
-assert.deepStrictEqual(sequenceOnlyRadii, [[12], [17], [7], [7], [13], [11], [7], [4], [10], [8], [4], [10], [8]]);
+assert.deepStrictEqual(sequenceOnlyRadii, [[12], [10], [7], [7], [13], [11], [7], [4], [10], [8], [4], [10], [8]]);
 
 console.log('renderer.test.js passed');

@@ -5,6 +5,7 @@ const ModelFactory = require('./ModelFactory');
 const ThemeFactory = require('./ThemeFactory');
 const HudLayer = require('./HudLayer');
 const WorldEffects = require('./WorldEffects');
+const TitleCatPresentation = require('./TitleCatPresentation');
 const { SCREENS } = require('../core/GameState');
 const GAME_MODES = require('../core/GameMode');
 
@@ -34,6 +35,7 @@ class ThreeRenderer {
     this.sun = new THREE.DirectionalLight(0xffe6bd, 2.8); this.sun.position.set(-5, 10, 6); this.scene.add(this.sun);
     this.fill = new THREE.DirectionalLight(0xb6e7e4, 1.0); this.fill.position.set(6, 4, -5); this.scene.add(this.fill);
     this.hero = this.models.create('cat'); this.heroRoot = new THREE.Group(); this.heroRoot.add(this.hero); this.heroRoot.scale.setScalar(0.93); this.heroRoot.rotation.y = Math.PI; this.scene.add(this.heroRoot);
+    this.titleCat = new TitleCatPresentation(this.models, width, height);
     this.enemies = new Map(); this.pool = new Map(); this.retiring = []; this.anchors = []; this.visualTime = 0;
     this.effects = new WorldEffects(this.kit, this.scene, this.toWorld.bind(this), () => this.hero.getObjectByName('castTip').getWorldPosition(new THREE.Vector3()), this.getAttackPosition.bind(this), this.camera);
     this.hud = new HudLayer(platform, width, height, !this.renderer.capabilities.isWebGL2 && !this.renderer.extensions.has('EXT_sRGB')); this.resize(width, height);
@@ -52,6 +54,7 @@ class ThreeRenderer {
     const previous = this.kit.useCompatibleMaterial();
     const replace = (root) => root.traverse((node) => { if (node.material === previous) node.material = this.kit.solid; });
     replace(this.scene);
+    if (this.titleCat) replace(this.titleCat.scene);
     this.models.prefabs.forEach(replace);
     if (this.pool) this.pool.forEach((list) => list.forEach((entry) => replace(entry.root)));
     previous.dispose();
@@ -67,6 +70,7 @@ class ThreeRenderer {
     this.camera.position.set(0, Math.sin(angle) * distance, -3 + Math.cos(angle) * distance);
     this.camera.lookAt(0, 0, -3); this.camera.updateProjectionMatrix(); this.camera.updateMatrixWorld();
     this.hud.resize(width, height);
+    this.titleCat.resize(width, height);
   }
 
   setTheme(themeId) {
@@ -154,15 +158,20 @@ class ThreeRenderer {
     this.heroRoot.position.copy(this.toWorld(state.hero.x, state.hero.y));
     this.heroRoot.position.y = Math.sin(this.visualTime * 10) * 0.025;
     this.models.animate(this.hero, this.visualTime, state.heroAnimation, input.isDrawing);
-    this.syncEnemies(state, dt); this.effects.update(state.effects, this.visualTime); this.hud.update(state, input, this.anchors);
-    this.renderer.info.reset(); this.renderer.clear();
-    try { this.renderer.render(this.scene, this.camera); }
+    const titleVisible = state.screen === SCREENS.TITLE && !state.healthNoticeVisible;
+    this.titleCat.update(titleVisible, dt); this.heroRoot.visible = !titleVisible;
+    this.syncEnemies(state, dt); this.effects.update(state.effects, this.visualTime); this.hud.update(state, input, this.anchors, dt);
+    const draw = () => {
+      this.renderer.info.reset(); this.renderer.clear(); this.renderer.render(this.scene, this.camera);
+      this.renderer.clearDepth(); this.renderer.render(this.hud.scene, this.hud.camera);
+      this.titleCat.render(this.renderer);
+    };
+    try { draw(); }
     catch (error) {
       if (error.code !== 'SPELL_PBR_SHADER' || this.materialMode !== 'standard') throw error;
       this.useCompatibleMaterial('Standard material shader failed to compile', error.detail);
-      this.renderer.info.reset(); this.renderer.clear(); this.renderer.render(this.scene, this.camera);
+      draw();
     }
-    this.renderer.clearDepth(); this.renderer.render(this.hud.scene, this.hud.camera);
   }
 
   getStats() {
@@ -171,7 +180,7 @@ class ThreeRenderer {
   }
 
   dispose() {
-    this.effects.dispose(); this.hud.dispose(); if (this.theme) this.kit.disposeOwned(this.theme);
+    this.titleCat.dispose(); this.effects.dispose(); this.hud.dispose(); if (this.theme) this.kit.disposeOwned(this.theme);
     this.models.dispose(); this.kit.dispose(); this.renderer.dispose(); this.enemies.clear(); this.pool.clear(); this.retiring = [];
   }
 }

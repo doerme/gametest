@@ -5,11 +5,12 @@ const ATTACK = require('../core/AttackEffect');
 // One dynamic batch for every projectile, trail, ring and spark. No textures,
 // instancing extension or lit shaders are required by the wx WebGL 1 path.
 class AttackEffects {
-  constructor(scene, castOrigin, targetPosition, camera) {
+  constructor(scene, castOrigin, targetPosition, camera, maxActive = ATTACK.maxActive) {
     this.scene = scene; this.castOrigin = castOrigin; this.targetPosition = targetPosition; this.camera = camera;
+    this.maxActive = maxActive;
     this.active = new Map(); this.slots = []; this.cancelled = new WeakSet();
     this.geometry = new THREE.BufferGeometry();
-    const capacity = ATTACK.maxActive * 600;
+    const capacity = this.maxActive * 600;
     this.positions = new THREE.Float32BufferAttribute(new Float32Array(capacity * 3), 3).setUsage(THREE.DynamicDrawUsage);
     this.colors = new THREE.Float32BufferAttribute(new Float32Array(capacity * 4), 4).setUsage(THREE.DynamicDrawUsage);
     this.geometry.setAttribute('position', this.positions); this.geometry.setAttribute('color', this.colors); this.geometry.setDrawRange(0, 0);
@@ -92,7 +93,7 @@ class AttackEffects {
       if (!target) { const slot = this.active.get(effect); if (slot) this.release(effect, slot); this.cancelled.add(effect); continue; }
       let slot = this.active.get(effect);
       if (!slot) {
-        if (this.active.size >= ATTACK.maxActive) { this.cancelled.add(effect); continue; }
+        if (this.active.size >= this.maxActive) { this.cancelled.add(effect); continue; }
         slot = this.slots.find((entry) => !entry.effect);
         if (!slot) { slot = { origin: new THREE.Vector3(), position: new THREE.Vector3() }; this.slots.push(slot); }
         slot.effect = effect; slot.origin.copy(this.castOrigin()); this.active.set(effect, slot);

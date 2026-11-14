@@ -491,10 +491,10 @@ function createSpellGameScene(Phaser, runtime) {
     drawAudioToggle() {
       const button = getAudioToggleBounds(this.width);
       this.hudGraphics.fillStyle(0x0b1427, 0.72);
-      this.hudGraphics.fillRoundedRect(button.x, button.y, button.width, button.height, 17);
+      this.hudGraphics.fillRoundedRect(button.x, button.y, button.width, button.height, 10);
       this.hudGraphics.lineStyle(1, 0xffffff, 0.28);
-      this.hudGraphics.strokeRoundedRect(button.x, button.y, button.width, button.height, 17);
-      this.addHudText(button.x + button.width * 0.5, button.y + button.height * 0.5, RendererHelpers.getSoundToggleLabel(this.state.soundEnabled), 13, '#ffffff', 0.5, 0.5);
+      this.hudGraphics.strokeRoundedRect(button.x, button.y, button.width, button.height, 10);
+      this.addHudText(button.x + button.width * 0.5, button.y + button.height * 0.5, RendererHelpers.getSoundToggleLabel(this.state.soundEnabled), 11, '#ffffff', 0.5, 0.5);
     }
 
     drawHeartBar() {

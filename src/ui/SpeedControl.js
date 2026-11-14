@@ -7,12 +7,12 @@ const SPEED_STEP = 0.25;
 const DEFAULT_SPEED = 1;
 
 function getSpeedControl(width) {
-  const bounds = { x: 16, y: 123, width: Math.min(184, width - 123), height: 44 };
+  const bounds = { x: 16, y: 96, width: Math.min(148, width - 108), height: 32 };
   return {
     bounds,
-    minus: { x: bounds.x, y: bounds.y, width: 44, height: bounds.height },
-    display: { x: bounds.x + 44, y: bounds.y, width: bounds.width - 88, height: bounds.height },
-    plus: { x: bounds.x + bounds.width - 44, y: bounds.y, width: 44, height: bounds.height }
+    minus: { x: bounds.x, y: bounds.y, width: 32, height: bounds.height },
+    display: { x: bounds.x + 32, y: bounds.y, width: bounds.width - 64, height: bounds.height },
+    plus: { x: bounds.x + bounds.width - 32, y: bounds.y, width: 32, height: bounds.height }
   };
 }
 

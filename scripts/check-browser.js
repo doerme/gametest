@@ -10,6 +10,7 @@ const checkAttackEffects = require('./check-attack-effects');
 const checkThemeScenes = require('./check-theme-scenes');
 const { checkHanziMode, checkWechatHanzi } = require('./check-hanzi-mode');
 const checkSpeedControls = require('./check-speed-controls');
+const checkTitleCat = require('./check-title-cat');
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'output/three-qa');
 const themes = ['castle', 'ocean', 'penguinHotel', 'dinosaurPark', 'skyCity', 'seaTrain'];
@@ -39,6 +40,7 @@ async function main() {
     page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
     await page.goto(url); await page.waitForFunction(() => !!window.__spellGame);
     await page.mouse.click(195, 650); await page.screenshot({ path: path.join(output, 'title.png') });
+    const titleCat = await checkTitleCat(page, output);
     // Start via UI, then exercise a true two-event swipe through browser pointer input.
     await page.mouse.click(195, 844 * 0.53 + 72 + 29);
     await page.evaluate(() => { const g = window.__spellGame; g.pause(); g.state.enemies = [g.state.director.createEnemy(g.state.director.config.timeline[0], 0)]; g.state.director.index = g.state.director.total; g.renderer.render(g.state, g.input, 0); });
@@ -188,10 +190,11 @@ async function main() {
       const tick = (frames) => { for (let i = 0; i < frames; i += 1) { time += 1000 / 60; const next = queued; if (next) next(); } };
       const tap = (x, y) => { callbacks.start({ touches: [{ identifier: 1, clientX: x, clientY: y }] }); callbacks.end({ changedTouches: [{ identifier: 1, clientX: x, clientY: y }] }); };
       if (modals.length) return { modals, contextName };
-      tap(180, 450); tick(1); tap(180, 667 * 0.53 + 72 + 29); tick(65);
+      tap(180, 450); tick(1500); callbacks.hide(); time += 10000; callbacks.show(); tick(2);
+      tap(180, 667 * 0.53 + 72 + 29); tick(65);
       callbacks.start({ touches: [{ identifier: 1, clientX: 80, clientY: 400 }] }); callbacks.end({ changedTouches: [{ identifier: 1, clientX: 230, clientY: 400 }] }); tick(2);
       callbacks.hide(); callbacks.show(); tick(2);
-      return { modals, contextName, castHit: audioEvents.includes('assets/audio/sfx-vanish.wav'), offscreenCanvases: count - 1, canvasWidth: canvas.width, solidShaders: [...shaders] };
+      return { modals, contextName, titleFrames: 1500, castHit: audioEvents.includes('assets/audio/sfx-vanish.wav'), offscreenCanvases: count - 1, canvasWidth: canvas.width, solidShaders: [...shaders] };
     }, bundle);
     assert.deepStrictEqual(native.modals, []); assert.strictEqual(native.contextName, 'webgl'); assert.strictEqual(native.castHit, true); assert.strictEqual(native.offscreenCanvases, 2); assert.strictEqual(native.canvasWidth, 562);
     assert.deepStrictEqual(native.solidShaders, ['lambert'], 'shipping wx bundle supports devices without derivatives or sRGB extensions');
@@ -224,6 +227,7 @@ async function main() {
         };
       }, failure);
       await restricted.goto(url); await restricted.waitForFunction(() => !!window.__spellGame);
+      const menu = await checkTitleCat(restricted, output, failure + '-', [{ width: 390, height: 844 }]);
       const restored = await restricted.evaluate((themeIds) => {
         const g = window.__spellGame; g.pause();
         const s = g.state; s.start('normal', 'symbol'); s.healthNoticeVisible = false; s.screen = 'playing'; s.level = 6;
@@ -249,13 +253,13 @@ async function main() {
       await restricted.screenshot({ path: path.join(output, failure + '.png') });
       const attacks = await checkAttackEffects(restricted, output, themes, failure + '-');
       assert.deepStrictEqual(failures, [], 'projectiles and vertex alpha compile under WebGL 1');
-      compatibility.push({ failure, ...restored.stats, attackFrames: attacks.frames.length, attackPool: attacks.reuse }); await restricted.close();
+      compatibility.push({ failure, ...restored.stats, titleFrames: menu.samples.length, attackFrames: attacks.frames.length, attackPool: attacks.reuse }); await restricted.close();
     }
     const failurePage = await browser.newPage();
     await failurePage.addInitScript(() => { const get = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (name, options) { return name.includes('webgl') ? null : get.call(this, name, options); }; });
     await failurePage.goto(url); await failurePage.waitForSelector('#boot-error');
     assert.ok((await failurePage.locator('#boot-error').textContent()).includes('无法创建 3D 画布'));
-    const report = { browser: 'Google Chrome headless / macOS', shippingBundleBytes: Buffer.byteLength(bundle), metrics, themeScenes, peak, livePerformance, resourcePlateau: resources, wechatHarness: native, hanzi, hanziWechat, speedControls, attackFeedback, compatibility, actualWechatSimulator: 'manual verification recorded separately in docs/3d-verification.md', physicalDevice: 'unverified' };
+    const report = { browser: 'Google Chrome headless / macOS', shippingBundleBytes: Buffer.byteLength(bundle), titleCat, metrics, themeScenes, peak, livePerformance, resourcePlateau: resources, wechatHarness: native, hanzi, hanziWechat, speedControls, attackFeedback, compatibility, actualWechatSimulator: 'manual verification recorded separately in docs/3d-verification.md', physicalDevice: 'unverified' };
     fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2));
     console.log(JSON.stringify({ browser: report.browser, shippingBundleBytes: report.shippingBundleBytes, peakScenarios: peak.length, maximumCalls: Math.max(...peak.map((p) => p.calls)), maximumTriangles: Math.max(...peak.map((p) => p.triangles)), livePerformance, resourcePlateau: resources, wechatHarness: native, compatibility, actualWechatSimulator: report.actualWechatSimulator, physicalDevice: report.physicalDevice }, null, 2));
   } finally { if (browser) await browser.close(); await new Promise((resolve) => server.close(resolve)); }

@@ -2,10 +2,10 @@
 
 function getAudioToggleBounds(width) {
   return {
-    x: width - 91,
-    y: 128,
-    width: 75,
-    height: 34
+    x: width - 76,
+    y: 98,
+    width: 60,
+    height: 28
   };
 }
 

@@ -119,7 +119,7 @@ for (const [width, height] of [[390, 844], [375, 667], [320, 568]]) {
   const audio = getAudioToggleBounds(width);
   assert.ok(bounds.x >= 0 && bounds.x + bounds.width < audio.x);
   assert.ok(bounds.y + bounds.height < getHanziLayout(width, height).panel.y);
-  assert.ok(minus.width >= 44 && plus.width >= 44 && bounds.height >= 44);
+  assert.ok(minus.width >= 32 && plus.width >= 32 && bounds.height >= 32);
   assert.strictEqual(findSpeedDirectionAtPoint(width, center(minus)), -1);
   assert.strictEqual(findSpeedDirectionAtPoint(width, center(plus)), 1);
   assert.strictEqual(findSpeedDirectionAtPoint(width, center(display)), null);

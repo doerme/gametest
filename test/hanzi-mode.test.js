@@ -32,6 +32,8 @@ const selection = new GameState(375, 667);
 const buttons = getStartButtons(375, 667);
 assert.strictEqual(buttons.length, 2);
 selection.handleTap(center(buttons[0]));
+assert.strictEqual(selection.screen, SCREENS.HANZI_SELECTION);
+selection.startSelectedCurriculum();
 assert.strictEqual(selection.gameMode, GAME_MODES.HANZI);
 assert.strictEqual(selection.screen, SCREENS.PLAYING);
 selection.beginLevelTransition();

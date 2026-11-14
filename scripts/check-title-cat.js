@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { getStartButtons } = require('../src/ui/DifficultySelector');
 const { getAudioToggleBounds } = require('../src/ui/AudioToggle');
+const { getCurriculumSelectionLayout } = require('../src/ui/CurriculumSelector');
 
 module.exports = async function checkTitleCat(page, output, prefix = '', sizes = [{ width: 390, height: 844 }, { width: 375, height: 667 }, { width: 320, height: 568 }]) {
   const directory = path.join(output, 'title-cat'); fs.mkdirSync(directory, { recursive: true });
@@ -107,6 +108,10 @@ module.exports = async function checkTitleCat(page, output, prefix = '', sizes =
       });
       assert.strictEqual(liveSpell, true, 'entry is exercised during an in-flight projectile');
       await click(button);
+      if (button.gameMode === 'hanzi') {
+        assert.strictEqual(await page.evaluate(() => window.__spellGame.state.screen), 'hanzi-selection');
+        await click(getCurriculumSelectionLayout(rect.w, rect.h).start);
+      }
       const playing = await page.evaluate(() => { const g = window.__spellGame; return { mode: g.state.gameMode, screen: g.state.screen, active: g.renderer.titleCat.active,
         original: g.renderer.heroRoot.visible, shots: g.renderer.titleCat.attacks.active.size, stars: g.renderer.titleCat.sparks.visible }; });
       assert.deepStrictEqual(playing, { mode: button.gameMode, screen: 'playing', active: false, original: true, shots: 0, stars: false });

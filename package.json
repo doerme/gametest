@@ -1,7 +1,7 @@
 {
   "name": "game",
   "version": "1.0.0",
-  "description": "原创微信小游戏：符咒学院",
+  "description": "原创微信小游戏：符咒闯关",
   "main": "game.js",
   "directories": {
     "test": "test"

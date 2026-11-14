@@ -9,6 +9,7 @@ const { chromium } = require('playwright');
 const checkAttackEffects = require('./check-attack-effects');
 const checkThemeScenes = require('./check-theme-scenes');
 const { checkHanziMode, checkWechatHanzi } = require('./check-hanzi-mode');
+const { checkCurricula, checkWechatCurricula } = require('./check-hanzi-curricula');
 const checkSpeedControls = require('./check-speed-controls');
 const checkTitleCat = require('./check-title-cat');
 const root = path.resolve(__dirname, '..');
@@ -152,6 +153,7 @@ async function main() {
     const dimensions = await page.evaluate(() => ({ state: window.__spellGame.state.width, hud: window.__spellGame.renderer.hud.width, css: document.getElementById('game').clientWidth }));
     assert.strictEqual(dimensions.state, dimensions.css); assert.strictEqual(dimensions.hud, dimensions.css);
     const hanzi = await checkHanziMode(page, output);
+    const curricula = await checkCurricula(page, output);
     const speedControls = await checkSpeedControls(page, output);
     // Execute the actual shipping bundle with no document/window, forcing WebGL 1.
     const wxPage = await browser.newPage({ viewport: { width: 375, height: 667 } });
@@ -201,6 +203,7 @@ async function main() {
     assert.deepStrictEqual(nativeErrors, [], 'wx native canvas needs no DOM color conversion or invalid shader programs');
     await wxPage.screenshot({ path: path.join(output, 'wechat-webgl1-harness.png') });
     const hanziWechat = await checkWechatHanzi(browser, url, bundle, output);
+    const curriculaWechat = await checkWechatCurricula(browser, url, bundle, output);
     // Reproduce the simulator's missing-derivatives capability, then a driver that
     // advertises support but actually fails the PBR fragment shader compilation.
     const compatibility = [];
@@ -259,7 +262,7 @@ async function main() {
     await failurePage.addInitScript(() => { const get = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (name, options) { return name.includes('webgl') ? null : get.call(this, name, options); }; });
     await failurePage.goto(url); await failurePage.waitForSelector('#boot-error');
     assert.ok((await failurePage.locator('#boot-error').textContent()).includes('无法创建 3D 画布'));
-    const report = { browser: 'Google Chrome headless / macOS', shippingBundleBytes: Buffer.byteLength(bundle), titleCat, metrics, themeScenes, peak, livePerformance, resourcePlateau: resources, wechatHarness: native, hanzi, hanziWechat, speedControls, attackFeedback, compatibility, actualWechatSimulator: 'manual verification recorded separately in docs/3d-verification.md', physicalDevice: 'unverified' };
+    const report = { browser: 'Google Chrome headless / macOS', shippingBundleBytes: Buffer.byteLength(bundle), titleCat, metrics, themeScenes, peak, livePerformance, resourcePlateau: resources, wechatHarness: native, hanzi, hanziWechat, curricula, curriculaWechat, speedControls, attackFeedback, compatibility, actualWechatSimulator: 'manual verification recorded separately in docs/3d-verification.md', physicalDevice: 'unverified' };
     fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2));
     console.log(JSON.stringify({ browser: report.browser, shippingBundleBytes: report.shippingBundleBytes, peakScenarios: peak.length, maximumCalls: Math.max(...peak.map((p) => p.calls)), maximumTriangles: Math.max(...peak.map((p) => p.triangles)), livePerformance, resourcePlateau: resources, wechatHarness: native, compatibility, actualWechatSimulator: report.actualWechatSimulator, physicalDevice: report.physicalDevice }, null, 2));
   } finally {

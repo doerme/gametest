@@ -1,6 +1,201 @@
-{
-  "name": "统编语文一年级上册写字表",
-  "edition": "2024年8月第一版",
-  "source": "https://www.ciyu6.com/yinianji-1",
-  "characters": "一二三上口耳目手日火田禾六七八十九王午下去年了子大人可叶东西竹马牙用几四小鸟是天女开关先云雨虫山水力男土木心尺本刀不少中五风立正工厂门卫月儿头里见在我左右和也又才爸妈比巴长公只个多石出来半你有牛羊果白"
-}
+[
+  {
+    "id": "g1-s1",
+    "grade": 1,
+    "semester": 1,
+    "name": "统编语文一年级上册写字表",
+    "label": "一年级上学期",
+    "edition": "2024年8月第一版",
+    "source": "https://www.ciyu6.com/yinianji-1",
+    "characterCount": 100,
+    "charactersSha256": "84e8dbe589b5e10abc67bbf4c7cb4d1e82afa43314cd8e0f1598f745bcf55402",
+    "characters": "一二三上口耳目手日火田禾六七八十九王午下去年了子大人可叶东西竹马牙用几四小鸟是天女开关先云雨虫山水力男土木心尺本刀不少中五风立正工厂门卫月儿头里见在我左右和也又才爸妈比巴长公只个多石出来半你有牛羊果白"
+  },
+  {
+    "id": "g1-s2",
+    "grade": 1,
+    "semester": 2,
+    "name": "统编语文一年级下册写字表",
+    "label": "一年级下学期",
+    "edition": "2016年审定版",
+    "source": "https://github.com/TapXWorld/ChinaTextbook/blob/master/%E5%B0%8F%E5%AD%A6/%E8%AF%AD%E6%96%87/%E7%BB%9F%E7%BC%96%E7%89%88/%E4%B9%89%E5%8A%A1%E6%95%99%E8%82%B2%E6%95%99%E7%A7%91%E4%B9%A6%C2%B7%E8%AF%AD%E6%96%87%E4%B8%80%E5%B9%B4%E7%BA%A7%E4%B8%8B%E5%86%8C.pdf",
+    "characterCount": 200,
+    "charactersSha256": "1c597bd28bc4af8aef3ca165f026440d2edb7d194f6f711f9f1d49c47ed6e672",
+    "characters": "春冬风雪花飞入姓什么双国王方青清气晴情请生字左右红时动万吃叫主江住没以多会走北京广过各种样伙伴这太阳校金秋因为他地河说也听哥单居招呼快乐玩很当音讲行许思床前光低故乡色外看爸晚笑再午节叶米真分豆那着到高兴千成间迷造运池欢网古凉细夕李语香打拍跑足声身体之相近习远玉义首采无树爱尖角亮机台放鱼朵美直呀边呢吗吧加文次找平办让包钟丁元共已经坐要连百还舌点块非常往瓜进空病医别干奇七星吓怕跟家羊象都捉条爬姐您草房",
+    "verifiedPdfPages": [
+      126,
+      128
+    ],
+    "textbookSha256": "f258850beea340544d96c3f01c5ef023ec79fd516d5fec79736ea09565fca52e"
+  },
+  {
+    "id": "g2-s1",
+    "grade": 2,
+    "semester": 1,
+    "name": "统编语文二年级上册写字表",
+    "label": "二年级上学期",
+    "edition": "2017年审定版",
+    "source": "https://github.com/TapXWorld/ChinaTextbook/blob/master/%E5%B0%8F%E5%AD%A6/%E8%AF%AD%E6%96%87/%E7%BB%9F%E7%BC%96%E7%89%88/%E4%B9%89%E5%8A%A1%E6%95%99%E8%82%B2%E6%95%99%E7%A7%91%E4%B9%A6%C2%B7%E8%AF%AD%E6%96%87%E4%BA%8C%E5%B9%B4%E7%BA%A7%E4%B8%8A%E5%86%8C.pdf",
+    "characterCount": 250,
+    "charactersSha256": "58414649657ec6f28598aa7f30e26c3b03f71972f737e3deefe7fb975a5c2142",
+    "characters": "两哪宽顶眼睛肚皮孩跳变极片傍海洋作坏给带法如公它娃她毛更知识处园桥群队旗铜号领巾杨壮桐枫松柏棉杉化桂歌写丛深六熊猫九朋友季吹肥农事忙归戴辛苦称柱底杆秤做岁站船然画幅评奖纸报另及拿并封信今支圆珠笔灯电影哄先闭脸沉发窗沙依尽黄层照炉烟挂川南部些巨位向每升闪狗湾名胜迹央丽展现产份坡枝起客老收城市井观沿答渴喝话际脚面阵朗枯却第将难纷棵谢想盯言邻治怪楼年夜披轻利扁担志伍师军战士忘泼度龙炮穿始令刘民反村被关道兵危敢惊阴似野苍茫于论岸屋切久散步唱赶旺旁浑候谁汽食物爷就爪神活猪折张祝扎抓吵但哭车得秧苗汗急场伤路",
+    "verifiedPdfPages": [
+      120,
+      122
+    ],
+    "textbookSha256": "3b5a3fd64d4600563bca2dedc7e5b2c9e5eda7503ffb67d4e9da9461f9e86c71"
+  },
+  {
+    "id": "g2-s2",
+    "grade": 2,
+    "semester": 2,
+    "name": "统编语文二年级下册写字表",
+    "label": "二年级下学期",
+    "edition": "2017年审定版",
+    "source": "https://github.com/TapXWorld/ChinaTextbook/blob/master/%E5%B0%8F%E5%AD%A6/%E8%AF%AD%E6%96%87/%E7%BB%9F%E7%BC%96%E7%89%88/%E4%B9%89%E5%8A%A1%E6%95%99%E8%82%B2%E6%95%99%E7%A7%91%E4%B9%A6%C2%B7%E8%AF%AD%E6%96%87%E4%BA%8C%E5%B9%B4%E7%BA%A7%E4%B8%8B%E5%86%8C.pdf",
+    "characterCount": 250,
+    "charactersSha256": "b8a26b8c2569de505d6f9f3087737798497c008936e7ebdeb4dffe4cd5c8420c",
+    "characters": "诗童趁碧妆绿丝剪冲寻姑娘仔吐柳荡桃杏鲜邮递员原叔局堆认礼邓植格引注满休息锋昨冒留弯背洒温暖能桌味买具甘甜菜劳匹妹波纹像景恋舍求州华岛峡族谊齐奋贴街舟艾敬转团热闹贝壳甲骨钱币与财购烧茄烤鸭肉鸡蛋炒饭彩梦森拉结苹般精灵伞姨弟便教游戏母周围句补充药合死记屁股尿净屎幸使劲亡牢钻劝丢告筋疲图课摆座室交哈页抢嘻愿意麦该伯刻突掉湖莲穷荷绝含岭吴雷乌黑压垂户新迎扑指针帮助导永碰特积杯失洗澡容易浴桶扇慢遇兔安根痛最店决定商夫终完换期蛙卖搬倒籽泉破应整抽纺织编怎布消祖啊浓望蓝摘掏赛忆世界功复式简弄由觉值类艰弓炎害此",
+    "verifiedPdfPages": [
+      124,
+      126
+    ],
+    "textbookSha256": "db1ca598a2dea9072a8cb3f09977e77aa6e0d79545083f98c6c8a1c34c118019"
+  },
+  {
+    "id": "g3-s1",
+    "grade": 3,
+    "semester": 1,
+    "name": "统编语文三年级上册写字表",
+    "label": "三年级上学期",
+    "edition": "2018年审定版",
+    "source": "https://github.com/TapXWorld/ChinaTextbook/blob/master/%E5%B0%8F%E5%AD%A6/%E8%AF%AD%E6%96%87/%E7%BB%9F%E7%BC%96%E7%89%88/%E4%B9%89%E5%8A%A1%E6%95%99%E8%82%B2%E6%95%99%E7%A7%91%E4%B9%A6%C2%B7%E8%AF%AD%E6%96%87%E4%B8%89%E5%B9%B4%E7%BA%A7%E4%B8%8A%E5%86%8C.pdf",
+    "characterCount": 250,
+    "charactersSha256": "56bbb3f32def81cd688be3cf2617011b5eca47d8dc064a3d4186b855936bc70f",
+    "characters": "晨绒球汉艳服装扮静停孔雀粗落荒笛舞狂罚假互所够猜扬臂寒径斜霜赠盖菊残君橙送挑铺泥晶院墙印排列规则乱棕迟盒颜料票争仙闻勾紧洞油曲丰柴旧裙怜饿蜡烛伸忽板富颗奶旅咱偷救命拼扫胃管乎咬流泪准备等暴睡壁砍蜘蛛漂撞饱晒搭亲父啦响羽翠嘴悄吞哦捕蒲英盛耍喊欠钓而察拢掌趣喜断楚至孤帆饮初镜未磨遥银盘优淡浅错岩挺刺鼓数厚宝贵业滨灰飘渔遍躺载靠亚夏除踩洁脑袋严实挡视线坛显材软刮库妙演奏琴感受激击器滴敲鸣诉读虾麻勇蚂蚁短栽梨寸柔摇册朝雾蒙鼻总抖露湿吸猎翅膀重司庭登跌众弃持郊养粉谷粒男或者冻冷惜肯诚术斗焰刚烈离血仍取匆险",
+    "verifiedPdfPages": [
+      122,
+      123
+    ],
+    "textbookSha256": "02915a7db6517258434d370430bbf464a1dac6e17df97b90d707dc4ecf5cfedf"
+  },
+  {
+    "id": "g3-s2",
+    "grade": 3,
+    "semester": 2,
+    "name": "统编语文三年级下册写字表",
+    "label": "三年级下学期",
+    "edition": "2018年审定版",
+    "source": "https://github.com/TapXWorld/ChinaTextbook/blob/master/%E5%B0%8F%E5%AD%A6/%E8%AF%AD%E6%96%87/%E7%BB%9F%E7%BC%96%E7%89%88/%E4%B9%89%E5%8A%A1%E6%95%99%E8%82%B2%E6%95%99%E7%A7%91%E4%B9%A6%C2%B7%E8%AF%AD%E6%96%87%E4%B8%89%E5%B9%B4%E7%BA%A7%E4%B8%8B%E5%86%8C.pdf",
+    "characterCount": 250,
+    "charactersSha256": "571ec54b2d5da250e760af5344e30e9c23ba32c672508313a289225eea9b91f3",
+    "characters": "融燕鸳鸯惠崇芦芽梅溪泛减凑拂集聚形掠偶尔沾倦闲纤痕瓣蓬胀裂姿势仿佛随蹈止守株待宋耕触颈释其骄傲谦虚懦弱提尘讶捧代价鹿塘映欣赏匀致配传哎狮追叹符欲魂借酒何牧兄独异佳伟录保存约验捞阿欧洲社赵省县匠设计史创举且智慧历芬芳内醒寿苏强示昆修建组蜜蜂辨阻跨括检查确误途陌宇宙淌秘密栋梯铃乘绪篇越状狐狸腰零巧克肠继续抬烦墨染竿腾碎拨浪葫爽蘑菇表胆鬼理夺骂仇差付倍虽泡件皂廊剩碗悠若透娇扯仰串婴希呈幻诱润芒冰剑普通模型宁官汪参攻推迅速退轮煤铁必胡灿骑秒腿凶猛接庙威武镇性卷货夹夸务衬衫负责艺漏喂胖驴贼狼莫厉抱架胶粘偏",
+    "verifiedPdfPages": [
+      124,
+      125
+    ],
+    "textbookSha256": "9878324d564f7cad317a052ef9a2178bba2f7cfe33c7abfba3f006a3cd7e4b35"
+  },
+  {
+    "id": "g4-s1",
+    "grade": 4,
+    "semester": 1,
+    "name": "统编语文四年级上册写字表",
+    "label": "四年级上学期",
+    "edition": "2019年审定版",
+    "source": "https://github.com/TapXWorld/ChinaTextbook/blob/master/%E5%B0%8F%E5%AD%A6/%E8%AF%AD%E6%96%87/%E7%BB%9F%E7%BC%96%E7%89%88/%E4%B9%89%E5%8A%A1%E6%95%99%E8%82%B2%E6%95%99%E7%A7%91%E4%B9%A6%C2%B7%E8%AF%AD%E6%96%87%E5%9B%9B%E5%B9%B4%E7%BA%A7%E4%B8%8A%E5%86%8C.pdf",
+    "characterCount": 250,
+    "charactersSha256": "9a6a9e0efb85570c677f2804d1b0e1f0073d547f60a29043efe593a7fea3ca61",
+    "characters": "潮据堤阔盼滚顿逐渐堵犹崩震霎余淘牵鹅卵坑洼填庄稼俗跃葡萄稻熟豌按舒适暗恐僵硬枪耐探愉曾沟蚊即科横竖绳系蝇证研究达驾驶唤纪技改程超亿核奥益联质哲任善暮吟题侧峰庐缘降费须逊输虎操占嫩顺均叠隙茎柄萎瞧固宅临慎选择址良穴厅卧专卫较睁翻斧劈缓浊丈撑竭累液奔茂滋帝曰溺返衔悲惨兽佩坚违抗环锁既狠著愤获嗅呆奈巢齿躯掩护幼搏庞量愣级链颤攀猴念辫呵摸甚跪捶绕顽脖脱概惹昏握摔凭掐班殷段俩练套裤逃亏挖撤堂砸锅否旋况兵败椅尤恨帅预溃品丑豪塞秦征词催醉杰亦雄项肃默晰振胸怀赞效凡顾训斥戎尝诸竞唯豹派娶媳妇淹逼浮旱徒扔饶骗灌溉",
+    "verifiedPdfPages": [
+      131,
+      132
+    ],
+    "textbookSha256": "0836b8e6449b2467ef13e1a54e61c2f163667de6f5d143107277213a4795dc33"
+  },
+  {
+    "id": "g4-s2",
+    "grade": 4,
+    "semester": 2,
+    "name": "统编语文四年级下册写字表",
+    "label": "四年级下学期",
+    "edition": "2019年审定版",
+    "source": "https://github.com/TapXWorld/ChinaTextbook/blob/master/%E5%B0%8F%E5%AD%A6/%E8%AF%AD%E6%96%87/%E7%BB%9F%E7%BC%96%E7%89%88/%E4%B9%89%E5%8A%A1%E6%95%99%E8%82%B2%E6%95%99%E7%A7%91%E4%B9%A6%C2%B7%E8%AF%AD%E6%96%87%E5%9B%9B%E5%B9%B4%E7%BA%A7%E4%B8%8B%E5%86%8C.pdf",
+    "characterCount": 250,
+    "charactersSha256": "bfece565fa24c724b259b584bfdccedd1c2a7736a1f9c42c1c610e413284f4ca",
+    "characters": "杂稀篱蜻蜓蝶宿徐疏茅檐翁笼赖剥构饰蹲凤序例率觅耸踏倘绘谐寄眠慰藉卜锐滩帐烁蝙蝠霸鹰怒吼脂拭餐划晌辣渗挣番埋刷测详笨钝鸽毫凌末描隧态吨颅膨肢翼辟纳拥箱臭蔬碳钢隐健康胞疾防灶需繁漫灭藤萝膝涛躲瓶挤叉挥桦涂茸绣潇穗朦胧寂霞抹忧虑贪职屏蹭稿腔解闷蛇遭殃盆勃讨厌坝忠毒绩孵警戒歪咕汤掘伏啼吠促颇剧苟譬侍馆附脾敏捷昂供添扩范努刹烂替镶紫仅浙罗杜鹃窄郁肩臀移额陆乳笋端源囊萤恭勤博贫焉逢卒晋炕铅呜哩栓胳膊劫绸扒敌尸趁慌芙蓉洛壶雁砚乾坤伦腹剖窟窿混嘶维秩岗宰措遣践介绍妖矩乖撵烫丫拽福舔葵瘦棒罢硕允砌牌禁惩踪啸私颊拆",
+    "verifiedPdfPages": [
+      145,
+      146
+    ],
+    "textbookSha256": "91dba9d3159295266c958f6ab3e4470781738627f212f2d9d484a8b9ef4bea1c"
+  },
+  {
+    "id": "g5-s1",
+    "grade": 5,
+    "semester": 1,
+    "name": "统编语文五年级上册写字表",
+    "label": "五年级上学期",
+    "edition": "2019年审定版",
+    "source": "https://github.com/TapXWorld/ChinaTextbook/blob/master/%E5%B0%8F%E5%AD%A6/%E8%AF%AD%E6%96%87/%E7%BB%9F%E7%BC%96%E7%89%88/%E4%B9%89%E5%8A%A1%E6%95%99%E8%82%B2%E6%95%99%E7%A7%91%E4%B9%A6%C2%B7%E8%AF%AD%E6%96%87%E4%BA%94%E5%B9%B4%E7%BA%A7%E4%B8%8A%E5%86%8C.pdf",
+    "characterCount": 220,
+    "charactersSha256": "edef9aa6c8f9df1313cfccfd952be2b88e131fc104cb36587371f12d8963263a",
+    "characters": "宜鹤嫌朱嵌框匣哨恩韵亩播浇吩咐亭榨慕矮谈懂兰箩婆糕饼浸缠茶捡汛访鞋挽隔懒惰稳衡协召臣议缺宫献诺典抄罪怯拒荆冠俯喷枚箭筒束赤圈置侵略筑堡党丘妨蔽陷拐酬珍叮嘱塌焦誓谎延悔扶郎爹嫂辆歹罕纱妻趟托溜婚辈挨祭乃熏杭亥恃哀拘泻潜试胎皇履疆毁估拱辉煌殿陵览境宏唐闯统销奉摄氏殖粮炭区杀菌疗鼠秀玲珑歇窝滑拾狭勉梳辞抑碌吊酷暑噪脊罩竟哇忍械酸权蚕考疼席糖屑启迪钉陪毕煮枕孙泊愁寺畔黎晕漆匆幕愈旷怡逸免桨榕纠耀桩涨塔梢暇眉抛耻诲谓诵岂舅津斩限凯葛述贾衰刊琐朴某",
+    "verifiedPdfPages": [
+      127,
+      128
+    ],
+    "textbookSha256": "a63e3a6636e0b4cd77a1e6434d85229ee40f13230fc841cd5f0f056853db7a3d"
+  },
+  {
+    "id": "g5-s2",
+    "grade": 5,
+    "semester": 2,
+    "name": "统编语文五年级下册写字表",
+    "label": "五年级下学期",
+    "edition": "2019年审定版",
+    "source": "https://github.com/TapXWorld/ChinaTextbook/blob/master/%E5%B0%8F%E5%AD%A6/%E8%AF%AD%E6%96%87/%E7%BB%9F%E7%BC%96%E7%89%88/%E4%B9%89%E5%8A%A1%E6%95%99%E8%82%B2%E6%95%99%E7%A7%91%E4%B9%A6%C2%B7%E8%AF%AD%E6%96%87%E4%BA%94%E5%B9%B4%E7%BA%A7%E4%B8%8B%E5%86%8C.pdf",
+    "characterCount": 180,
+    "charactersSha256": "37986c583be4a7cd8c791062d17736f64f5d149d1b0d78c7b2d10c8ed17b09ff",
+    "characters": "昼耘桑晓蝴蚂蚱嗡樱拔瞎铲锄割尾承拴瓢逛妒忌曹督委鲁遮寨擂呐插冈饥碟斤俺榜杖申兼勿拖悉坠膛截仞岳摩遗涕巫彭拟谋瑞损锻炼眷赴搞殊尊签革庆诊沃龄匪绷审剂施吭崭衷慈祥荣跤搂仗鞭欺挠扳腕剃腮疤监侄喉咙浆傅袱桶障芝圣犯馅轰堪诈傻捏怔矛盾誉吾赢拳擦策荐艘航肆帽桅撕逗唬钩扭咧舱鸥瞄尼斯艇纵艄翘垫帘姆祷雇簇哗码笼仪眺骏驰辽绵凳吆铛罐恢踢牲畜梁诣禽拇搔痒秽轧拧螺纽扣貌仓渺享庸憎",
+    "verifiedPdfPages": [
+      126,
+      127
+    ],
+    "textbookSha256": "3da72ca8f3e26934434a7283b45c5af22bcafaed2d4c91773435ce2266760e0b"
+  },
+  {
+    "id": "g6-s1",
+    "grade": 6,
+    "semester": 1,
+    "name": "统编语文六年级上册写字表",
+    "label": "六年级上学期",
+    "edition": "2019年审定版",
+    "source": "https://github.com/TapXWorld/ChinaTextbook/blob/master/%E5%B0%8F%E5%AD%A6/%E8%AF%AD%E6%96%87/%E7%BB%9F%E7%BC%96%E7%89%88/%E4%B9%89%E5%8A%A1%E6%95%99%E8%82%B2%E6%95%99%E7%A7%91%E4%B9%A6%C2%B7%E8%AF%AD%E6%96%87%E5%85%AD%E5%B9%B4%E7%BA%A7%E4%B8%8A%E5%86%8C.pdf",
+    "characterCount": 180,
+    "charactersSha256": "ed47e75398b02dc96912ce475a11016c4396423be55a3060ec09776418e720b8",
+    "characters": "毯玻璃裳虹蹄腐稍微缀窥幽雅案拙薄糊蕾恰襟恍怨德鹊蝉律崖渡索寇副榴弹抡贯棋悬沸涧雹屹悦迈屈政府宾盏栏汇爆宣阅制坦距隆射凛疙瘩棍裁筹橡雕跺颓沮丧溜趴屉谜尚氧倾揭斑燥漠磁素盗培咆哮嗓哑揪瞪呻废汹涌澎湃熄掀困唉淋嘿糟嘛皱勺棚苔藓坪蔗瀑增缝谚袖篷缩疯瓦柜喧甩嚷蒜酱唇蹦涯莺莹裹篮蔼资矿慷慨贡滥基睹哉巍弦锦曝矣谱莱茵盲纯键缕陶郑拜租厨毡羞撒缚猬伶俐窜搁综澄萍漾削瞬凝骤掷陡",
+    "verifiedPdfPages": [
+      135,
+      136
+    ],
+    "textbookSha256": "9916db7cc39a5f13df599a8e221399e6a92b7e28668b185ddb56673e94ea1192"
+  },
+  {
+    "id": "g6-s2",
+    "grade": 6,
+    "semester": 2,
+    "name": "统编语文六年级下册写字表",
+    "label": "六年级下学期",
+    "edition": "2019年审定版",
+    "source": "https://github.com/TapXWorld/ChinaTextbook/blob/master/%E5%B0%8F%E5%AD%A6/%E8%AF%AD%E6%96%87/%E7%BB%9F%E7%BC%96%E7%89%88/%E4%B9%89%E5%8A%A1%E6%95%99%E8%82%B2%E6%95%99%E7%A7%91%E4%B9%A6%C2%B7%E8%AF%AD%E6%96%87%E5%85%AD%E5%B9%B4%E7%BA%A7%E4%B8%8B%E5%86%8C.pdf",
+    "characterCount": 120,
+    "charactersSha256": "63b1f534282c5d6c7a557a23daacd63e3931d1eae67fd5654409e0655524e7bd",
+    "characters": "蒜醋饺摊拌眨宵燃贩彼贺轿骆驼恰腊粥咽匙盏搅稠肿熬褐缸脏筷侯皎章泣盈脉栖鸦惧凄寞宴霉籍聊乏栅控贷剔毙袭覆藏挪徘徊蒸裸媚砖蚁叨绊绞耽揉绽搓惶吻偎络锤凿焚稚避峻啪瞪僻瞅靴魔刑哼绑啃袍执彻迁泰迫批标牺炊葬援俱弗辩域惯圃盐溅蕊魏搜蚯蚓版阶脆拦玻璃恶怖",
+    "verifiedPdfPages": [
+      126,
+      126
+    ],
+    "textbookSha256": "5600e1bb3397c18313c77fef9be5cb6504bad45865d62a4520f3c0c6fd71f368"
+  }
+]

@@ -1,6 +1,14 @@
 {
   "deviceOrientation": "portrait",
   "showStatusBar": false,
+  "subpackages": [
+    { "name": "hanzi-grade-1", "root": "dist/wechat/hanzi/grade-1" },
+    { "name": "hanzi-grade-2", "root": "dist/wechat/hanzi/grade-2" },
+    { "name": "hanzi-grade-3", "root": "dist/wechat/hanzi/grade-3" },
+    { "name": "hanzi-grade-4", "root": "dist/wechat/hanzi/grade-4" },
+    { "name": "hanzi-grade-5", "root": "dist/wechat/hanzi/grade-5" },
+    { "name": "hanzi-grade-6", "root": "dist/wechat/hanzi/grade-6" }
+  ],
   "networkTimeout": {
     "request": 5000,
     "connectSocket": 5000,

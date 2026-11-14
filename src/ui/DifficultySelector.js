@@ -1,6 +1,7 @@
 'use strict';
 const GAME_MODES = require('../core/GameMode');
 const { contains } = require('./HanziLayout');
+const { getCurriculum } = require('../hanzi/Curricula');
 
 const DIFFICULTY_MODES = {
   NORMAL: 'normal',
@@ -71,7 +72,7 @@ function findDifficultyAtPoint(width, height, point) {
 function getStartButtons(width, height) {
   const buttons = getDifficultyButtons(width, height);
   return [
-    { ...buttons[0], mode: GAME_MODES.HANZI, gameMode: GAME_MODES.HANZI, label: '开始汉字模式', detail: '一年级 · 描红' },
+    { ...buttons[0], mode: GAME_MODES.HANZI, gameMode: GAME_MODES.HANZI, label: '开始汉字模式', detail: '选择字库' },
     { ...buttons[1], mode: GAME_MODES.SYMBOL, gameMode: GAME_MODES.SYMBOL, label: '经典模式', detail: '画符闯关' }
   ];
 }
@@ -89,8 +90,9 @@ function findStartAtPoint(width, height, point) {
   return getStartButtons(width, height).find((button) => contains(button, point)) || null;
 }
 
-function getContinueButton(width, height, gameMode = GAME_MODES.HANZI, speed = 1) {
-  return { ...getDifficultyButtons(width, height)[0], label: '继续下一关', detail: (gameMode === GAME_MODES.HANZI ? '汉字描红' : '经典模式') + ' · ' + speed.toFixed(2) + '×' };
+function getContinueButton(width, height, gameMode = GAME_MODES.HANZI, speed = 1, curriculumId) {
+  const curriculum = curriculumId && getCurriculum(curriculumId);
+  return { ...getDifficultyButtons(width, height)[0], label: '继续下一关', detail: (gameMode === GAME_MODES.HANZI ? curriculum ? curriculum.label.replace('学期', '') : '汉字描红' : '经典模式') + ' · ' + speed.toFixed(2) + '×' };
 }
 
 module.exports = {

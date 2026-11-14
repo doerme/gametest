@@ -5,6 +5,7 @@ const Enemy = require('../entities/Enemy');
 const { THEME_ORDER, getTheme } = require('./Themes');
 const GAME_MODES = require('../core/GameMode');
 const { createCharacterSequence, getStrokeCount } = require('../hanzi/Characters');
+const { DEFAULT_CURRICULUM_ID } = require('../hanzi/Curricula');
 const { spawnInterval, movementSpeed, MAX_ENEMIES } = require('../hanzi/Pacing');
 const { getHanziLayout } = require('../ui/HanziLayout');
 
@@ -216,20 +217,21 @@ class LevelDirector {
     this.startLevel(1);
   }
 
-  reset(width, height, level, themeId, gameMode = GAME_MODES.SYMBOL, random = Math.random) {
+  reset(width, height, level, themeId, gameMode = GAME_MODES.SYMBOL, random = Math.random, curriculumId = DEFAULT_CURRICULUM_ID) {
     this.width = width || this.width;
     this.height = height || this.height;
-    this.startLevel(level || 1, themeId, gameMode, random);
+    this.startLevel(level || 1, themeId, gameMode, random, curriculumId);
   }
 
-  startLevel(level, themeId, gameMode = GAME_MODES.SYMBOL, random = Math.random) {
+  startLevel(level, themeId, gameMode = GAME_MODES.SYMBOL, random = Math.random, curriculumId = DEFAULT_CURRICULUM_ID) {
     const selectedLevel = Math.max(1, Math.min(this.levelCount, level || 1));
     this.level = selectedLevel;
     this.config = LEVELS[selectedLevel - 1];
     this.gameMode = gameMode;
+    this.curriculumId = curriculumId;
     if (gameMode === GAME_MODES.HANZI) {
       const base = this.config.timeline;
-      const sequence = createCharacterSequence(selectedLevel, base.length, random);
+      const sequence = createCharacterSequence(selectedLevel, base.length, random, curriculumId);
       let time = 0;
       this.config = { symbolDisplay: 'hanzi', timeline: base.map((spawn, index) => {
         const delay = index === 0 ? Math.max(2, spawn.time * 2) : spawnInterval(spawn.time - base[index - 1].time, getStrokeCount(sequence[index - 1]));

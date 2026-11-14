@@ -7,6 +7,7 @@ const { getHanziLayout } = require('../src/ui/HanziLayout');
 const { getStartButtons, getContinueButton } = require('../src/ui/DifficultySelector');
 const { getStrokeMedian, getStrokeCount } = require('../src/hanzi/Characters');
 const { getSpeedControl } = require('../src/ui/SpeedControl');
+const { getCurriculumSelectionLayout } = require('../src/ui/CurriculumSelector');
 const { offset, shortened, wobbly } = require('../test/fixtures/hanzi-traces');
 
 async function dimensions(page) {
@@ -102,6 +103,10 @@ async function checkHanziMode(page, output) {
     assert.ok(button.y + button.height < size.height);
     await page.screenshot({ path: path.join(directory, 'title-' + viewport.width + '.png') });
     await page.mouse.click(size.left + (button.x + button.width / 2) * size.scaleX, size.top + (button.y + button.height / 2) * size.scaleY);
+    assert.strictEqual(await page.evaluate(() => window.__spellGame.state.screen), 'hanzi-selection');
+    await page.screenshot({ path: path.join(directory, 'curriculum-selection-' + viewport.width + '.png') });
+    const start = getCurriculumSelectionLayout(size.width, size.height).start;
+    await page.mouse.click(size.left + (start.x + start.width / 2) * size.scaleX, size.top + (start.y + start.height / 2) * size.scaleY);
     assert.deepStrictEqual(await page.evaluate(() => [window.__spellGame.state.gameMode, window.__spellGame.state.screen]), ['hanzi', 'playing']);
 
     const scene = await fixture(page, '是', { count: 2, strokeIndex: 3, showcase: true });
@@ -180,8 +185,9 @@ async function checkWechatHanzi(browser, url, bundle, output) {
   const board = getHanziLayout(375, 667).board;
   const pixels = (points) => points.map((p) => ({ x: board.x + p.x * board.width, y: board.y + p.y * board.height }));
   const button = getStartButtons(375, 667)[0];
+  const selectionStart = getCurriculumSelectionLayout(375, 667).start;
   const speed = getSpeedControl(375, { open: true });
-  const result = await page.evaluate(({ code, button, one, two, speed }) => {
+  const result = await page.evaluate(({ code, button, selectionStart, one, two, speed }) => {
     window.__spellGame.destroy(); document.body.innerHTML = '';
     const canvas = document.createElement('canvas'); canvas.style.width = '375px'; canvas.style.height = '667px'; document.body.appendChild(canvas);
     const callbacks = {}; const sounds = []; const modals = []; const speedLabels = []; const retryHints = new Set(); let queued; let time = Date.now(); let count = 0; let panelVisible = false;
@@ -231,7 +237,8 @@ async function checkWechatHanzi(browser, url, bundle, output) {
     const stroke = (points) => { callbacks.start({ touches: [touch(points[0])] }); points.slice(1, -1).forEach((p) => callbacks.move({ touches: [touch(p)] })); callbacks.end({ changedTouches: [touch(points[points.length - 1])] }); tick(2); };
     const vanished = () => sounds.filter((name) => name.endsWith('/sfx-vanish.wav')).length;
     if (modals.length) return { modals };
-    tap(180, 450); tick(1); tap(button.x + button.width / 2, button.y + button.height / 2); tick(135);
+    tap(180, 450); tick(1); tap(button.x + button.width / 2, button.y + button.height / 2); tick(1);
+    tap(selectionStart.x + selectionStart.width / 2, selectionStart.y + selectionStart.height / 2); tick(135);
     for (let attempt = 0; attempt < 4; attempt += 1) stroke(one.slice().reverse());
     const reversed = vanished();
     stroke(one); const completedOne = vanished();
@@ -249,7 +256,7 @@ async function checkWechatHanzi(browser, url, bundle, output) {
     callbacks.end({ changedTouches: [touch(two[1][two[1].length - 1])] }); tick(1);
     const canceled = vanished(); stroke(two[1]);
     return { modals, reversed, completedOne, incompleteTwo, canceled, completedTwo: vanished(), offscreenCanvases: count - 1, speeds: [...new Set(speedLabels)], resumedSpeed: speedLabels[speedLabels.length - 1], panelRestored, retryHints: [...retryHints] };
-  }, { code: bundle, button, one: pixels(wobbly(getStrokeMedian('一', 0))), two: [pixels(offset(getStrokeMedian('二', 0))), pixels(shortened(getStrokeMedian('二', 1)))], speed });
+  }, { code: bundle, button, selectionStart, one: pixels(wobbly(getStrokeMedian('一', 0))), two: [pixels(offset(getStrokeMedian('二', 0))), pixels(shortened(getStrokeMedian('二', 1)))], speed });
   assert.deepStrictEqual(result.modals, []);
   assert.strictEqual(result.reversed, 0);
   assert.strictEqual(result.completedOne, 1);

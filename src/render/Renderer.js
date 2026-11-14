@@ -6,6 +6,7 @@ const { THEME_IDS, getTheme } = require('../levels/Themes');
 const { DIFFICULTY_MODES, getDifficultyButtons } = require('../ui/DifficultySelector');
 const { getAudioToggleBounds } = require('../ui/AudioToggle');
 const { ITEM_TYPES, getHeartSlotPosition, getItemSlots } = require('../ui/ItemBar');
+const { GAME_TITLE } = require('../ui/Presentation');
 
 const ENEMY_ASSET_KEYS = {
   jellyfish: 'enemyJellyfish',
@@ -204,9 +205,6 @@ function getSoundToggleLabel(enabled) {
 function getComboTargets(effect) {
   return effect.targets || [];
 }
-
-// 界面大标题需与平台登记的小游戏名称一致，主题名只作为副标题展示
-const GAME_TITLE = '符咒闯关';
 
 function getTransitionCopy(visibleLevel, themeId) {
   const subtitle = getTheme(themeId).name;

@@ -10,6 +10,8 @@ const GAME_MODES = require('./core/GameMode');
 const { getHanziLayout, contains } = require('./ui/HanziLayout');
 const { isSpeedControlHit } = require('./ui/SpeedControl');
 const { createSpeedHintPreference } = require('./ui/SpeedHint');
+const { createCurriculumPreference } = require('./ui/CurriculumPreference');
+const { createCurriculumLoader } = require('./hanzi/CurriculumLoader');
 
 function bootstrap() {
   const platform = createRuntime();
@@ -17,7 +19,11 @@ function bootstrap() {
   try {
     let size = platform.getSize();
     const sound = new SoundManager(platform.wx);
-    const state = new GameState(size.width, size.height, sound, undefined, { speedHintPreference: createSpeedHintPreference(platform.wx) });
+    const state = new GameState(size.width, size.height, sound, undefined, {
+      speedHintPreference: createSpeedHintPreference(platform.wx),
+      curriculumPreference: createCurriculumPreference(platform.wx),
+      loadHanziCurriculum: createCurriculumLoader(platform.wx)
+    });
     state.healthNoticeVisible = true;
     renderer = new ThreeRenderer(platform, size.width, size.height);
     const input = new InputManager(platform.wx, platform.canvas, {
@@ -118,6 +124,7 @@ function bootstrap() {
       destroy() {
         if (destroyed) return;
         destroyed = true;
+        state.cancelCurriculumLoad();
         platform.cancelRaf(frameId);
         input.destroy();
         sound.destroy();

@@ -7,6 +7,7 @@ const { getContinueButton, getStartButtons } = require('../src/ui/DifficultySele
 const { getAudioToggleBounds } = require('../src/ui/AudioToggle');
 const { getItemSlots } = require('../src/ui/ItemBar');
 const { SPEED_HINT_KEY } = require('../src/ui/SpeedHint');
+const { getCurriculumSelectionLayout } = require('../src/ui/CurriculumSelector');
 
 async function checkBadgeStability(page, controls, boss = false) {
   return page.evaluate(({ controls, boss }) => {
@@ -64,6 +65,8 @@ async function checkOnboarding(page, directory) {
       await fresh.mouse.click(1, 1);
       const button = getStartButtons(390, 844)[0];
       await fresh.mouse.click(button.x + button.width / 2, button.y + button.height / 2);
+      const confirm = getCurriculumSelectionLayout(390, 844).start;
+      await fresh.mouse.click(confirm.x + confirm.width / 2, confirm.y + confirm.height / 2);
       await fresh.waitForFunction(() => window.__spellGame.state.screen === 'playing');
       await fresh.evaluate(() => { const g = window.__spellGame; g.pause(); g.renderer.render(g.state, g.input, 0); });
     };

@@ -118,6 +118,8 @@ assert.strictEqual(selection.timeScale, 1.5);
 
 const normalSelection = new GameState(375, 667, null);
 normalSelection.handleTap(centerOf(buttons[0]));
+assert.strictEqual(normalSelection.screen, SCREENS.HANZI_SELECTION);
+normalSelection.startSelectedCurriculum();
 assert.strictEqual(normalSelection.screen, SCREENS.PLAYING);
 assert.strictEqual(normalSelection.gameMode, 'hanzi');
 assert.strictEqual(normalSelection.difficulty, DIFFICULTY_MODES.NORMAL);
@@ -163,6 +165,8 @@ assert.strictEqual(replay.screen, SCREENS.TITLE);
 assert.strictEqual(replay.difficulty, null);
 assert.strictEqual(replay.timeScale, 1);
 replay.handleTap(centerOf(buttons[0]));
+assert.strictEqual(replay.screen, SCREENS.HANZI_SELECTION);
+replay.startSelectedCurriculum();
 assert.strictEqual(replay.screen, SCREENS.PLAYING);
 assert.strictEqual(replay.difficulty, DIFFICULTY_MODES.NORMAL);
 

@@ -10,7 +10,9 @@ const { ITEM_TYPES, getItemSlots, findItemAtPoint } = require('../ui/ItemBar');
 const ATTACK = require('./AttackEffect');
 const GAME_MODES = require('./GameMode');
 const { getHanziLayout, contains } = require('../ui/HanziLayout');
-const { getStrokeMedian } = require('../hanzi/Characters');
+const { getStrokeMedian, isCurriculumLoaded } = require('../hanzi/Characters');
+const { DEFAULT_CURRICULUM_ID, getCurriculum } = require('../hanzi/Curricula');
+const { findCurriculumAction } = require('../ui/CurriculumSelector');
 const { recognizeStroke } = require('../input/HanziStrokeRecognizer');
 const { sceneScale, FREEZE_DURATION } = require('../hanzi/Pacing');
 const HANZI_RECOGNITION = require('../hanzi/RecognitionPolicy');
@@ -19,6 +21,7 @@ const { SPEED_HINT_DURATION } = require('../ui/SpeedHint');
 
 const SCREENS = {
   TITLE: 'title',
+  HANZI_SELECTION: 'hanzi-selection',
   PLAYING: 'playing',
   LEVEL_TRANSITION: 'level-transition',
   WIN: 'win',
@@ -73,6 +76,14 @@ class GameState {
     this.sound = sound;
     this.random = random || Math.random;
     this.gameMode = GAME_MODES.HANZI;
+    this.hanziCurriculumId = DEFAULT_CURRICULUM_ID;
+    this.curriculumPreference = options.curriculumPreference;
+    this.selectedCurriculumId = (this.curriculumPreference && this.curriculumPreference.id) || DEFAULT_CURRICULUM_ID;
+    if (!getCurriculum(this.selectedCurriculumId)) this.selectedCurriculumId = DEFAULT_CURRICULUM_ID;
+    this.loadHanziCurriculum = options.loadHanziCurriculum || (() => Promise.reject(new Error('字库尚未加载')));
+    this.curriculumLoading = false;
+    this.curriculumLoadError = '';
+    this.curriculumLoadRequest = 0;
     this.themeOrder = createThemeOrder(this.random);
     this.hero = this.createHero(width, height);
     this.director = new LevelDirector(width, height);
@@ -145,7 +156,7 @@ class GameState {
       hurt: 0,
       hurtAge: 0
     };
-    this.director.reset(this.width, this.height, this.level, this.getThemeId(this.level), this.gameMode, this.random);
+    this.director.reset(this.width, this.height, this.level, this.getThemeId(this.level), this.gameMode, this.random, this.hanziCurriculumId);
   }
 
   getThemeId(level) {
@@ -156,8 +167,16 @@ class GameState {
     this.themeOrder = createThemeOrder(this.random);
   }
 
-  start(difficultyMode, gameMode = GAME_MODES.HANZI) {
+  start(difficultyMode, gameMode = GAME_MODES.HANZI, curriculumId = DEFAULT_CURRICULUM_ID) {
+    const selectedId = getCurriculum(curriculumId) ? curriculumId : DEFAULT_CURRICULUM_ID;
+    if (gameMode === GAME_MODES.HANZI && !isCurriculumLoaded(selectedId)) throw new Error('字库尚未加载：' + selectedId);
+    this.cancelCurriculumLoad();
     this.gameMode = gameMode === GAME_MODES.HANZI ? GAME_MODES.HANZI : GAME_MODES.SYMBOL;
+    if (this.gameMode === GAME_MODES.HANZI) {
+      this.hanziCurriculumId = selectedId;
+      this.selectedCurriculumId = selectedId;
+      if (this.curriculumPreference) this.curriculumPreference.save(selectedId);
+    }
     this.selectDifficulty(difficultyMode);
     this.resetRun();
     this.screen = SCREENS.PLAYING;
@@ -172,6 +191,43 @@ class GameState {
         this.sound.playMusic(this.getThemeId(this.level));
       }
     }
+  }
+
+  cancelCurriculumLoad() {
+    this.curriculumLoadRequest += 1;
+    this.curriculumLoading = false;
+    this.curriculumLoadError = '';
+  }
+
+  openCurriculumSelection() {
+    this.cancelCurriculumLoad();
+    this.selectedCurriculumId = (this.curriculumPreference && this.curriculumPreference.id) || this.hanziCurriculumId;
+    this.screen = SCREENS.HANZI_SELECTION;
+  }
+
+  startSelectedCurriculum() {
+    if (this.curriculumLoading || this.screen !== SCREENS.HANZI_SELECTION) return false;
+    const id = this.selectedCurriculumId;
+    const request = ++this.curriculumLoadRequest;
+    const current = () => this.curriculumLoadRequest === request && this.screen === SCREENS.HANZI_SELECTION && this.selectedCurriculumId === id;
+    const begin = () => {
+      if (!current()) return false;
+      this.start(DIFFICULTY_MODES.NORMAL, GAME_MODES.HANZI, id);
+      return true;
+    };
+    if (isCurriculumLoaded(id)) return begin();
+    this.curriculumLoading = true;
+    this.curriculumLoadError = '';
+    return Promise.resolve().then(() => this.loadHanziCurriculum(id)).then(() => {
+      if (!isCurriculumLoaded(id)) throw new Error('字库数据不完整');
+      return begin();
+    }).catch(() => {
+      if (current()) {
+        this.curriculumLoading = false;
+        this.curriculumLoadError = '字库加载失败，请检查网络后重试';
+      }
+      return false;
+    });
   }
 
   update(dt, context = {}) {
@@ -304,7 +360,7 @@ class GameState {
     this.feedback = null;
     this.enemies = [];
     this.effects = [];
-    this.director.startLevel(this.level, this.getThemeId(this.level), this.gameMode, this.random);
+    this.director.startLevel(this.level, this.getThemeId(this.level), this.gameMode, this.random, this.hanziCurriculumId);
     this.screen = SCREENS.PLAYING;
     if (this.sound) {
       this.sound.play('start');
@@ -493,7 +549,27 @@ class GameState {
     if (this.screen === SCREENS.TITLE) {
       const button = findStartAtPoint(this.width, this.height, point);
       if (button) {
-        this.start(DIFFICULTY_MODES.NORMAL, button.gameMode);
+        if (button.gameMode === GAME_MODES.HANZI) this.openCurriculumSelection();
+        else this.start(DIFFICULTY_MODES.NORMAL, button.gameMode);
+      }
+      return;
+    }
+
+    if (this.screen === SCREENS.HANZI_SELECTION) {
+      const action = findCurriculumAction(this.width, this.height, point);
+      if (!action) return;
+      if (action.type === 'back') {
+        this.cancelCurriculumLoad();
+        this.screen = SCREENS.TITLE;
+      } else if (action.type === 'start') {
+        this.startSelectedCurriculum();
+      } else {
+        const selected = getCurriculum(this.selectedCurriculumId);
+        const id = 'g' + (action.type === 'grade' ? action.value : selected.grade) + '-s' + (action.type === 'semester' ? action.value : selected.semester);
+        if (id !== this.selectedCurriculumId) {
+          this.cancelCurriculumLoad();
+          this.selectedCurriculumId = id;
+        }
       }
       return;
     }

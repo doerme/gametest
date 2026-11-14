@@ -7,15 +7,17 @@ const { getTheme } = require('../levels/Themes');
 const { getSelectionLayout, getContinueButton } = require('../ui/DifficultySelector');
 const { getAudioToggleBounds } = require('../ui/AudioToggle');
 const { getItemSlots, getHeartSlotPosition } = require('../ui/ItemBar');
-const { getSymbolIndicators } = require('../ui/Presentation');
+const { GAME_TITLE, getSymbolIndicators } = require('../ui/Presentation');
 const GAME_MODES = require('../core/GameMode');
-const { CHARACTERS, getStrokeCount } = require('../hanzi/Characters');
+const { getCurriculum } = require('../hanzi/Curricula');
+const { getCurriculumSelectionLayout } = require('../ui/CurriculumSelector');
 const { drawCharacter } = require('../hanzi/CanvasCharacter');
 const { drawHanziBoard } = require('../ui/HanziBoard');
 const { getHanziLayout } = require('../ui/HanziLayout');
 const { getSpeedControl, MIN_SPEED, MAX_SPEED, formatSpeed } = require('../ui/SpeedControl');
 const { retryProtection } = require('../hanzi/RecognitionPolicy');
 const BadgeLayout = require('../ui/BadgeLayout');
+const GlyphAtlas = require('./GlyphAtlas');
 
 function rounded(ctx, x, y, w, h, r, fill, stroke) {
   ctx.beginPath();
@@ -55,7 +57,7 @@ class HudLayer {
     this.material = this.canvasMaterial(this.texture);
     this.plane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.material);
     this.plane.position.z = 3; this.scene.add(this.plane);
-    this.badges = new Map(); this.glyphs = new Map();
+    this.badges = new Map();
     this.badgeLayout = new BadgeLayout();
     this.createAtlas();
     const positions = new Float32Array(2048 * 6 * 3);
@@ -67,16 +69,7 @@ class HudLayer {
   }
 
   createAtlas() {
-    const atlas = this.platform.createOffscreenCanvas(); atlas.width = 1024; atlas.height = 2048;
-    const ctx = atlas.getContext('2d');
-    const keys = Object.values(SYMBOLS).filter((s) => s !== 'unknown').concat('dot', Array.from({ length: 9 }, (_, i) => '+' + (i + 1)));
-    keys.push(...CHARACTERS.map((character) => 'hanzi:' + character));
-    [...new Set(CHARACTERS.map(getStrokeCount))].forEach((total) => {
-      for (let completed = 0; completed <= total; completed += 1) keys.push('progress:' + completed + '/' + total);
-    });
-    keys.push('focus');
-    keys.forEach((key, i) => {
-      const x = i % 10 * 100; const y = Math.floor(i / 10) * 100;
+    this.glyphAtlas = new GlyphAtlas(this.platform, (ctx, key, x, y) => {
       if (key === 'focus') {
         rounded(ctx, x + 4, y + 4, 92, 92, 20);
         ctx.strokeStyle = '#77f4bd'; ctx.lineWidth = 6; ctx.stroke();
@@ -88,14 +81,7 @@ class HudLayer {
         else if (key.startsWith('progress:')) { ctx.font = 'bold 30px sans-serif'; ctx.fillStyle = '#def1da'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(key.slice(9), x + 50, y + 51); }
         else spell(ctx, key, x + 22, y + 22, 56);
       }
-      const geometry = new THREE.PlaneGeometry(1, 1);
-      const uv = geometry.attributes.uv;
-      for (let j = 0; j < uv.count; j += 1) uv.setXY(j, (x + uv.getX(j) * 100) / atlas.width, 1 - (y + (1 - uv.getY(j)) * 100) / atlas.height);
-      this.glyphs.set(key, geometry);
-    });
-    this.atlas = new THREE.CanvasTexture(atlas); this.atlas.colorSpace = this.decodeCanvasSRGB ? THREE.NoColorSpace : THREE.SRGBColorSpace;
-    this.atlas.generateMipmaps = false; this.atlas.minFilter = THREE.LinearFilter;
-    this.badgeMaterial = this.canvasMaterial(this.atlas);
+    }, (texture) => this.canvasMaterial(texture), this.decodeCanvasSRGB);
   }
 
   canvasMaterial(texture) {
@@ -147,11 +133,12 @@ class HudLayer {
     const hanzi = state.gameMode === GAME_MODES.HANZI;
     const top = c.createLinearGradient(0, 0, 0, 140); top.addColorStop(0, 'rgba(15,31,45,0.94)'); top.addColorStop(1, 'rgba(15,31,45,0)');
     c.fillStyle = top; c.fillRect(0, 0, w, 140);
-    this.text('符咒学院', 20, 27, 19, '#ffedc8', 'left', 'bold');
-    this.text('SPELL ACADEMY', w - 20, 27, 9, '#bbd6d0', 'right');
+    this.text(GAME_TITLE, 20, 27, 19, '#ffedc8', 'left', 'bold');
+    this.text('SPELL QUEST', w - 20, 27, 9, '#bbd6d0', 'right');
     this.text(String(state.score).padStart(4, '0'), 20, 63, 28, '#ffffff', 'left', 'bold');
     this.text('第 ' + level + ' / 6 关' + (hanzi ? '  汉字' : '  经典'), w - 20, 56, 13, '#f6dfad', 'right');
-    this.text(theme.name, w - 20, 77, 12, '#c3d8d5', 'right');
+    const curriculum = getCurriculum(state.screen === SCREENS.HANZI_SELECTION ? state.selectedCurriculumId : state.hanziCurriculumId);
+    this.text(theme.name + (hanzi ? ' · ' + curriculum.label : ''), w - 20, 77, 12, '#c3d8d5', 'right');
     if (state.combo > 0 && state.screen === SCREENS.PLAYING && !hanzi) {
       const comboX = w - 166;
       const comboY = h - 146;
@@ -197,11 +184,13 @@ class HudLayer {
       c.fillStyle = 'rgba(13,30,43,0.97)'; c.fillRect(0, 0, w, h);
       this.text('健康游戏忠告', w / 2, h * 0.25, 28, '#ffe4ab', 'center', 'bold');
       ['抵制不良游戏，拒绝盗版游戏。', '注意自我保护，谨防受骗上当。', '适度游戏益脑，沉迷游戏伤身。', '合理安排时间，享受健康生活。'].forEach((line, i) => this.text(line, w / 2, h * 0.38 + i * 36, Math.min(17, w / 23), '#d4e2d9', 'center'));
-      this.text('点击屏幕，进入学院', w / 2, h * 0.74, 16, '#ffd990', 'center');
+      this.text('点击屏幕，开始闯关', w / 2, h * 0.74, 16, '#ffd990', 'center');
+    } else if (state.screen === SCREENS.HANZI_SELECTION) {
+      this.drawCurriculumSelection(state);
     } else if ([SCREENS.TITLE, SCREENS.LEVEL_TRANSITION].includes(state.screen)) {
-      const { buttons, panel } = getSelectionLayout(w, h, state.screen === SCREENS.TITLE ? undefined : [getContinueButton(w, h, state.gameMode, state.timeScale)]);
+      const { buttons, panel } = getSelectionLayout(w, h, state.screen === SCREENS.TITLE ? undefined : [getContinueButton(w, h, state.gameMode, state.timeScale, state.hanziCurriculumId)]);
       rounded(c, panel.x, panel.y, panel.width, panel.height, 28, 'rgba(16,35,49,0.90)', 'rgba(218,222,190,0.45)');
-      this.text(state.screen === SCREENS.TITLE ? '符咒学院' : '第 ' + level + ' 关', w / 2, h * 0.275, 38, '#ffe1a1', 'center', 'bold');
+      this.text(state.screen === SCREENS.TITLE ? GAME_TITLE : '第 ' + level + ' 关', w / 2, h * 0.275, 38, '#ffe1a1', 'center', 'bold');
       this.text(state.screen === SCREENS.TITLE ? '指尖有魔法，勇气会发光' : theme.name, w / 2, h * 0.345, 15, '#c6ded1', 'center');
       const hint = hanzi ? '田字格描红 · 写完整个字消灭怪物' : level === 3 ? '新符咒 ○ · 留一点缺口也没关系' : level === 4 ? '新符咒 Z · 顺着折线画' : level === 5 ? '新符咒 M · 两边都能起笔' : level === 6 ? '新符咒 S · 跟着曲线画' : '按方向划箭头，V 和 L 照形状画';
       this.text(hint, w / 2, h * 0.425, Math.min(13, w / 29), '#e8d7b4', 'center');
@@ -218,6 +207,27 @@ class HudLayer {
       this.text('点击屏幕，再来一局  ›', w / 2, h * 0.57, 15, '#bbd9cb', 'center');
     }
     this.texture.needsUpdate = true;
+  }
+
+  drawCurriculumSelection(state) {
+    const c = this.ctx;
+    const { panel, grades, semesters, start, back } = getCurriculumSelectionLayout(this.width, this.height);
+    const selected = getCurriculum(state.selectedCurriculumId);
+    const center = panel.x + panel.width / 2;
+    rounded(c, panel.x, panel.y, panel.width, panel.height, 24, 'rgba(16,35,49,0.97)', 'rgba(218,222,190,0.45)');
+    this.text('选择汉字字库', center, panel.y + 32, 26, '#ffe1a1', 'center', 'bold');
+    this.text('选好年级和学期，一起写字闯关', center, panel.y + 64, 12, '#bbd6d0', 'center');
+    const drawChoice = (button, active) => {
+      rounded(c, button.x, button.y, button.width, button.height, 12, active ? '#f2d6a1' : '#284657', active ? '#fff0c9' : '#65877f');
+      this.text(button.label, button.x + button.width / 2, button.y + button.height / 2, 16, active ? '#293f4b' : '#d4e2d9', 'center', 'bold');
+    };
+    grades.forEach((button) => drawChoice(button, button.grade === selected.grade));
+    semesters.forEach((button) => drawChoice(button, button.semester === selected.semester));
+    this.text(selected.label + ' · ' + selected.characterCount + ' 个会写字', center, panel.y + 274, 16, '#ffe2aa', 'center', 'bold');
+    this.text(state.curriculumLoadError || '六关练习 · 每关 22 字', center, panel.y + 295, 11, state.curriculumLoadError ? '#ffb7a7' : '#a6c9bf', 'center');
+    rounded(c, start.x, start.y, start.width, start.height, 14, state.curriculumLoading ? '#526b68' : '#f2d6a1', '#fff0c9');
+    this.text(state.curriculumLoading ? '正在加载字库…' : state.curriculumLoadError ? '重新加载字库' : '开始闯关', center, start.y + start.height / 2, 19, state.curriculumLoading ? '#e7e9d6' : '#293f4b', 'center', 'bold');
+    this.text('‹ 返回', center, back.y + back.height / 2, 14, '#c6ded1', 'center');
   }
 
   drawSpeedControl(state) {
@@ -265,6 +275,7 @@ class HudLayer {
     const point = input.currentPath && input.currentPath[input.currentPath.length - 1];
     const trailAge = (Date.now() - input.completedAt) / 1000;
     const key = [state.screen, state.healthNoticeVisible, state.level, state.getThemeId(state.screen === SCREENS.LEVEL_TRANSITION ? state.level + 1 : state.level), state.score, state.combo, state.lives, state.items.comboChain, state.items.healthPotion, state.soundEnabled, state.gestureFailures, state.difficulty, state.gameMode, state.timeScale, state.speedControlOpen, state.speedHintRemaining > 0,
+      state.hanziCurriculumId, state.selectedCurriculumId, state.curriculumLoading, state.curriculumLoadError,
       hanzi && [state.hanziRevision, state.hanziTarget && state.hanziTarget.hanzi.character, state.hanziTarget && state.hanziTarget.hanzi.strokeIndex, Math.floor(state.hanziGuideTime * 12), point && point.x, point && point.y, input.isDrawing, input.completedAt, trailAge < 0.28 && Math.floor(trailAge * 30)].join(':'),
       state.feedback && state.feedback.text, state.feedback && Math.floor(state.feedback.age * 20), uiEffects.map((e) => e.type + Math.floor(e.age * 20)).join(',')].join('|');
     if (this.lastKey !== key) { this.draw(state, input); this.lastKey = key; }
@@ -273,6 +284,11 @@ class HudLayer {
   }
 
   syncBadges(state, anchors, dt) {
+    if (this.atlasConfig !== state.director.config) {
+      this.badges.forEach((group) => this.scene.remove(group)); this.badges.clear();
+      this.badgeLayout.clear(); this.glyphAtlas.clear();
+      this.atlasConfig = state.director.config;
+    }
     const live = new Set(state.enemies);
     this.badges.forEach((group, enemy) => { if (!live.has(enemy)) { this.scene.remove(group); this.badges.delete(enemy); } });
     const audio = getAudioToggleBounds(this.width);
@@ -304,17 +320,19 @@ class HudLayer {
       items.push({ key: enemy, x: anchor.x, y: compactPanel ? badgeTop + (size + 8) / 2 : anchor.y - size / 2 - 6, width: indicators.length * gap + (hanzi ? 8 : 0), height: size + (hanzi ? 8 : 0) });
       indicators.forEach((indicator, i) => {
         const glyph = indicator.type === 'hanzi' ? 'hanzi:' + indicator.character : indicator.type === 'progress' ? 'progress:' + indicator.completed + '/' + indicator.total : indicator.type === 'symbol' ? indicator.symbol : indicator.type === 'dot' ? 'dot' : '+' + indicator.count;
+        const tile = this.glyphAtlas.get(glyph);
         let mesh = group.children[i];
-        if (!mesh) { mesh = new THREE.Mesh(this.glyphs.get(glyph), this.badgeMaterial); group.add(mesh); }
-        mesh.geometry = this.glyphs.get(glyph) || this.glyphs.get('+9'); mesh.visible = true;
+        if (!mesh) { mesh = new THREE.Mesh(tile.geometry, tile.material); group.add(mesh); }
+        mesh.geometry = tile.geometry; mesh.material = tile.material; mesh.visible = true;
         mesh.position.x = (i - (indicators.length - 1) / 2) * gap;
         mesh.scale.set(size, -size, 1);
       });
       group.children.forEach((child, i) => { child.visible = i < indicators.length; });
       if (enemy.hanzi && state.hanziTarget === enemy) {
+        const tile = this.glyphAtlas.get('focus');
         let frame = group.children[indicators.length];
-        if (!frame) { frame = new THREE.Mesh(this.glyphs.get('focus'), this.badgeMaterial); group.add(frame); }
-        frame.geometry = this.glyphs.get('focus'); frame.visible = true;
+        if (!frame) { frame = new THREE.Mesh(tile.geometry, tile.material); group.add(frame); }
+        frame.geometry = tile.geometry; frame.material = tile.material; frame.visible = true;
         frame.position.set(-(indicators.length - 1) / 2 * gap, 0, 0.1); frame.scale.set(size + 8, -size - 8, 1);
       }
     });
@@ -346,7 +364,7 @@ class HudLayer {
 
   dispose() {
     this.plane.geometry.dispose(); this.material.dispose(); this.texture.dispose();
-    this.glyphs.forEach((g) => g.dispose()); this.badgeMaterial.dispose(); this.atlas.dispose(); this.trailGeometry.dispose(); this.trailMaterial.dispose(); this.badges.clear();
+    this.glyphAtlas.clear(); this.trailGeometry.dispose(); this.trailMaterial.dispose(); this.badges.clear();
     this.badgeLayout.clear();
   }
 }

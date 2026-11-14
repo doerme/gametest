@@ -1,5 +1,6 @@
 'use strict';
 const createRuntime = require('./platform/Runtime');
+const enableWechatShare = require('./platform/WechatShare');
 const { GameState, SCREENS } = require('./core/GameState');
 const InputManager = require('./input/InputManager');
 const ThreeRenderer = require('./three/ThreeRenderer');
@@ -16,7 +17,9 @@ const { createCurriculumLoader } = require('./hanzi/CurriculumLoader');
 function bootstrap() {
   const platform = createRuntime();
   let renderer;
+  let disposeShare = () => {};
   try {
+    disposeShare = enableWechatShare(platform.wx);
     let size = platform.getSize();
     const sound = new SoundManager(platform.wx);
     const state = new GameState(size.width, size.height, sound, undefined, {
@@ -124,6 +127,7 @@ function bootstrap() {
       destroy() {
         if (destroyed) return;
         destroyed = true;
+        disposeShare();
         state.cancelCurriculumLoad();
         platform.cancelRaf(frameId);
         input.destroy();
@@ -147,6 +151,7 @@ function bootstrap() {
     frame();
     return game;
   } catch (error) {
+    disposeShare();
     if (renderer) renderer.dispose();
     platform.reportError(error);
     return null;

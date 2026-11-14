@@ -31,7 +31,8 @@ module.exports = async function checkTitleCat(page, output, prefix = '', sizes =
       const top = project(b.min.x, b.max.y, 0), bottom = project(b.max.x, b.min.y, 0);
       return { edge: cat.edge, phase: cat.phase, elapsed: cat.elapsed, castCount: cat.castCount,
         spell: cat.spell && cat.spell.type, projectile: cat.attacks.mesh.visible, stars: cat.sparks.visible,
-        catVisible: cat.root.visible, bounds: { x: (top.x + 1) / 2 * g.state.width, y: (1 - top.y) / 2 * h,
+        catVisible: cat.root.visible, eyesOpen: cat.cat.userData.catRig.eyes.scale.y, headTilt: cat.cat.userData.catRig.head.rotation.z, modelScale: cat.root.scale.x,
+        bounds: { x: (top.x + 1) / 2 * g.state.width, y: (1 - top.y) / 2 * h,
           right: (bottom.x + 1) / 2 * g.state.width, bottom: (1 - bottom.y) / 2 * h }, region: r,
         stats: g.getStats(), scissorRestored: !g.renderer.renderer.getScissorTest(),
         run: JSON.stringify([g.state.score, g.state.combo, g.state.lives, g.state.items, g.state.effects, g.state.elapsed]) };
@@ -49,8 +50,10 @@ module.exports = async function checkTitleCat(page, output, prefix = '', sizes =
       return sample;
     };
     const upper = await capture('upper', 1.9); assert.strictEqual(upper.castCount, 0);
+    assert.ok(Math.abs(upper.headTilt) > 0.05 && Math.abs(upper.headTilt) <= Math.PI / 45, 'title idle includes a gentle head tilt');
     const orb = await capture('orb', 2.34); assert.strictEqual(orb.spell, 'orb'); assert.strictEqual(orb.projectile, true);
     await capture('burst', 2.62);
+    const blink = await capture('blink', 3.88); assert.ok(blink.eyesOpen < 0.1); assert.strictEqual(blink.modelScale, upper.modelScale, 'expressions keep a stable screen size');
     const departure = await capture('jump', 6.14); assert.strictEqual(departure.phase, 'transition'); assert.strictEqual(departure.stars, true);
     const hidden = await advance(6.42); assert.strictEqual(hidden.catVisible, false, 'no cat crosses the panel while teleporting');
     const lower = await capture('lower', 7.1); assert.strictEqual(lower.edge, 'lower'); assert.strictEqual(lower.catVisible, true);

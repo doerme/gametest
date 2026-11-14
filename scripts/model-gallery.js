@@ -31,7 +31,7 @@ const setMode = (mode) => {
 function render() {
   if (!model) return;
   const state = document.getElementById('motion').value;
-  models.animate(model, time, { cast: state === 'cast' ? 1 : 0, hurt: state === 'hurt' ? 1 : 0 });
+  models.animate(model, time, { cast: state === 'cast' ? 1 : 0, hurt: state === 'hurt' ? 1 : 0, presentation: state === 'idle' ? 'title' : undefined });
   const size = box.getSize(new THREE.Vector3());
   const target = box.getCenter(new THREE.Vector3()); target.y = size.y * 0.48;
   const distance = Math.max(4.6, size.y * 2.3, size.x * 2.1, size.z * 2.2);

@@ -14,10 +14,11 @@ for (const { name, boss } of [{ name: 'cat' }, ...[...species].map((name) => ({ 
   const box = new THREE.Box3().setFromObject(model);
   assert.ok(box.max.y > 1 && box.max.y < 4, name + ' has a finite three-dimensional silhouette');
   assert.ok(box.max.z - box.min.z > 0.1, name + ' is a volume, not a flat image');
-  let calls = 0;
+  let calls = 0, triangles = 0;
   model.traverse((node) => {
     if (!node.isMesh) return;
     calls += 1; totalVertices += node.geometry.attributes.position.count;
+    triangles += (node.geometry.index ? node.geometry.index.count : node.geometry.attributes.position.count) / 3;
     assert.strictEqual(node.material.map, null, name + ' has no image texture');
     assert.ok(Array.from(node.geometry.attributes.position.array).every(Number.isFinite));
     assert.ok(Array.from(node.geometry.attributes.normal.array).every(Number.isFinite), 'finite normals after sculpting and baking');
@@ -25,7 +26,8 @@ for (const { name, boss } of [{ name: 'cat' }, ...[...species].map((name) => ({ 
       assert.strictEqual(node.geometry.attributes.color.count, node.geometry.attributes.position.count, 'complete vertex colors');
     }
   });
-  assert.ok(calls <= 12, name + ' merges static parts');
+  assert.ok(calls <= (name === 'cat' ? 16 : 12), name + ' merges static parts');
+  if (name === 'cat') assert.ok(triangles <= 16000, 'detailed cat stays within its geometry budget');
   models.animate(model, 1.1, { cast: 0.4 });
   const clone = models.create(name, !!boss);
   assert.notStrictEqual(clone, model);

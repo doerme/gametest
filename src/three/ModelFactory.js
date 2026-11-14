@@ -1,5 +1,6 @@
 'use strict';
 const THREE = require('three');
+const CatModel = require('./CatModel');
 
 const C = { ink: 0x172c3c, cream: 0xfff0d1, gold: 0xeab544, cyan: 0x43d8ed, purple: 0x74449b, orange: 0xee8a28 };
 const SPECIES = ['ghost', 'jellyfish', 'pufferfish', 'shark', 'megalodon', 'penguinBellhop', 'penguinChef', 'emperorPenguin', 'pterosaur', 'triceratops', 'brachiosaurus', 'tyrannosaurus', 'cloudWisp', 'wingedSentinel', 'templeGriffin', 'paperSpirit', 'waveLantern', 'trainConductor'];
@@ -52,47 +53,7 @@ class ModelFactory {
     }
   }
   cat(root) {
-    this.part(root, 'ball', C.cream, [0, 0.72, 0], [0.36, 0.49, 0.30]);
-      this.part(root, 'ball', 0xffdfac, [0, 1.36, 0], [0.55, 0.43, 0.39]);
-    for (const side of [-1, 1]) {
-      const ear = this.kit.outline('cat-ear', [[-0.15, 0], [0, 0.36], [0.19, 0.03]], 0.19);
-      this.part(root, ear, C.orange, [side * 0.36, 1.53, 0], [side, 1, 1]);
-      this.part(root, 'spike', 0xf0b0a1, [side * 0.36, 1.70, 0.11], [0.085, 0.21, 0.05]);
-      for (const z of [-0.26, 0.27]) {
-        this.part(root, 'ball', C.orange, [side * 0.45, 1.43, z], [0.14, 0.065, 0.08], [0, 0, side * 0.2]);
-        this.part(root, 'ball', C.orange, [side * 0.46, 1.27, z], [0.13, 0.045, 0.08]);
-      }
-      this.part(root, 'ball', C.cream, [side * 0.18, 1.21, 0.34], [0.22, 0.12, 0.12]);
-    }
-    for (let i = 0; i < 3; i += 1) this.part(root, 'ball', C.orange, [0, 1.22 + i * 0.17, -0.374], [0.11 - i * 0.013, 0.052, 0.022]);
-    this.face(root, 1.40, 0.345, 1.04);
-    this.part(root, 'spike', 0xce8b79, [0, 1.25, 0.47], [0.075, 0.09, 0.035], [0, 0, Math.PI]);
-    this.part(root, 'cylinder', 0xae794a, [0, 1.78, 0], [0.40, 0.05, 0.35]);
-    this.part(root, 'cylinder', 0xffd9a0, [0, 1.81, 0], [0.37, 0.045, 0.32]);
-    const hat = this.kit.bentCone('cat-curled-hat', [[0, 0, 0, 0], [0, 0.01, 0, 0.28], [0, 0.18, 0, 0.21], [-0.04, 0.37, 0, 0.14], [-0.13, 0.51, 0, 0.10], [-0.25, 0.55, 0, 0.067], [-0.32, 0.48, 0, 0.045], [-0.30, 0.42, 0, 0]]);
-    this.part(root, hat, 0xffdfaf, [0, 1.82, 0]);
-    this.part(root, 'cylinder', 0xad7349, [0, 1.87, 0], [0.275, 0.07, 0.26]);
-    const cape = this.joint(root, 'cape', [0, 1.02, -0.14], 'x', 0.08);
-    const cloak = this.kit.outline('cat-cloak', [[-0.19, 0.15], [0.19, 0.15], [0.44, -0.06], [0.57, -0.44], [0.24, -0.38], [0, -0.48], [-0.24, -0.38], [-0.57, -0.44], [-0.44, -0.06]], 0.12);
-    this.part(cape, cloak, C.purple, [0, 0, -0.13], undefined, [0.27, 0, 0]);
-    this.line(cape, 'cat-cape-gold', C.gold, [[-0.56, -0.44, -0.30], [-0.24, -0.38, -0.26], [0, -0.48, -0.29], [0.24, -0.38, -0.26], [0.56, -0.44, -0.30]], 0.023);
-    this.part(root, 'ring', C.gold, [0, 1.08, 0], [0.30, 0.26, 0.30], [Math.PI / 2, 0, 0]);
-    this.gem(root, [0, 1.03, 0.31], 0.075, C.gold);
-    this.feet(root, C.cream, 0.19);
-    const tail = this.joint(root, 'tail', [0.20, 0.46, -0.17], 'y', 0.34);
-    const tailPoints = [[0, 0, 0], [0.35, -0.08, -0.22], [0.62, 0.06, -0.36], [0.64, 0.32, -0.39], [0.52, 0.40, -0.37]];
-    this.line(tail, 'cat-striped-tail', C.cream, tailPoints, 0.10);
-    for (const [i, p] of [[0, [0.29, -0.07, -0.19]], [1, [0.56, -0.01, -0.32]], [2, [0.65, 0.22, -0.39]]]) this.part(tail, 'ball', C.orange, p, [0.11, 0.08, 0.11], [0, 0, i === 0 ? 0.8 : 0]);
-    for (const side of [-1, 1]) {
-      const arm = this.joint(root, side > 0 ? 'staff' : 'arm', [side * 0.33, 0.92, 0.02], 'x', 0.13, side);
-      this.part(arm, 'ball', C.cream, [side * 0.04, -0.15, 0.08], [0.14, 0.22, 0.15]);
-      if (side > 0) {
-        this.part(arm, 'cylinder', 0x80502f, [0.16, 0.27, 0.10], [0.043, 1.14, 0.043]);
-        this.part(arm, 'arc', C.gold, [0.16, 0.88, 0.10], [0.17, 0.23, 0.14]);
-        this.part(arm, 'ball', C.cyan, [0.16, 0.88, 0.10], [0.10, 0.12, 0.10], undefined, true);
-        this.kit.group(arm, 'castTip').position.set(0.16, 0.88, 0.10);
-      }
-    }
+    CatModel.build(this, root);
   }
   ghost(root, boss) {
     const body = boss ? 0xb889ff : 0xdbe7ff;
@@ -385,6 +346,12 @@ class ModelFactory {
     }
     const clone = this.prefabs.get(key).clone(true); clone.userData.joints = [];
     clone.traverse((node) => { if (node.userData.motion) clone.userData.joints.push(node); });
+    if (species === 'cat') {
+      CatModel.bind(clone);
+      const prefab = this.prefabs.get(key);
+      if (!prefab.userData.presentationBounds) prefab.userData.presentationBounds = CatModel.presentationBounds(clone, this.animate.bind(this));
+      clone.userData.presentationBounds = { min: prefab.userData.presentationBounds.min.slice(), max: prefab.userData.presentationBounds.max.slice() };
+    }
     return clone;
   }
   animate(model, time, animation = {}, drawing = false) {
@@ -397,6 +364,7 @@ class ModelFactory {
       if (joint.name === 'cape' && cast) joint.rotation.x = -0.12 + Math.sin(time * 10) * 0.05;
     });
     model.scale.y = hurt ? 0.94 + Math.sin(time * 30) * 0.06 : 1;
+    if (model.userData.catRig) CatModel.animate(model, time, animation, drawing);
   }
   dispose() { this.prefabs.forEach((root) => this.kit.disposeOwned(root)); this.prefabs.clear(); }
 }

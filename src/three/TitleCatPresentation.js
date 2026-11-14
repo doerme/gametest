@@ -24,8 +24,9 @@ class TitleCatPresentation {
     const sun = new THREE.DirectionalLight(0xffe5bd, 2.8); sun.position.set(-4, 8, 10); this.scene.add(sun);
     const fill = new THREE.DirectionalLight(0xb9edf1, 0.8); fill.position.set(5, 3, 8); this.scene.add(fill);
     this.cat = models.create('cat');
-    const bounds = this.cat.userData.bounds;
+    const bounds = this.cat.userData.presentationBounds || this.cat.userData.bounds;
     this.modelHeight = bounds.max[1] - bounds.min[1];
+    this.modelAspect = (bounds.max[0] - bounds.min[0]) / this.modelHeight;
     this.cat.position.y = -bounds.min[1];
     this.root = new THREE.Group(); this.root.add(this.cat); this.scene.add(this.root);
     this.bounds = new THREE.Box3(); this.scissor = new THREE.Vector4();
@@ -69,8 +70,8 @@ class TitleCatPresentation {
       lower: { x: 24, y: bottom - 3, width: width - 48, height: Math.max(24, height - 28 - (bottom - 3)) }
     };
     const desired = Math.min(92, width * 0.22);
-    const upperHeight = Math.min(desired, this.regions.upper.height - 14, this.regions.upper.width / 0.83);
-    const lowerHeight = Math.min(desired, this.regions.lower.height - 14);
+    const upperHeight = Math.min(desired, this.regions.upper.height - 14, (this.regions.upper.width - 6) / this.modelAspect);
+    const lowerHeight = Math.min(desired, this.regions.lower.height - 14, (this.regions.lower.width - 6) / this.modelAspect);
     this.anchors = {
       upper: { x: (left + right) / 2, footY: panel.y + 4, height: upperHeight },
       lower: { x: width * 0.66, footY: bottom + lowerHeight + 2, height: lowerHeight }
@@ -121,7 +122,7 @@ class TitleCatPresentation {
     const stroll = this.edge === 'upper' ? Math.min(4, this.regions.upper.width * 0.04) : 10;
     this.root.position.set((anchor.x + Math.sin(this.elapsed * 0.75) * stroll) * UNIT, (this.height - anchor.footY + hop) * UNIT, 0);
     this.root.rotation.y = -0.18 + Math.sin(this.elapsed * 0.8) * 0.22;
-    this.models.animate(this.cat, this.elapsed, { cast: this.spell ? 1 : 0 });
+    this.models.animate(this.cat, this.elapsed, { cast: this.spell ? 1 : 0, presentation: 'title' });
     // Rest the feet between small steps, while retaining the existing tail,
     // cape and staff articulation. The gameplay instance is untouched.
     const stepping = Math.sin(this.elapsed * 0.75) > 0.6;

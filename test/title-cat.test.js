@@ -9,7 +9,7 @@ const { getSelectionLayout, getStartButtons, getContinueButton } = require('../s
 
 const kit = new GeometryKit(), models = new ModelFactory(kit);
 const sharedCat = models.create('cat');
-const sharedGeometry = sharedCat.children.find((node) => node.isMesh).geometry;
+const sharedGeometry = sharedCat.getObjectByName('head').children.find((node) => node.isMesh).geometry;
 let sharedDisposed = 0; sharedGeometry.addEventListener('dispose', () => sharedDisposed++);
 
 for (const [width, height] of [[390, 844], [375, 667], [320, 568]]) {
@@ -22,11 +22,15 @@ for (const [width, height] of [[390, 844], [375, 667], [320, 568]]) {
   assert.strictEqual(continuation.buttons.length, 1);
   stage.update(false, 1); assert.strictEqual(stage.active, false); assert.strictEqual(stage.root.visible, false);
   stage.update(true, 0); assert.strictEqual(stage.edge, 'upper'); assert.strictEqual(stage.cat.rotation.y, 0, 'menu cat faces the viewer');
-  const edges = new Set(), types = [], phases = new Set(); let previousCount = 0, emitted = 0;
+  const edges = new Set(), types = [], phases = new Set(), perchScales = new Map(); let previousCount = 0, emitted = 0;
   const buffers = [stage.positions.array, stage.colors.array, stage.attacks.positions.array];
   for (let i = 0; i < 2400; i += 1) {
     stage.update(true, 1 / 60);
     edges.add(stage.edge); phases.add(stage.phase);
+    if (stage.phase === 'perch') {
+      if (!perchScales.has(stage.edge)) perchScales.set(stage.edge, stage.root.scale.x);
+      assert.strictEqual(stage.root.scale.x, perchScales.get(stage.edge), 'breathing, head tilt and casting never change the title scale');
+    }
     if (stage.castCount !== previousCount) { types.push(stage.spell.type); previousCount = stage.castCount; }
     if (stage.spell && stage.spell.emitted) emitted++;
     if (i < 118) assert.strictEqual(stage.castCount, 0, 'no spell before the initial two-second invitation');
@@ -58,7 +62,7 @@ for (const [width, height] of [[390, 844], [375, 667], [320, 568]]) {
   stage.update(false, 0); stage.update(true, 0);
   while (stage.edge !== 'lower') stage.update(true, 1 / 60);
   assert.strictEqual(stage.phase, 'transition', 'leaving during a teleport never prevents the next edge switch');
-  assert.strictEqual(stage.cat.children.find((node) => node.isMesh).geometry, sharedGeometry);
+  assert.strictEqual(stage.cat.getObjectByName('head').children.find((node) => node.isMesh).geometry, sharedGeometry);
 
   // Scissor state is restored even if the menu's shader triggers a fallback.
   const scissor = new THREE.Vector4(1, 2, 3, 4); let testing = false;

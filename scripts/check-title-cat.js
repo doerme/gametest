@@ -13,7 +13,7 @@ module.exports = async function checkTitleCat(page, output, prefix = '', sizes =
     await page.waitForFunction((height) => window.__spellGame.state.height === height, viewport.height);
     const initial = await page.evaluate(() => {
       const g = window.__spellGame, s = g.state; g.pause();
-      s.screen = 'title'; s.healthNoticeVisible = true; s.enemies = []; s.effects = [];
+      s.screen = 'title'; s.healthNoticeVisible = true; s.enemies = []; s.effects = []; s.themeOrder[0] = 'skyCity';
       g.renderer.render(s, g.input, 0);
       const hidden = !g.renderer.titleCat.active;
       s.healthNoticeVisible = false; g.renderer.titleCat.random = () => 0;
@@ -45,6 +45,10 @@ module.exports = async function checkTitleCat(page, output, prefix = '', sizes =
       assert.ok(sample.scissorRestored, 'menu clipping does not leak into the next render');
       const b = sample.bounds, r = sample.region;
       if (sample.catVisible) assert.ok(b.x >= r.x - 0.01 && b.right <= r.x + r.width + 0.01 && b.y >= r.y - 0.01 && b.bottom <= r.y + r.height + 0.01, 'projected cat stays inside its safe region');
+      if (sample.catVisible && sample.edge === 'upper') assert.ok(b.bottom <= viewport.height * 0.275 - 19 - 12 + 0.01, 'the enlarged cat clears the heading');
+      for (const button of [...getStartButtons(viewport.width, viewport.height), getAudioToggleBounds(viewport.width)]) {
+        if (sample.catVisible) assert.ok(b.right <= button.x || b.x >= button.x + button.width || b.bottom <= button.y || b.y >= button.y + button.height, 'the enlarged cat clears clickable controls');
+      }
       assert.ok(sample.stats.calls <= 200 && sample.stats.triangles <= 100000); assert.ok(sample.stats.textures >= 1 && sample.stats.textures <= 2, 'title creates no textures beyond the HUD and lazily uploaded glyph atlas');
       const filename = prefix + viewport.width + '-' + name + '.png';
       await page.screenshot({ path: path.join(directory, filename) });
@@ -52,6 +56,7 @@ module.exports = async function checkTitleCat(page, output, prefix = '', sizes =
       return sample;
     };
     const upper = await capture('upper', 1.9); assert.strictEqual(upper.castCount, 0);
+    assert.ok(upper.bounds.bottom - upper.bounds.y >= (viewport.width === 320 ? 70 : viewport.width === 375 ? 95 : 100), 'the upper cat is large enough to read its face');
     assert.ok(Math.abs(upper.headTilt) > 0.05 && Math.abs(upper.headTilt) <= Math.PI / 45, 'title idle includes a gentle head tilt');
     const orb = await capture('orb', 2.34); assert.strictEqual(orb.spell, 'orb'); assert.strictEqual(orb.projectile, true);
     await capture('burst', 2.62);
@@ -59,6 +64,7 @@ module.exports = async function checkTitleCat(page, output, prefix = '', sizes =
     const departure = await capture('jump', 6.14); assert.strictEqual(departure.phase, 'transition'); assert.strictEqual(departure.stars, true);
     const hidden = await advance(6.42); assert.strictEqual(hidden.catVisible, false, 'no cat crosses the panel while teleporting');
     const lower = await capture('lower', 7.1); assert.strictEqual(lower.edge, 'lower'); assert.strictEqual(lower.catVisible, true);
+    assert.ok(lower.bounds.bottom - lower.bounds.y >= (viewport.width === 320 ? 80 : viewport.width === 375 ? 98 : 102), 'the lower cat is large enough to read its costume');
     const lowerOrb = await capture('lower-orb', 10.15); assert.strictEqual(lowerOrb.spell, 'orb'); assert.strictEqual(lowerOrb.projectile, true);
     const lightning = await capture('lightning', 16.95); assert.strictEqual(lightning.spell, 'lightning'); assert.strictEqual(lightning.stars, true);
     const clockBeforeResize = await page.evaluate(() => { const c = window.__spellGame.renderer.titleCat; return [c.edge, c.elapsed, c.castCount]; });

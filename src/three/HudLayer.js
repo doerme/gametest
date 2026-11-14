@@ -13,7 +13,7 @@ const { CHARACTERS, getStrokeCount } = require('../hanzi/Characters');
 const { drawCharacter } = require('../hanzi/CanvasCharacter');
 const { drawHanziBoard } = require('../ui/HanziBoard');
 const { getHanziLayout } = require('../ui/HanziLayout');
-const { getSpeedControl, MIN_SPEED, MAX_SPEED } = require('../ui/SpeedControl');
+const { getSpeedControl, MIN_SPEED, MAX_SPEED, formatSpeed } = require('../ui/SpeedControl');
 const { retryProtection } = require('../hanzi/RecognitionPolicy');
 const BadgeLayout = require('../ui/BadgeLayout');
 
@@ -163,7 +163,6 @@ class HudLayer {
     rounded(c, audio.x, audio.y, audio.width, audio.height, 10, 'rgba(19,39,53,0.80)', 'rgba(194,220,205,0.3)');
     this.text(state.soundEnabled ? '♪ 声音开' : '♪ 声音关', audio.x + audio.width / 2, audio.y + audio.height / 2, 10, '#e7e6cd', 'center');
     if (state.screen === SCREENS.PLAYING) {
-      this.drawSpeedControl(state);
       const bottom = c.createLinearGradient(0, h - 112, 0, h); bottom.addColorStop(0, 'rgba(16,32,44,0)'); bottom.addColorStop(0.7, 'rgba(16,32,44,0.88)');
       c.fillStyle = bottom; c.fillRect(0, h - 112, w, 112);
       if (hanzi) drawHanziBoard(this, state, input);
@@ -192,6 +191,7 @@ class HudLayer {
         if (f.guideSymbol) { spell(c, f.guideSymbol, w / 2 - 12, 210, 23, '#ffe4af'); this.text('照这个形状画', w / 2 + 30, 220, 11, '#c9dcd1'); }
       }
       this.drawUiEffects(state);
+      this.drawSpeedControl(state);
     }
     if (state.healthNoticeVisible) {
       c.fillStyle = 'rgba(13,30,43,0.97)'; c.fillRect(0, 0, w, h);
@@ -221,13 +221,27 @@ class HudLayer {
   }
 
   drawSpeedControl(state) {
-    const { bounds, minus, display, plus } = getSpeedControl(this.width);
-    rounded(this.ctx, bounds.x, bounds.y, bounds.width, bounds.height, 10, 'rgba(19,39,53,0.90)', 'rgba(194,220,205,0.45)');
-    for (const [button, label, enabled] of [[minus, '−', state.timeScale > MIN_SPEED], [plus, '+', state.timeScale < MAX_SPEED]]) {
-      rounded(this.ctx, button.x + 3, button.y + 3, button.width - 6, button.height - 6, 8, enabled ? '#315451' : '#223943');
-      this.text(label, button.x + button.width / 2, button.y + button.height / 2, 19, enabled ? '#ffe3a8' : '#6c8385', 'center', 'bold');
+    const { bounds, panel, hint, minus, display, plus } = getSpeedControl(this.width, { open: state.speedControlOpen, hintVisible: state.speedHintRemaining > 0 });
+    rounded(this.ctx, bounds.x, bounds.y, bounds.width, bounds.height, 10, 'rgba(19,39,53,0.80)', 'rgba(194,220,205,0.3)');
+    this.text('速度 ' + formatSpeed(state.timeScale), bounds.x + 10, bounds.y + bounds.height / 2, 11, '#e7e6cd');
+    this.text(state.speedControlOpen ? '▴' : '▾', bounds.x + bounds.width - 10, bounds.y + bounds.height / 2, 10, '#bbd6d0', 'center');
+    if (hint) {
+      this.ctx.fillStyle = '#f2d6a1';
+      this.ctx.beginPath(); this.ctx.moveTo(hint.x + 18, hint.y); this.ctx.lineTo(hint.x + 24, hint.y - 6); this.ctx.lineTo(hint.x + 30, hint.y); this.ctx.fill();
+      rounded(this.ctx, hint.x, hint.y, hint.width, hint.height, 9, '#f2d6a1');
+      this.text('怪物太快？点这里调慢', hint.x + hint.width / 2, hint.y + hint.height / 2, 11, '#293f4b', 'center', 'bold');
     }
-    this.text(state.timeScale.toFixed(2) + '×', display.x + display.width / 2, display.y + display.height / 2, 12, '#e7e6cd', 'center', 'bold');
+    if (!panel) return;
+    rounded(this.ctx, panel.x, panel.y, panel.width, panel.height, 13, 'rgba(19,39,53,0.98)', 'rgba(194,220,205,0.45)');
+    this.text('游戏速度', panel.x + 12, panel.y + 17, 13, '#ffe3a8', 'left', 'bold');
+    this.text('控制出怪、移动和场景快慢', panel.x + 12, panel.y + 35, 11, '#bbd6d0');
+    for (const [button, label, enabled] of [[minus, '− 慢一点', state.timeScale > MIN_SPEED], [plus, '快一点 +', state.timeScale < MAX_SPEED]]) {
+      rounded(this.ctx, button.x, button.y, button.width, button.height, 8, enabled ? '#315451' : '#223943');
+      this.text(label, button.x + button.width / 2, button.y + button.height / 2, 11, enabled ? '#ffe3a8' : '#6c8385', 'center', 'bold');
+    }
+    this.text('当前倍率', display.x + display.width / 2, display.y + 7, 9, '#afcec5', 'center');
+    this.text(formatSpeed(state.timeScale), display.x + display.width / 2, display.y + 24, 14, '#e7e6cd', 'center', 'bold');
+    this.text('已暂停 · 点空白处继续', panel.x + panel.width / 2, panel.y + 98, 10, '#afcec5', 'center');
   }
 
   drawUiEffects(state) {
@@ -250,22 +264,29 @@ class HudLayer {
     const hanzi = state.gameMode === GAME_MODES.HANZI;
     const point = input.currentPath && input.currentPath[input.currentPath.length - 1];
     const trailAge = (Date.now() - input.completedAt) / 1000;
-    const key = [state.screen, state.healthNoticeVisible, state.level, state.getThemeId(state.screen === SCREENS.LEVEL_TRANSITION ? state.level + 1 : state.level), state.score, state.combo, state.lives, state.items.comboChain, state.items.healthPotion, state.soundEnabled, state.gestureFailures, state.difficulty, state.gameMode, state.timeScale,
+    const key = [state.screen, state.healthNoticeVisible, state.level, state.getThemeId(state.screen === SCREENS.LEVEL_TRANSITION ? state.level + 1 : state.level), state.score, state.combo, state.lives, state.items.comboChain, state.items.healthPotion, state.soundEnabled, state.gestureFailures, state.difficulty, state.gameMode, state.timeScale, state.speedControlOpen, state.speedHintRemaining > 0,
       hanzi && [state.hanziRevision, state.hanziTarget && state.hanziTarget.hanzi.character, state.hanziTarget && state.hanziTarget.hanzi.strokeIndex, Math.floor(state.hanziGuideTime * 12), point && point.x, point && point.y, input.isDrawing, input.completedAt, trailAge < 0.28 && Math.floor(trailAge * 30)].join(':'),
       state.feedback && state.feedback.text, state.feedback && Math.floor(state.feedback.age * 20), uiEffects.map((e) => e.type + Math.floor(e.age * 20)).join(',')].join('|');
     if (this.lastKey !== key) { this.draw(state, input); this.lastKey = key; }
     this.syncBadges(state, anchors, dt);
-    this.syncTrail(input, state.screen === SCREENS.PLAYING && !hanzi);
+    this.syncTrail(input, state.screen === SCREENS.PLAYING && !state.speedControlOpen && !hanzi);
   }
 
   syncBadges(state, anchors, dt) {
     const live = new Set(state.enemies);
     this.badges.forEach((group, enemy) => { if (!live.has(enemy)) { this.scene.remove(group); this.badges.delete(enemy); } });
     const audio = getAudioToggleBounds(this.width);
-    const speed = getSpeedControl(this.width).bounds;
+    const speedControl = getSpeedControl(this.width, { open: state.speedControlOpen, hintVisible: state.speedHintRemaining > 0 });
+    const speed = speedControl.bounds;
     const hanzi = state.gameMode === GAME_MODES.HANZI;
     const panel = getHanziLayout(this.width, this.height).panel;
+    const badgeTop = Math.max(audio.y + audio.height, speed.y + speed.height) + 8;
+    const compactPanel = hanzi && speedControl.panel && panel.y - 10 - (speedControl.panel.y + speedControl.panel.height) < 60;
+    if (compactPanel && !this.compactSpeedPanel) this.badgeLayout.clear();
+    this.compactSpeedPanel = !!compactPanel;
     const obstacles = getItemSlots(this.width, this.height, state.items, state.gameMode);
+    if (speedControl.panel) obstacles.push(speedControl.panel);
+    if (speedControl.hint) obstacles.push(speedControl.hint);
     if (state.feedback && !hanzi) obstacles.push({ x: 18, y: 170, width: this.width - 36, height: state.feedback.guideSymbol ? 74 : 36 });
     const items = [];
     anchors.forEach((anchor) => {
@@ -278,7 +299,9 @@ class HudLayer {
       const size = enemy.hanzi ? enemy.kind === 'boss' ? 46 : 42 : enemy.kind === 'boss' ? 38 : 32; const gap = size + 3;
       // Reserve the selection frame for every Hanzi badge so changing targets
       // or confirming a stroke cannot resize the avoidance footprint.
-      items.push({ key: enemy, x: anchor.x, y: anchor.y - size / 2 - 6, width: indicators.length * gap + (hanzi ? 8 : 0), height: size + (hanzi ? 8 : 0) });
+      // In the shortest layout, pack the two paused Hanzi badges from the top
+      // of the narrow right rail so the first badge cannot strand the second.
+      items.push({ key: enemy, x: anchor.x, y: compactPanel ? badgeTop + (size + 8) / 2 : anchor.y - size / 2 - 6, width: indicators.length * gap + (hanzi ? 8 : 0), height: size + (hanzi ? 8 : 0) });
       indicators.forEach((indicator, i) => {
         const glyph = indicator.type === 'hanzi' ? 'hanzi:' + indicator.character : indicator.type === 'progress' ? 'progress:' + indicator.completed + '/' + indicator.total : indicator.type === 'symbol' ? indicator.symbol : indicator.type === 'dot' ? 'dot' : '+' + indicator.count;
         let mesh = group.children[i];
@@ -297,7 +320,7 @@ class HudLayer {
     });
     const positions = this.badgeLayout.update(items, {
       left: 6, right: this.width - 6,
-      top: Math.max(audio.y + audio.height, speed.y + speed.height) + 8,
+      top: badgeTop,
       bottom: hanzi ? panel.y - 10 : this.height - 149
     }, obstacles, dt);
     positions.forEach((position, enemy) => this.badges.get(enemy).position.set(position.x, position.y, 2));

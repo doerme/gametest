@@ -9,6 +9,7 @@ const { findItemAtPoint } = require('./ui/ItemBar');
 const GAME_MODES = require('./core/GameMode');
 const { getHanziLayout, contains } = require('./ui/HanziLayout');
 const { isSpeedControlHit } = require('./ui/SpeedControl');
+const { createSpeedHintPreference } = require('./ui/SpeedHint');
 
 function bootstrap() {
   const platform = createRuntime();
@@ -16,7 +17,7 @@ function bootstrap() {
   try {
     let size = platform.getSize();
     const sound = new SoundManager(platform.wx);
-    const state = new GameState(size.width, size.height, sound);
+    const state = new GameState(size.width, size.height, sound, undefined, { speedHintPreference: createSpeedHintPreference(platform.wx) });
     state.healthNoticeVisible = true;
     renderer = new ThreeRenderer(platform, size.width, size.height);
     const input = new InputManager(platform.wx, platform.canvas, {
@@ -25,13 +26,14 @@ function bootstrap() {
       getGestureThreshold: (context) => context && context.gameMode === GAME_MODES.HANZI ? 3 : 10,
       isUiPoint: (point) => state.healthNoticeVisible
         || state.screen !== SCREENS.PLAYING
+        || state.speedControlOpen
         || isAudioToggleHit(size.width, point)
-        || isSpeedControlHit(size.width, point)
+        || isSpeedControlHit(size.width, point, { hintVisible: state.speedHintRemaining > 0 })
         || !!findItemAtPoint(size.width, size.height, state.items, point, state.gameMode)
         || (state.gameMode === GAME_MODES.HANZI && !contains(getHanziLayout(size.width, size.height).board, point))
     });
     input.onGesture = (points, context) => {
-      if (state.healthNoticeVisible) return;
+      if (state.healthNoticeVisible || state.speedControlOpen) return;
       if (state.gameMode === GAME_MODES.HANZI) {
         const result = state.handleHanziStroke(points, context || {});
         if (result.accepted) input.lastCompletedPath = null;

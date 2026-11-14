@@ -180,11 +180,11 @@ async function checkWechatHanzi(browser, url, bundle, output) {
   const board = getHanziLayout(375, 667).board;
   const pixels = (points) => points.map((p) => ({ x: board.x + p.x * board.width, y: board.y + p.y * board.height }));
   const button = getStartButtons(375, 667)[0];
-  const speed = getSpeedControl(375);
+  const speed = getSpeedControl(375, { open: true });
   const result = await page.evaluate(({ code, button, one, two, speed }) => {
     window.__spellGame.destroy(); document.body.innerHTML = '';
     const canvas = document.createElement('canvas'); canvas.style.width = '375px'; canvas.style.height = '667px'; document.body.appendChild(canvas);
-    const callbacks = {}; const sounds = []; const modals = []; const speedLabels = []; const retryHints = new Set(); let queued; let time = Date.now(); let count = 0;
+    const callbacks = {}; const sounds = []; const modals = []; const speedLabels = []; const retryHints = new Set(); let queued; let time = Date.now(); let count = 0; let panelVisible = false;
     const RealDate = Date; class Clock extends RealDate { static now() { return time; } }
     const api = {
       getSystemInfoSync: () => ({ windowWidth: 375, windowHeight: 667, pixelRatio: 1.5 }),
@@ -207,7 +207,8 @@ async function checkWechatHanzi(browser, url, bundle, output) {
               const fillText = context.fillText.bind(context);
               context.fillText = (text, ...args) => {
                 const label = String(text);
-                if (/^\d\.\d{2}×$/.test(label)) speedLabels.push(label);
+                if (label.startsWith('速度 ')) { speedLabels.push(label.slice(3)); panelVisible = false; }
+                if (label === '已暂停 · 点空白处继续') panelVisible = true;
                 if (label.includes('连击已保护') || label.includes('已完成的笔画') || label.includes('真棒')) retryHints.add(label);
                 return fillText(text, ...args);
               };
@@ -235,15 +236,19 @@ async function checkWechatHanzi(browser, url, bundle, output) {
     const reversed = vanished();
     stroke(one); const completedOne = vanished();
     const tapSpeed = (rect) => { tap(rect.x + rect.width / 2, rect.y + rect.height / 2); tick(1); };
+    tapSpeed(speed.bounds);
     for (let i = 0; i < 5; i += 1) tapSpeed(speed.plus);
     for (let i = 0; i < 7; i += 1) tapSpeed(speed.minus);
     for (let i = 0; i < 3; i += 1) tapSpeed(speed.plus);
+    tick(180); callbacks.hide(); callbacks.show(); tick(2);
+    const panelRestored = panelVisible;
+    tapSpeed(speed.bounds);
     tick(310); stroke(two[0]); const incompleteTwo = vanished();
     callbacks.start({ touches: [touch(two[1][0])] }); callbacks.move({ touches: [touch(two[1][1])] });
     callbacks.hide(); callbacks.show(); tick(2);
     callbacks.end({ changedTouches: [touch(two[1][two[1].length - 1])] }); tick(1);
     const canceled = vanished(); stroke(two[1]);
-    return { modals, reversed, completedOne, incompleteTwo, canceled, completedTwo: vanished(), offscreenCanvases: count - 1, speeds: [...new Set(speedLabels)], resumedSpeed: speedLabels[speedLabels.length - 1], retryHints: [...retryHints] };
+    return { modals, reversed, completedOne, incompleteTwo, canceled, completedTwo: vanished(), offscreenCanvases: count - 1, speeds: [...new Set(speedLabels)], resumedSpeed: speedLabels[speedLabels.length - 1], panelRestored, retryHints: [...retryHints] };
   }, { code: bundle, button, one: pixels(wobbly(getStrokeMedian('一', 0))), two: [pixels(offset(getStrokeMedian('二', 0))), pixels(shortened(getStrokeMedian('二', 1)))], speed });
   assert.deepStrictEqual(result.modals, []);
   assert.strictEqual(result.reversed, 0);
@@ -252,8 +257,9 @@ async function checkWechatHanzi(browser, url, bundle, output) {
   assert.strictEqual(result.canceled, 1);
   assert.strictEqual(result.completedTwo, 2);
   assert.strictEqual(result.offscreenCanvases, 2);
-  assert.deepStrictEqual(result.speeds.slice().sort(), ['0.50×', '0.75×', '1.00×', '1.25×', '1.50×', '1.75×', '2.00×']);
+  assert.deepStrictEqual(result.speeds.slice().sort(), ['0.5×', '0.75×', '1×', '1.25×', '1.5×', '1.75×', '2×'].sort());
   assert.strictEqual(result.resumedSpeed, '1.25×');
+  assert.strictEqual(result.panelRestored, true, 'wx foreground restoration retains the open speed panel');
   for (const remaining of [2, 1, 0]) assert.ok(result.retryHints.some((text) => text.includes('连击已保护') && text.includes('剩余' + remaining + '次')));
   assert.ok(result.retryHints.some((text) => text.includes('已完成的笔画都保留')));
   assert.ok(result.retryHints.some((text) => text.includes('真棒')));

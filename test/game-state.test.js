@@ -49,7 +49,7 @@ assert.notDeepStrictEqual(shuffledThemes, THEME_ORDER);
 
 const buttons = getStartButtons(375, 667);
 const continueButton = getContinueButton(375, 667);
-const speedControl = getSpeedControl(375);
+const speedControl = getSpeedControl(375, { open: true });
 const audioButton = getAudioToggleBounds(375);
 const soundCalls = {
   enabled: [],
@@ -83,8 +83,10 @@ audioControls.handleTap(centerOf(audioButton));
 assert.strictEqual(audioControls.soundEnabled, true);
 assert.deepStrictEqual(soundCalls.enabled, [true, false, true]);
 audioControls.handleTap(centerOf(buttons[1]));
+audioControls.handleTap(centerOf(speedControl.bounds));
 audioControls.handleTap(centerOf(speedControl.plus));
 audioControls.handleTap(centerOf(speedControl.plus));
+audioControls.handleTap(centerOf(speedControl.bounds));
 assert.deepStrictEqual(soundCalls.tracks, [THEME_IDS.CASTLE]);
 audioControls.beginLevelTransition();
 assert.deepStrictEqual(soundCalls.tracks, [THEME_IDS.CASTLE, THEME_IDS.OCEAN]);
@@ -107,8 +109,10 @@ selection.handleTap(centerOf(buttons[1]));
 assert.strictEqual(selection.screen, SCREENS.PLAYING);
 assert.strictEqual(selection.gameMode, 'symbol');
 assert.strictEqual(selection.timeScale, 1);
+selection.handleTap(centerOf(speedControl.bounds));
 selection.handleTap(centerOf(speedControl.plus));
 selection.handleTap(centerOf(speedControl.plus));
+selection.handleTap(centerOf(speedControl.bounds));
 assert.strictEqual(selection.difficulty, DIFFICULTY_MODES.PLUS_ONE);
 assert.strictEqual(selection.timeScale, 1.5);
 
@@ -504,7 +508,9 @@ run.lives = 3;
 run.combo = 4;
 for (let nextLevel = 2; nextLevel <= 6; nextLevel += 1) {
   const speed = nextLevel % 2 ? 1 : 1.5;
+  run.handleTap(centerOf(speedControl.bounds));
   while (run.timeScale !== speed) run.handleTap(centerOf(run.timeScale < speed ? speedControl.plus : speedControl.minus));
+  run.handleTap(centerOf(speedControl.bounds));
   run.director.index = run.director.total;
   run.update(0);
   assert.strictEqual(run.screen, SCREENS.LEVEL_TRANSITION);

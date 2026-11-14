@@ -3,15 +3,20 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const { getSpeedControl } = require('../src/ui/SpeedControl');
-const { getContinueButton } = require('../src/ui/DifficultySelector');
+const { getContinueButton, getStartButtons } = require('../src/ui/DifficultySelector');
 const { getAudioToggleBounds } = require('../src/ui/AudioToggle');
+const { getItemSlots } = require('../src/ui/ItemBar');
+const { SPEED_HINT_KEY } = require('../src/ui/SpeedHint');
 
-async function checkBadgeStability(page, controls) {
-  return page.evaluate((controls) => {
+async function checkBadgeStability(page, controls, boss = false) {
+  return page.evaluate(({ controls, boss }) => {
     const g = window.__spellGame; const s = g.state; const hud = g.renderer.hud;
     const first = s.enemies[0]; const second = s.director.createEnemy(s.director.config.timeline[0], 1);
+    const originalKind = first.kind;
+    if (boss) first.kind = 'boss';
+    second.kind = first.kind;
     second.hanzi = first.hanzi ? { ...first.hanzi } : null; second.symbols = first.symbols.slice();
-    const size = first.hanzi ? 42 : 32;
+    const size = first.hanzi ? boss ? 46 : 42 : 32;
     const snapshot = () => [first, second].map((enemy) => { const p = hud.badges.get(enemy).position; return { x: p.x, y: p.y }; });
     s.enemies = [first, second]; hud.badgeLayout.clear();
     let previous; let maximumStep = 0; let overlap = false;
@@ -42,13 +47,45 @@ async function checkBadgeStability(page, controls) {
       }
       previous = point;
     }
+    first.kind = originalKind;
     hud.badgeLayout.clear(); g.renderer.render(s, g.input, 0);
     return { frames: 480, maximumStep, boundaryStep, overlap, controlOverlap };
-  }, controls);
+  }, { controls, boss });
+}
+
+async function checkOnboarding(page, directory) {
+  const context = await page.context().browser().newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  const fresh = await context.newPage();
+  const errors = []; fresh.on('pageerror', (error) => errors.push(error.message));
+  try {
+    await fresh.setViewportSize({ width: 390, height: 844 });
+    const start = async () => {
+      await fresh.waitForFunction(() => !!window.__spellGame);
+      await fresh.mouse.click(1, 1);
+      const button = getStartButtons(390, 844)[0];
+      await fresh.mouse.click(button.x + button.width / 2, button.y + button.height / 2);
+      await fresh.waitForFunction(() => window.__spellGame.state.screen === 'playing');
+      await fresh.evaluate(() => { const g = window.__spellGame; g.pause(); g.renderer.render(g.state, g.input, 0); });
+    };
+    await fresh.goto(page.url()); await start();
+    assert.ok(await fresh.evaluate(() => window.__spellGame.state.speedHintRemaining > 3.5));
+    assert.strictEqual(await fresh.evaluate((key) => localStorage.getItem(key), SPEED_HINT_KEY), '1');
+    await fresh.screenshot({ path: path.join(directory, 'first-use-hint.png') });
+    const hint = getSpeedControl(390, { hintVisible: true }).hint;
+    await fresh.mouse.click(hint.x + hint.width / 2, hint.y + hint.height / 2);
+    assert.deepStrictEqual(await fresh.evaluate(() => { const s = window.__spellGame.state; return [s.speedControlOpen, s.speedHintRemaining]; }), [true, 0]);
+    await fresh.reload(); await start();
+    assert.strictEqual(await fresh.evaluate(() => window.__spellGame.state.speedHintRemaining), 0, 'new launches do not repeat the stored hint');
+    assert.deepStrictEqual(errors, []);
+    return { firstUseHint: true, hintOpensPanel: true, persistentDismissal: true };
+  } finally {
+    await context.close();
+  }
 }
 
 module.exports = async function checkSpeedControls(page, output) {
   const directory = path.join(output, 'speed'); fs.mkdirSync(directory, { recursive: true });
+  const onboarding = await checkOnboarding(page, directory);
   const originalViewport = page.viewportSize();
   const samples = [];
   for (const viewport of [{ width: 390, height: 844 }, { width: 375, height: 667 }, { width: 320, height: 568 }]) {
@@ -58,7 +95,7 @@ module.exports = async function checkSpeedControls(page, output) {
       const g = window.__spellGame; const r = g.platform.canvas.getBoundingClientRect();
       return { width: g.state.width, height: g.state.height, x: r.left, y: r.top, sx: r.width / g.state.width, sy: r.height / g.state.height };
     });
-    const control = getSpeedControl(size.width);
+    const control = getSpeedControl(size.width, { open: true });
     const point = (rect) => ({ x: size.x + (rect.x + rect.width / 2) * size.sx, y: size.y + (rect.y + rect.height / 2) * size.sy });
     const click = async (rect) => {
       const p = point(rect); await page.mouse.click(p.x, p.y);
@@ -72,13 +109,34 @@ module.exports = async function checkSpeedControls(page, output) {
         if (mode === 'hanzi') enemy.hanzi = { character: '水', strokeIndex: 1, strokeCount: 4 };
         s.director.index = s.director.total; s.enemies = [enemy]; s.score = 240; s.combo = 8; s.lives = 3;
         s.items = { healthPotion: 1, comboChain: 1 };
+        s.speedHintRemaining = 0;
         g.renderer.render(s, g.input, 0.3); s.syncHanziTarget(g.renderer.getGestureContext(s).visibleEnemies); g.renderer.render(s, g.input, 0);
       }, mode);
       const current = () => page.evaluate(() => window.__spellGame.state.timeScale);
+      await click(control.bounds);
+      assert.strictEqual(await page.evaluate(() => window.__spellGame.state.speedControlOpen), true);
       for (const expected of [1.25, 1.5, 1.75, 2, 2]) { await click(control.plus); assert.strictEqual(await current(), expected); }
       for (const expected of [1.75, 1.5, 1.25, 1, 0.75, 0.5, 0.5]) { await click(control.minus); assert.strictEqual(await current(), expected); }
       for (const expected of [0.75, 1, 1.25]) { await click(control.plus); assert.strictEqual(await current(), expected); }
       await click(control.display); assert.strictEqual(await current(), 1.25);
+
+      const pause = await page.evaluate(() => {
+        const g = window.__spellGame; const s = g.state; const enemy = s.enemies[0];
+        const y = enemy.y; const index = s.director.index;
+        enemy.y = s.hero.y - s.hero.radius - enemy.radius - 2; enemy.speed = 200;
+        s.director.index = 0;
+        const snapshot = () => ({ elapsed: s.elapsed, scene: s.sceneElapsed, y: enemy.y, count: s.enemies.length, index: s.director.index, lives: s.lives, score: s.score, combo: s.combo, stroke: enemy.hanzi && enemy.hanzi.strokeIndex });
+        const before = snapshot(); s.heroAnimation.cast = 0.8;
+        s.update(3, g.renderer.getGestureContext(s)); const after = snapshot();
+        s.freezeRemaining = 3; s.update(2, g.renderer.getGestureContext(s)); const freeze = s.freezeRemaining;
+        const animation = s.heroAnimation.cast;
+        s.freezeRemaining = 0; enemy.y = y; enemy.speed = 0; s.director.index = index;
+        g.renderer.render(s, g.input, 0);
+        return { before, after, freeze, animation };
+      });
+      assert.deepStrictEqual(pause.after, pause.before, 'reading the panel cannot spawn, move, damage or advance the battle');
+      assert.strictEqual(pause.freeze, 3, 'speed pause preserves the remaining freeze effect');
+      assert.strictEqual(pause.animation, 0, 'UI animation keeps running');
 
       const start = point(control.plus);
       await page.mouse.move(start.x, start.y); await page.mouse.down();
@@ -88,16 +146,31 @@ module.exports = async function checkSpeedControls(page, output) {
         return { score: s.score, combo: s.combo, lives: s.lives, count: s.enemies.length, speed: s.timeScale, result: s.lastGestureResult, stroke: s.enemies[0].hanzi && s.enemies[0].hanzi.strokeIndex };
       });
       assert.deepStrictEqual(untouched, { score: 240, combo: 8, lives: 3, count: 1, speed: 1.25, result: null, stroke: mode === 'hanzi' ? 1 : null });
+      const expandedStability = await checkBadgeStability(page, [control.bounds, control.panel, getAudioToggleBounds(size.width)], mode === 'hanzi');
+      assert.strictEqual(expandedStability.overlap, false, 'paused badges, including two large Hanzi badges, remain separate');
+      assert.strictEqual(expandedStability.controlOverlap, false, 'expanded panel leaves readable room for badges');
+      const expandedName = (mode === 'hanzi' ? 'hanzi' : 'classic') + '-' + viewport.width + '-expanded.png';
+      await page.screenshot({ path: path.join(directory, expandedName) });
+
+      const slot = getItemSlots(size.width, size.height, { healthPotion: 1, comboChain: 1 }, mode)[0];
+      await click(slot);
+      assert.deepStrictEqual(await page.evaluate(() => { const s = window.__spellGame.state; return [s.speedControlOpen, s.items.healthPotion, s.items.comboChain, s.lives]; }), [false, 1, 1, 3], 'outside click dismisses without consuming an item');
+      await click(control.bounds);
       const audioBefore = await page.evaluate(() => window.__spellGame.state.soundEnabled);
+      await click(getAudioToggleBounds(size.width));
+      assert.strictEqual(await page.evaluate(() => window.__spellGame.state.soundEnabled), audioBefore, 'outside audio click only dismisses');
       await click(getAudioToggleBounds(size.width));
       assert.strictEqual(await page.evaluate(() => window.__spellGame.state.soundEnabled), !audioBefore);
       await click(getAudioToggleBounds(size.width));
       assert.strictEqual(await current(), 1.25);
 
       if (mode === 'hanzi') {
+        await click(control.bounds);
         await page.evaluate(() => { const g = window.__spellGame; g.resume(); g.pause(); });
         assert.strictEqual(await current(), 1.25);
+        assert.strictEqual(await page.evaluate(() => window.__spellGame.state.speedControlOpen), true);
         assert.strictEqual(await page.evaluate(() => window.__spellGame.state.hanziTarget.hanzi.strokeIndex), 1);
+        await click(control.bounds);
       }
       const stability = await checkBadgeStability(page, [control.bounds, getAudioToggleBounds(size.width)]);
       assert.ok(stability.maximumStep < 1 && stability.boundaryStep <= 0.501, 'moving badges slide without discrete row jumps');
@@ -118,7 +191,7 @@ module.exports = async function checkSpeedControls(page, output) {
       assert.ok(layout.stats.calls <= 200 && layout.stats.triangles <= 100000);
       const name = (mode === 'hanzi' ? 'hanzi' : 'classic') + '-' + viewport.width + '.png';
       await page.screenshot({ path: path.join(directory, name) });
-      samples.push({ ...viewport, mode, speed: 1.25, screenshot: 'speed/' + name, stability, ...layout.stats });
+      samples.push({ ...viewport, mode, speed: 1.25, screenshot: 'speed/' + name, expandedScreenshot: 'speed/' + expandedName, stability, expandedStability, ...layout.stats });
 
       await page.evaluate(() => {
         const g = window.__spellGame; const s = g.state; s.enemies = []; s.director.index = s.director.total; s.update(0); g.renderer.render(s, g.input, 0.3);
@@ -134,5 +207,5 @@ module.exports = async function checkSpeedControls(page, output) {
   }
   await page.setViewportSize(originalViewport);
   await page.evaluate(() => window.__spellGame.state.start('normal', 'symbol'));
-  return { samples, allSevenSpeeds: true, limits: true, dragDoesNotCast: true, progressPreserved: true, transitionRetainsSpeed: true, restartDefaults: true };
+  return { samples, ...onboarding, panelPausesBattle: true, freezePreserved: true, outsideClickOnlyDismisses: true, allSevenSpeeds: true, limits: true, dragDoesNotCast: true, progressPreserved: true, transitionRetainsSpeed: true, restartDefaults: true };
 };

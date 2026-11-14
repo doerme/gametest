@@ -62,19 +62,23 @@ class TitleCatPresentation {
     this.camera.right = width * UNIT; this.camera.top = height * UNIT; this.camera.updateProjectionMatrix(); this.camera.updateMatrixWorld();
     this.layout = getSelectionLayout(width, height);
     const panel = this.layout.panel, bottom = panel.y + panel.height;
-    // The narrow central corridor sits between the score and the right header.
-    // The lower stage starts below the card, beyond both start buttons.
-    const left = Math.min(110, width * 0.34), right = Math.max(left + 24, width - 154);
+    // Use the card's empty top margin to give the enlarged cat room on short
+    // screens, while leaving twelve pixels before the title's glyph bounds.
+    const headingTop = height * 0.275 - 19;
+    const left = Math.min(96, width * 0.30), right = Math.max(left + 24, width - 134);
+    const upperBottom = Math.max(64, headingTop - 12);
+    const lowerTop = bottom - 11;
     this.regions = {
-      upper: { x: left, y: 40, width: right - left, height: Math.max(24, panel.y + 18 - 40) },
-      lower: { x: 24, y: bottom - 3, width: width - 48, height: Math.max(24, height - 28 - (bottom - 3)) }
+      upper: { x: left, y: 40, width: right - left, height: upperBottom - 40 },
+      lower: { x: 24, y: lowerTop, width: width - 48, height: Math.max(24, height - 28 - lowerTop) }
     };
-    const desired = Math.min(92, width * 0.22);
-    const upperHeight = Math.min(desired, this.regions.upper.height - 14, (this.regions.upper.width - 6) / this.modelAspect);
+    const desired = Math.min(112, width * 0.286);
+    const upperDesired = Math.min(desired, 76 + Math.max(0, width - 320) * 0.58);
+    const upperHeight = Math.min(upperDesired, this.regions.upper.height - 6, (this.regions.upper.width - 8) / this.modelAspect);
     const lowerHeight = Math.min(desired, this.regions.lower.height - 14, (this.regions.lower.width - 6) / this.modelAspect);
     this.anchors = {
-      upper: { x: (left + right) / 2, footY: panel.y + 4, height: upperHeight },
-      lower: { x: width * 0.66, footY: bottom + lowerHeight + 2, height: lowerHeight }
+      upper: { x: (left + right) / 2, footY: Math.min(upperBottom, Math.max(panel.y + 4, 40 + upperHeight + 2)), height: upperHeight },
+      lower: { x: width * 0.66, footY: bottom + lowerHeight - 6, height: lowerHeight }
     };
     this.clearEffects();
     if (this.active) this.pose();

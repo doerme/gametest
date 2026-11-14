@@ -6,6 +6,7 @@ const ModelFactory = require('../src/three/ModelFactory');
 const ThreeRenderer = require('../src/three/ThreeRenderer');
 const TitleCatPresentation = require('../src/three/TitleCatPresentation');
 const { getSelectionLayout, getStartButtons, getContinueButton } = require('../src/ui/DifficultySelector');
+const { getAudioToggleBounds } = require('../src/ui/AudioToggle');
 
 const kit = new GeometryKit(), models = new ModelFactory(kit);
 const sharedCat = models.create('cat');
@@ -41,7 +42,9 @@ for (const [width, height] of [[390, 844], [375, 667], [320, 568]]) {
       const b = stage.bounds, r = stage.regions[stage.edge];
       const box = { x: b.min.x / 0.03, y: height - b.max.y / 0.03, right: b.max.x / 0.03, bottom: height - b.min.y / 0.03 };
       assert.ok(box.x >= r.x - 1e-6 && box.right <= r.x + r.width + 1e-6 && box.y >= r.y - 1e-6 && box.bottom <= r.y + r.height + 1e-6, JSON.stringify({ width, box, r }));
-      for (const button of selection.buttons) assert.ok(box.right <= button.x || box.x >= button.x + button.width || box.bottom <= button.y || box.y >= button.y + button.height, 'cat never covers an entry button');
+      for (const button of [...selection.buttons, getAudioToggleBounds(width)]) assert.ok(box.right <= button.x || box.x >= button.x + button.width || box.bottom <= button.y || box.y >= button.y + button.height, 'cat never covers an entry or audio button');
+      if (stage.edge === 'upper') assert.ok(box.bottom <= height * 0.275 - 19 - 12 + 1e-6, 'enlarged cat leaves twelve pixels before the heading');
+      else assert.ok(box.bottom <= height - 28 + 1e-6, 'enlarged cat preserves the bottom safe area');
     }
     assert.ok(stage.geometry.drawRange.count <= stage.positions.count && stage.attacks.geometry.drawRange.count <= stage.attacks.positions.count);
   }

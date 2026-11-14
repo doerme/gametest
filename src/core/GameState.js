@@ -14,7 +14,8 @@ const { getStrokeMedian } = require('../hanzi/Characters');
 const { recognizeStroke } = require('../input/HanziStrokeRecognizer');
 const { sceneScale, FREEZE_DURATION } = require('../hanzi/Pacing');
 const HANZI_RECOGNITION = require('../hanzi/RecognitionPolicy');
-const { MIN_SPEED, MAX_SPEED, SPEED_STEP, DEFAULT_SPEED, findSpeedDirectionAtPoint } = require('../ui/SpeedControl');
+const { MIN_SPEED, MAX_SPEED, SPEED_STEP, DEFAULT_SPEED, getSpeedControl, findSpeedDirectionAtPoint, isSpeedControlHit } = require('../ui/SpeedControl');
+const { SPEED_HINT_DURATION } = require('../ui/SpeedHint');
 
 const SCREENS = {
   TITLE: 'title',
@@ -66,7 +67,7 @@ function getComboMultiplier(combo) {
 }
 
 class GameState {
-  constructor(width, height, sound, random) {
+  constructor(width, height, sound, random, options = {}) {
     this.width = width;
     this.height = height;
     this.sound = sound;
@@ -77,6 +78,8 @@ class GameState {
     this.director = new LevelDirector(width, height);
     this.difficulty = null;
     this.timeScale = DEFAULT_SPEED;
+    this.speedHintPreference = options.speedHintPreference;
+    this.speedHintSeen = !!(this.speedHintPreference && this.speedHintPreference.seen);
     this.soundEnabled = true;
     if (this.sound && this.sound.setSoundEnabled) {
       this.sound.setSoundEnabled(true);
@@ -110,6 +113,8 @@ class GameState {
   }
 
   resetRun() {
+    this.speedControlOpen = false;
+    this.speedHintRemaining = 0;
     this.hero = this.createHero(this.width, this.height);
     this.hanziTarget = null;
     this.hanziVisibleEnemies = [];
@@ -156,6 +161,11 @@ class GameState {
     this.selectDifficulty(difficultyMode);
     this.resetRun();
     this.screen = SCREENS.PLAYING;
+    if (!this.speedHintSeen) {
+      this.speedHintRemaining = SPEED_HINT_DURATION;
+      this.speedHintSeen = true;
+      if (this.speedHintPreference) this.speedHintPreference.markSeen();
+    }
     if (this.sound) {
       this.sound.play('start');
       if (this.sound.playMusic) {
@@ -175,7 +185,9 @@ class GameState {
       return;
     }
 
+    this.speedHintRemaining = Math.max(0, this.speedHintRemaining - dt);
     if (this.gameMode === GAME_MODES.HANZI) this.hanziGuideTime += dt;
+    if (this.speedControlOpen) return;
     const frozenDt = this.gameMode === GAME_MODES.HANZI ? Math.min(dt, this.freezeRemaining) : 0;
     this.freezeRemaining = Math.max(0, this.freezeRemaining - frozenDt);
     const activeDt = dt - frozenDt;
@@ -247,6 +259,8 @@ class GameState {
   }
 
   beginLevelTransition() {
+    this.speedControlOpen = false;
+    this.speedHintRemaining = 0;
     this.clearAttackEffects();
     this.clearHanziTarget();
     this.freezeRemaining = 0;
@@ -277,6 +291,8 @@ class GameState {
   }
 
   startNextLevel() {
+    this.speedControlOpen = false;
+    this.speedHintRemaining = 0;
     this.level += 1;
     this.elapsed = 0;
     this.sceneElapsed = 0;
@@ -453,6 +469,22 @@ class GameState {
   }
 
   handleTap(point) {
+    if (this.screen === SCREENS.PLAYING) {
+      const options = { open: this.speedControlOpen, hintVisible: this.speedHintRemaining > 0 };
+      const control = getSpeedControl(this.width, options);
+      if (this.speedControlOpen) {
+        const direction = findSpeedDirectionAtPoint(this.width, point, options);
+        if (direction !== null) this.adjustSpeed(direction);
+        else if (contains(control.hitBounds, point) || !contains(control.panel, point)) this.speedControlOpen = false;
+        // An outside tap dismisses the panel without also using an item or audio.
+        return;
+      }
+      if (isSpeedControlHit(this.width, point, options)) {
+        this.speedControlOpen = true;
+        this.speedHintRemaining = 0;
+        return;
+      }
+    }
     if (isAudioToggleHit(this.width, point)) {
       this.toggleSound();
       return;
@@ -472,11 +504,6 @@ class GameState {
     }
 
     if (this.screen === SCREENS.PLAYING) {
-      const speedDirection = findSpeedDirectionAtPoint(this.width, point);
-      if (speedDirection !== null) {
-        this.adjustSpeed(speedDirection);
-        return;
-      }
       const itemType = findItemAtPoint(this.width, this.height, this.items, point, this.gameMode);
       if (itemType) {
         this.useItem(itemType);
@@ -495,6 +522,7 @@ class GameState {
   }
 
   useItem(itemType) {
+    if (this.speedControlOpen) return false;
     if (!this.items[itemType] || this.items[itemType] <= 0) {
       return false;
     }
@@ -542,7 +570,7 @@ class GameState {
   }
 
   handleGesture(points, context = {}) {
-    if (this.screen !== SCREENS.PLAYING) {
+    if (this.screen !== SCREENS.PLAYING || this.speedControlOpen) {
       return SYMBOLS.UNKNOWN;
     }
 
@@ -649,6 +677,7 @@ class GameState {
   }
 
   captureHanziStroke(point, context = {}) {
+    if (this.speedControlOpen) return null;
     this.syncHanziTarget(context.visibleEnemies || this.hanziVisibleEnemies);
     const board = getHanziLayout(this.width, this.height).board;
     if (this.screen !== SCREENS.PLAYING || this.gameMode !== GAME_MODES.HANZI || !this.hanziTarget || !contains(board, point)) return null;
@@ -657,7 +686,7 @@ class GameState {
 
   handleHanziStroke(points, context = {}) {
     const target = this.hanziTarget;
-    if (this.screen !== SCREENS.PLAYING || this.gameMode !== GAME_MODES.HANZI
+    if (this.screen !== SCREENS.PLAYING || this.speedControlOpen || this.gameMode !== GAME_MODES.HANZI
       || !target || target.dead || !this.enemies.includes(target) || context.target !== target
       || context.revision !== this.hanziRevision || context.strokeIndex !== target.hanzi.strokeIndex) {
       return { accepted: false, ignored: true };

@@ -1,7 +1,7 @@
 'use strict';
 // QA-only inventory: none of these historical image paths enter the game bundle.
 module.exports = [
-  { id: 'cat', name: '法师猫', image: 'cat-walk-v2-sheet.png', sheet: true, features: '圆脸幼猫、双高光大眼、粉鼻腮红、心形肉垫、柔软星饰帽、星月披风与贴合曲面的条纹卷尾；首页眨眼歪头，游戏中背向玩家' },
+  { id: 'cat', name: '三视图法师猫', image: 'cat-turnaround.png', referenceFile: 'docs/references/cat-turnaround.png', crop: { x: 28, y: 208, width: 506, height: 688 }, features: '依据用户三视图：奶白圆脸、酒红大眼、宽檐紫帽与蓝色蝴蝶结、星形吊坠、金边法袍、月牙腰扣、背面星月披风及左侧星形法杖；正交三视图可旋转' },
   { id: 'ghost', name: '幽灵', draw: 'drawGhostEnemy', features: '淡蓝幽灵布裙、两只深色眼睛、波浪下摆' },
   { id: 'ghostBoss', species: 'ghost', boss: true, name: '幽灵首领', draw: 'drawGhostEnemy', features: '紫色布裙；首领以游戏尺寸及表情区分' },
   { id: 'jellyfish', name: '水母', image: 'enemy-jellyfish.png', features: '青蓝钟形伞盖、发光伞沿、弯曲触须' },

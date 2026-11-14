@@ -32,7 +32,10 @@ for (const [width, height] of [[390, 844], [375, 667], [320, 568]]) {
       assert.strictEqual(stage.root.scale.x, perchScales.get(stage.edge), 'breathing, head tilt and casting never change the title scale');
     }
     if (stage.castCount !== previousCount) { types.push(stage.spell.type); previousCount = stage.castCount; }
-    if (stage.spell && stage.spell.emitted) emitted++;
+    if (stage.spell && stage.spell.emitted) {
+      emitted++;
+      assert.ok(stage.spell.target.x <= stage.spell.origin.x + 1e-8, 'the left-hand wand always casts outward, including on a narrow upper stage');
+    }
     if (i < 118) assert.strictEqual(stage.castCount, 0, 'no spell before the initial two-second invitation');
     if (stage.root.visible) {
       const b = stage.bounds, r = stage.regions[stage.edge];

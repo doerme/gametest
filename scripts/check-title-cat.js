@@ -32,6 +32,7 @@ module.exports = async function checkTitleCat(page, output, prefix = '', sizes =
       return { edge: cat.edge, phase: cat.phase, elapsed: cat.elapsed, castCount: cat.castCount,
         spell: cat.spell && cat.spell.type, projectile: cat.attacks.mesh.visible, stars: cat.sparks.visible,
         catVisible: cat.root.visible, eyesOpen: cat.cat.userData.catRig.eyes.scale.y, headTilt: cat.cat.userData.catRig.head.rotation.z, modelScale: cat.root.scale.x,
+        outward: !cat.spell || !cat.spell.emitted || cat.spell.target.x <= cat.spell.origin.x,
         bounds: { x: (top.x + 1) / 2 * g.state.width, y: (1 - top.y) / 2 * h,
           right: (bottom.x + 1) / 2 * g.state.width, bottom: (1 - bottom.y) / 2 * h }, region: r,
         stats: g.getStats(), scissorRestored: !g.renderer.renderer.getScissorTest(),
@@ -40,6 +41,7 @@ module.exports = async function checkTitleCat(page, output, prefix = '', sizes =
     const capture = async (name, time) => {
       const sample = await advance(time);
       assert.strictEqual(sample.run, initial.run, 'decorative spells never mutate the run');
+      assert.strictEqual(sample.outward, true, 'the wand casts toward the outer left space');
       assert.ok(sample.scissorRestored, 'menu clipping does not leak into the next render');
       const b = sample.bounds, r = sample.region;
       if (sample.catVisible) assert.ok(b.x >= r.x - 0.01 && b.right <= r.x + r.width + 0.01 && b.y >= r.y - 0.01 && b.bottom <= r.y + r.height + 0.01, 'projected cat stays inside its safe region');

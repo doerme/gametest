@@ -262,6 +262,16 @@ async function main() {
     const report = { browser: 'Google Chrome headless / macOS', shippingBundleBytes: Buffer.byteLength(bundle), titleCat, metrics, themeScenes, peak, livePerformance, resourcePlateau: resources, wechatHarness: native, hanzi, hanziWechat, speedControls, attackFeedback, compatibility, actualWechatSimulator: 'manual verification recorded separately in docs/3d-verification.md', physicalDevice: 'unverified' };
     fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2));
     console.log(JSON.stringify({ browser: report.browser, shippingBundleBytes: report.shippingBundleBytes, peakScenarios: peak.length, maximumCalls: Math.max(...peak.map((p) => p.calls)), maximumTriangles: Math.max(...peak.map((p) => p.triangles)), livePerformance, resourcePlateau: resources, wechatHarness: native, compatibility, actualWechatSimulator: report.actualWechatSimulator, physicalDevice: report.physicalDevice }, null, 2));
-  } finally { if (browser) await browser.close(); await new Promise((resolve) => server.close(resolve)); }
+  } finally {
+    if (browser) {
+      // A disconnected Chrome can leave its close acknowledgement pending.
+      // Do not keep the completed report's HTTP server alive indefinitely.
+      let timer;
+      try { await Promise.race([browser.close(), new Promise((resolve) => { timer = setTimeout(resolve, 5000); })]); }
+      finally { clearTimeout(timer); }
+    }
+    if (server.closeAllConnections) server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
 }
 main().catch((error) => { console.error(error); process.exitCode = 1; });

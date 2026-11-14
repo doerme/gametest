@@ -145,8 +145,12 @@ class TitleCatPresentation {
     const spell = this.spell, region = this.regions[this.edge];
     this.cat.getObjectByName('castTip').getWorldPosition(this.origin);
     spell.origin = this.origin.clone();
-    const margin = Math.min(23, region.width / 2);
-    const x = clamp(this.origin.x / UNIT + 44, region.x + margin, region.x + region.width - margin);
+    const direction = this.origin.x < this.root.position.x ? -1 : 1;
+    const originX = this.origin.x / UNIT;
+    const available = direction < 0 ? originX - region.x : region.x + region.width - originX;
+    const margin = Math.min(23, Math.max(7, available * 0.45), region.width / 2);
+    const candidate = clamp(originX + direction * 44, region.x + margin, region.x + region.width - margin);
+    const x = direction < 0 ? Math.min(originX, candidate) : Math.max(originX, candidate);
     const screenY = this.height - this.origin.y / UNIT;
     const y = clamp(screenY + (this.edge === 'upper' ? 10 : 4), region.y + 23, region.y + region.height - 23);
     spell.target = new THREE.Vector3(x * UNIT, (this.height - y) * UNIT, 1);
